@@ -1,0 +1,96 @@
+<odoo>
+    <!-- Hall Booking Form View -->
+    <record id="view_hall_booking_form" model="ir.ui.view">
+        <field name="name">idil.hall.booking.form</field>
+        <field name="model">idil.hall.booking</field>
+        <field name="arch" type="xml">
+            <form string="Hall Booking" class="oe_form">
+                <sheet>
+                    <header>
+                        <button name="%(action_hall_booking_payment_wizard)d" string="Add Payment" type="action"
+                                class="btn-primary"/>
+
+                        <field name="status" widget="statusbar" statusbar_visible="draft,booked,confirmed,canceled"
+                               readonly="1"/>
+                    </header>
+                    <h1>
+                        <field name="name" placeholder="Booking Number"/>
+
+                    </h1>
+
+                    <!-- Organizing Fields into Two Columns -->
+                    <group>
+                        <group string="Customer and Booking Details" col="2">
+                            <field name="customer_id" placeholder="Select Customer"/>
+                            <field name="hall_id" placeholder="Select Hall"/>
+                            <field name="booking_date" widget="date" placeholder="Select Booking Date"/>
+                            <field name="start_time" widget="datetime" placeholder="Start Time"/>
+                            <field name="end_time" widget="datetime" placeholder="End Time"/>
+                        </group>
+
+                        <group string="Payment and Pricing Information" col="2">
+                            <field name="no_of_guest" placeholder="Enter Number of Guests"/>
+                            <field name="total_price" readonly="1" class="oe_inline"/>
+                            <field name="payment_method_id" placeholder="Select Payment Method"/>
+                            <field name="account_number" placeholder="Account Number"/>
+                            <field name="amount" class="oe_inline"/>
+                            <field name="amount_paid" readonly="1" class="oe_inline"/>
+                            <field name="remaining_amount" readonly="1" class="oe_inline"/>
+                        </group>
+                    </group>
+
+
+                    <!-- One2many field to show payments -->
+                    <group string="Payments">
+                        <field name="payment_ids">
+                            <tree create="false" edit="true" delete="true"> <!-- Enabled edit -->
+                                <field name="payment_date"/>
+                                <field name="amount" sum="Total"/>
+                                <field name="payment_method_id"/>
+                                <field name="payment_reference"/>
+                            </tree>
+                        </field>
+                    </group>
+
+                    <separator string="Additional Information" colspan="2"/>
+
+                    <!-- Read-only fields for additional details -->
+                    <group>
+                        <field name="duration" readonly="1" string="Duration (Hours)" class="oe_inline"/>
+                        <field name="status" readonly="1" class="oe_inline"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Hall Booking Tree View -->
+    <record id="view_hall_booking_tree" model="ir.ui.view">
+        <field name="name">idil.hall.booking.tree</field>
+        <field name="model">idil.hall.booking</field>
+        <field name="arch" type="xml">
+            <tree string="Hall Bookings">
+                <field name="name"/>
+                <field name="customer_id"/>
+                <field name="hall_id"/>
+                <field name="booking_date"/>
+                <field name="start_time"/>
+                <field name="end_time"/>
+                <field name="duration"/>
+                <field name="no_of_guest"/>
+                <field name="total_price"/>
+                <field name="status"/>
+                <field name="amount_paid"/>
+                <field name="remaining_amount"/>
+            </tree>
+        </field>
+    </record>
+
+
+    <!-- Hall Booking Action -->
+    <record id="action_hall_booking" model="ir.actions.act_window">
+        <field name="name">Hall Bookings</field>
+        <field name="res_model">idil.hall.booking</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

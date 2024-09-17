@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<odoo>
+    <data>
+        <!-- Product Tree View -->
+        <record id="view_product_tree" model="ir.ui.view">
+            <field name="name">product.tree</field>
+            <field name="model">my_product.product</field>
+            <field name="arch" type="xml">
+                <tree string="view_product_tree" delete="False">
+                    <field name="name"/>
+                    <field name="category_id"/>
+                    <field name="detailed_type"/>
+                    <field name="sale_price"/>
+                </tree>
+            </field>
+        </record>
+        <!-- Product Form View -->
+        <record id="view_product_form" model="ir.ui.view">
+            <field name="name">product.form</field>
+            <field name="model">my_product.product</field>
+            <field name="arch" type="xml">
+                <form>
+                    <header>
+                        <button string="Product Information" class="oe_highlight" colspan="4"/>
+                    </header>
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="name"/>
+                            </group>
+                            <group>
+                                <field name="image_1920" class="o_kanban_image_fill_left d-block"
+                                       widget="image" options="{'size': [200, 200], 'zoom': true, 'zoom_delay': 5}"
+                                       style="width: 200px; height: 200px;"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <!-- Inventory Information Page -->
+                            <page string="Menu Information">
+                                <group>
+                                    <group>
+                                        <field name="detailed_type"/>
+                                    </group>
+                                    <group>
+                                        <field name="category_id"/>
+                                    </group>
+                                    <group>
+                                        <field name="pos_categ_ids" widget="many2many_tags" string="POS Menu"/>
+                                        <field name="uom_id"/>
+                                    </group>
+                                </group>
+                                <group>
+                                    <group>
+                                        <field name="sale_price"/>
+                                    </group>
+
+                                    <group>
+                                        <field name="income_account_id"/>
+                                    </group>
+
+                                </group>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+        <!-- Product Action -->
+        <record id="action_view_product" model="ir.actions.act_window">
+            <field name="name">Products</field>
+            <field name="res_model">my_product.product</field>
+            <field name="view_mode">tree,form</field>
+            <field name="help" type="html">
+                <p class="oe_view_nocontent_create">
+                    Click to create a new product.
+                </p>
+            </field>
+        </record>
+
+    </data>
+</odoo>

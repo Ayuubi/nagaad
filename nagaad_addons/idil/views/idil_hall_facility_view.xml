@@ -1,0 +1,38 @@
+<odoo>
+    <!-- Hall Facility Form View -->
+    <record id="view_hall_facility_form" model="ir.ui.view">
+        <field name="name">idil.hall.facility.form</field>
+        <field name="model">idil.hall.facility</field>
+        <field name="arch" type="xml">
+            <form string="Hall Facility">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="description"/>
+                        <field name="price"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Hall Facility Tree View -->
+    <record id="view_hall_facility_tree" model="ir.ui.view">
+        <field name="name">idil.hall.facility.tree</field>
+        <field name="model">idil.hall.facility</field>
+        <field name="arch" type="xml">
+            <tree string="Facilities">
+                <field name="name"/>
+                <field name="description"/>
+                <field name="price"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Hall Facility Action -->
+    <record id="action_hall_facility" model="ir.actions.act_window">
+        <field name="name">Facilities</field>
+        <field name="res_model">idil.hall.facility</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

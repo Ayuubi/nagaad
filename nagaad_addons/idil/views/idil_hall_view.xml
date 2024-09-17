@@ -1,0 +1,68 @@
+<odoo>
+    <!-- Hall Form View -->
+    <record id="view_hall_form" model="ir.ui.view">
+        <field name="name">idil.hall.form</field>
+        <field name="model">idil.hall</field>
+        <field name="arch" type="xml">
+            <form string="Hall" class="oe_kanban_global_click">
+                <header>
+                    <field name="availability" widget="statusbar" statusbar_visible="available,booked,maintenance"/>
+                </header>
+                <sheet>
+                    <!-- Top Section with Hall Details -->
+                    <div class="oe_title">
+                        <label for="name" string="Hall Name"/>
+                        <h1>
+                            <field name="name" class="o_field_char o_field_widget"/>
+                        </h1>
+                    </div>
+
+                    <!-- Adding Tabs for Better UI -->
+                    <notebook>
+                        <!-- General Information Tab -->
+                        <page string="General Information">
+                            <group>
+                                <group>
+                                    <field name="location" placeholder="Enter hall location here"/>
+                                    <field name="capacity"/>
+                                    <field name="price_per_hour" widget="monetary"
+                                           options="{'currency_field': 'currency_id'}"/>
+                                </group>
+                                <group>
+                                    <field name="facilities" widget="many2many_tags" placeholder="Add facilities"/>
+                                    <field name="income_account_id" placeholder="Account Number"/>
+                                    <field name="Receivable_account_id" placeholder="Receivable Number"/>
+
+
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Hall Tree View -->
+    <record id="view_hall_tree" model="ir.ui.view">
+        <field name="name">idil.hall.tree</field>
+        <field name="model">idil.hall</field>
+        <field name="arch" type="xml">
+            <tree string="Halls" decoration-success="availability == 'available'"
+                  decoration-danger="availability == 'booked'" decoration-warning="availability == 'maintenance'">
+                <field name="name"/>
+                <field name="location"/>
+                <field name="capacity"/>
+                <field name="price_per_hour" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="availability"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Hall Action -->
+    <record id="action_hall" model="ir.actions.act_window">
+        <field name="name">Halls</field>
+        <field name="res_model">idil.hall</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

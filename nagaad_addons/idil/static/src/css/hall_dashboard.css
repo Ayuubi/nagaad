@@ -1,0 +1,35 @@
+.o_kanban_card {
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: #f9f9f9;
+}
+
+.o_kanban_title {
+    display: flex;
+    justify-content: space-between;
+}
+
+.o_stat_value {
+    font-size: 24px;
+    color: #555;
+    font-weight: bold;
+}
+
+.badge {
+    font-size: 12px;
+    padding: 5px 10px;
+}
+
+.badge-success {
+    background-color: #28a745;
+}
+
+.badge-danger {
+    background-color: #dc3545;
+}
+
+.badge-warning {
+    background-color: #ffc107;
+}

@@ -1,0 +1,6 @@
+<odoo>
+    <record id="group_xisaabiye" model="res.groups">
+        <field name="name">Xisaabiye</field>
+        <field name="category_id" ref="base.module_category_user_type"/>
+    </record>
+</odoo>

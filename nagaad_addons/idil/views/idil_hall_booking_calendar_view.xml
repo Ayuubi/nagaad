@@ -1,0 +1,26 @@
+<odoo>
+    <!-- Hall Booking Calendar View -->
+    <record id="view_hall_booking_calendar" model="ir.ui.view">
+        <field name="name">idil.hall.booking.calendar</field>
+        <field name="model">idil.hall.booking</field>
+        <field name="arch" type="xml">
+            <calendar string="Hall Bookings"
+                      date_start="start_time"
+                      date_stop="end_time"
+                      color="hall_id">
+                <field name="customer_id"/>
+                <field name="hall_id"/>
+                <field name="status"/>
+            </calendar>
+        </field>
+    </record>
+
+
+    <!-- Hall Booking Action with Calendar View -->
+    <record id="action_hall_booking" model="ir.actions.act_window">
+        <field name="name">Hall Bookings</field>
+        <field name="res_model">idil.hall.booking</field>
+        <field name="view_mode">calendar,tree,form</field>
+        <field name="view_id" ref="view_hall_booking_calendar"/>
+    </record>
+</odoo>
