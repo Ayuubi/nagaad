@@ -1,6 +1,4 @@
 from odoo import models, fields, api
-from datetime import timedelta
-
 from odoo.exceptions import ValidationError
 
 
@@ -26,5 +24,27 @@ class HallSchedule(models.Model):
 
     @api.model
     def create(self, vals):
-        """ Create the schedule without checking for overlapping times. """
-        return super(HallSchedule, self).create(vals)
+        """ Create the schedule and update the hall availability if the status is 'available'. """
+        # Call the original create method to create the schedule
+        schedule = super(HallSchedule, self).create(vals)
+
+        # If the status is 'available', update the hall's availability
+        if schedule.status == 'available':
+            schedule.hall_id.availability = 'available'
+
+        if schedule.status == 'maintenance':
+            schedule.hall_id.availability = 'maintenance'
+        return schedule
+
+    @api.model
+    def write(self, vals):
+        """ Ensure that when the status is set to 'available',
+        the corresponding hall's availability is also updated. """
+        result = super(HallSchedule, self).write(vals)
+        for schedule in self:
+            if vals.get('status') == 'available':
+                schedule.hall_id.availability = 'available'
+
+            if schedule.status == 'maintenance':
+                schedule.hall_id.availability = 'maintenance'
+        return result

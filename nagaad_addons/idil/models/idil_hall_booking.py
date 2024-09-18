@@ -39,7 +39,23 @@ class HallBooking(models.Model):
 
     @api.model
     def create(self, vals):
-        # Check if the selected hall is already booked
+        hall = self.env['idil.hall'].browse(vals.get('hall_id'))
+
+        # Check if the hall is under maintenance by checking its availability
+        if hall.availability == 'maintenance':
+            # Fetch the maintenance schedule for this hall to get the maintenance end time
+            maintenance_schedule = self.env['idil.hall.schedule'].search([
+                ('hall_id', '=', hall.id),
+                ('status', '=', 'maintenance')
+            ], order='end_time desc', limit=1)
+
+            if maintenance_schedule:
+                raise ValidationError(
+                    "The selected hall is currently under maintenance and will be available after {}.".format(
+                        maintenance_schedule.end_time
+                    )
+                )
+
         # Check if the selected hall is already booked
         hall = self.env['idil.hall'].browse(vals.get('hall_id'))
         if hall.availability == 'booked':
