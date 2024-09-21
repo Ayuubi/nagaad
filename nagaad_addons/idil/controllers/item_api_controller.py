@@ -2,7 +2,6 @@ from odoo import http
 from odoo.http import request, Response
 import json
 
-
 class ItemAPIController(http.Controller):
 
     # GET all items
@@ -17,8 +16,8 @@ class ItemAPIController(http.Controller):
                 'description': item.description,
                 'item_type': item.item_type,
                 'quantity': item.quantity,
-                'purchase_date': item.purchase_date,
-                'expiration_date': item.expiration_date,
+                'purchase_date': item.purchase_date.strftime('%Y-%m-%d') if item.purchase_date else None,
+                'expiration_date': item.expiration_date.strftime('%Y-%m-%d') if item.expiration_date else None,
                 'cost_price': item.cost_price,
                 'total_price': item.total_price,
                 'days_until_expiration': item.days_until_expiration,
@@ -31,15 +30,15 @@ class ItemAPIController(http.Controller):
         item = request.env['idil.item'].sudo().browse(item_id)
         if not item:
             return Response(json.dumps({'error': 'Item not found'}), status=404, content_type='application/json')
-        
+
         item_data = {
             'id': item.id,
             'name': item.name,
             'description': item.description,
             'item_type': item.item_type,
             'quantity': item.quantity,
-            'purchase_date': item.purchase_date,
-            'expiration_date': item.expiration_date,
+            'purchase_date': item.purchase_date.strftime('%Y-%m-%d') if item.purchase_date else None,
+            'expiration_date': item.expiration_date.strftime('%Y-%m-%d') if item.expiration_date else None,
             'cost_price': item.cost_price,
             'total_price': item.total_price,
             'days_until_expiration': item.days_until_expiration,
@@ -75,7 +74,7 @@ class ItemAPIController(http.Controller):
         item = request.env['idil.item'].sudo().browse(item_id)
         if not item:
             return json.dumps({'error': 'Item not found'})
-        
+
         try:
             # Update the item with the provided JSON data
             item.write({
@@ -102,11 +101,9 @@ class ItemAPIController(http.Controller):
         item = request.env['idil.item'].sudo().browse(item_id)
         if not item:
             return json.dumps({'error': 'Item not found'})
-        
+
         try:
             item.unlink()
             return json.dumps({'success': True})
         except Exception as e:
             return json.dumps({'error': str(e)})
-
-
