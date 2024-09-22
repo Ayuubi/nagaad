@@ -5,7 +5,7 @@ import json
 class ItemAPIController(http.Controller):
 
     # GET all items
-    @http.route('/api/items', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/items/get_items', type='http', auth='public', methods=['GET'], csrf=False)
     def get_items(self, **kwargs):
         items = request.env['idil.item'].sudo().search([])
         items_data = []
@@ -25,7 +25,7 @@ class ItemAPIController(http.Controller):
         return Response(json.dumps(items_data), content_type='application/json')
 
     # GET single item by ID
-    @http.route('/api/items/<int:item_id>', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/items/get_item/<int:item_id>', type='http', auth='public', methods=['GET'], csrf=False)
     def get_item(self, item_id, **kwargs):
         item = request.env['idil.item'].sudo().browse(item_id)
         if not item:
@@ -46,7 +46,7 @@ class ItemAPIController(http.Controller):
         return Response(json.dumps(item_data), content_type='application/json')
 
     # POST to create a new item
-    @http.route('/api/items', type='json', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/items/create_item', type='json', auth='public', methods=['POST'], csrf=False)
     def create_item(self, **post):
         try:
             # Create a new item using the provided JSON data
@@ -69,7 +69,7 @@ class ItemAPIController(http.Controller):
             return json.dumps({'error': str(e)})
 
     # PUT to update an existing item
-    @http.route('/api/items/<int:item_id>', type='json', auth='public', methods=['PUT'], csrf=False)
+    @http.route('/api/items/update_item/<int:item_id>', type='json', auth='public', methods=['PUT'], csrf=False)
     def update_item(self, item_id, **post):
         item = request.env['idil.item'].sudo().browse(item_id)
         if not item:
@@ -96,7 +96,7 @@ class ItemAPIController(http.Controller):
             return json.dumps({'error': str(e)})
 
     # DELETE to remove an existing item
-    @http.route('/api/items/<int:item_id>', type='json', auth='public', methods=['DELETE'], csrf=False)
+    @http.route('/api/items/dete_item/<int:item_id>', type='json', auth='public', methods=['DELETE'], csrf=False)
     def delete_item(self, item_id, **kwargs):
         item = request.env['idil.item'].sudo().browse(item_id)
         if not item:
