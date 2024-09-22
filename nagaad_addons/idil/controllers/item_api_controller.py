@@ -96,7 +96,7 @@ class ItemAPIController(http.Controller):
             return json.dumps({'error': str(e)})
 
     # DELETE to remove an existing item
-    @http.route('/api/items/dete_item/<int:item_id>', type='json', auth='public', methods=['DELETE'], csrf=False)
+    @http.route('/api/items/delete_item/<int:item_id>', type='json', auth='public', methods=['DELETE'], csrf=False)
     def delete_item(self, item_id, **kwargs):
         item = request.env['idil.item'].sudo().browse(item_id)
         if not item:
