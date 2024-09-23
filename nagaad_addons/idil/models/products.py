@@ -6,6 +6,7 @@ class Product(models.Model):
     _description = 'Product'
 
     name = fields.Char(string='Product Name', required=True)
+    internal_reference = fields.Char(string='Internal Reference', required=True)
     category_id = fields.Many2one('product.category', string='Product Category')
     # New field for POS categories
     available_in_pos = fields.Boolean(string='Available in POS', default=True)
@@ -32,6 +33,16 @@ class Product(models.Model):
 
     @api.model
     def create(self, vals):
+        if 'internal_reference' not in vals or not vals['internal_reference']:
+            # Generate the next internal reference
+            last_product = self.search([], order='id desc', limit=1)
+            if last_product:
+                # Assuming the internal reference is a numeric value
+                last_id = int(last_product.internal_reference) if last_product.internal_reference.isdigit() else 0
+                vals['internal_reference'] = str(last_id + 1)
+            else:
+                vals['internal_reference'] = '1'  # Start from 1 if no product exists
+
         res = super(Product, self).create(vals)
         res._sync_with_odoo_product()
         return res
