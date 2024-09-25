@@ -33,8 +33,6 @@ idil.access_idil_journal_entry_line,access_idil_journal_entry_line,idil.model_id
 idil.access_idil_vendor_transaction,access_idil_vendor_transaction,idil.model_idil_vendor_transaction,base.group_user,1,1,1,1
 idil.access_idil_vendor_payment,access_idil_vendor_payment,idil.model_idil_vendor_payment,base.group_user,1,1,1,1
 idil.access_idil_trial_balance_wizard,access_idil_trial_balance_wizard,idil.model_idil_trial_balance_wizard,base.group_user,1,1,1,1
-idil.access_idil_balance_sheet_report,access_idil_balance_sheet_report,idil.model_idil_balance_sheet_report,base.group_user,1,1,1,1
-idil.access_report_currency_wizard,access_report_currency_wizard,idil.model_report_currency_wizard,base.group_user,1,1,1,1
 idil.access_report_income_currency_wizard,access_report_income_currency_wizard,idil.model_report_income_currency_wizard,base.group_user,1,1,1,1
 idil.access_idil_commission,access_idil_commission,idil.model_idil_commission,base.group_user,1,1,1,1
 idil.access_idil_commission_payment,access_idil_commission_payment,idil.model_idil_commission_payment,base.group_user,1,1,1,1

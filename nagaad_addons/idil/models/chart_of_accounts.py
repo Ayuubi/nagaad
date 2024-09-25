@@ -15,160 +15,6 @@ class AccountHeader(models.Model):
 
     sub_header_ids = fields.One2many('idil.chart.account.subheader', 'header_id', string='Sub Headers')
 
-    @api.model
-    def get_bs_report_data(self, currency_id, report_date):
-        headers = self.search([])
-        report_data = []
-        currency_obj = self.env['res.currency'].browse(currency_id)
-
-        for header in headers:
-            header_total = 0
-            subheaders_data = []
-
-            for subheader in header.sub_header_ids:
-                subheader_total = 0
-                accounts_data = []
-                currency_symbol = currency_obj.symbol  # Default to the report's main currency symbol
-
-                for account in subheader.account_ids:
-                    if account.FinancialReporting == 'BS' and account.currency_id.id == currency_id:
-                        balance = account.get_balance_as_of_date(report_date)  # Modify this method to handle date
-                        formatted_balance = "{:,.2f}".format(balance)
-
-                        accounts_data.append({
-                            'account_code': account.code,
-                            'account_name': account.name,
-                            'balance': formatted_balance,
-                            'currency_symbol': account.currency_id.symbol
-                        })
-                        subheader_total += balance
-
-                if accounts_data:
-                    currency_symbol = accounts_data[-1]['currency_symbol']
-                    formatted_subheader_total = "{:,.2f}".format(subheader_total)
-
-                    subheaders_data.append({
-                        'sub_header_name': subheader.name,
-                        'accounts': accounts_data,
-                        'sub_header_total': formatted_subheader_total,
-                        'currency_symbol': currency_symbol
-                    })
-
-                header_total += subheader_total
-                formatted_header_total = "{:,.2f}".format(header_total)
-
-            if subheaders_data:
-                report_data.append({
-                    'header_name': header.name,
-                    'sub_headers': subheaders_data,
-                    'header_total': formatted_header_total,
-                    'currency_symbol': currency_obj.symbol
-                })
-
-        return report_data
-
-    # @api.model
-    # def get_pl_report_data(self, currency_id, report_date):
-    #     # Fetch income headers (code starts with '4')
-    #     income_headers = self.search([('code', 'like', '4%')])
-    #
-    #     # Fetch expense headers (code starts with '5' or '6')
-    #     expense_headers = self.search([('code', 'in', ['5', '6'])])
-    #
-    #     report_data = []
-    #     currency_obj = self.env['res.currency'].browse(currency_id)
-    #
-    #     # Process income headers first
-    #     for header in income_headers:
-    #         header_data = {
-    #             'header_name': header.name,
-    #             'subheaders': []
-    #         }
-    #         for subheader in header.sub_header_ids:
-    #             subheader_data = {
-    #                 'sub_header_name': subheader.name,
-    #                 'accounts': [],
-    #                 'subheader_total': 0.0
-    #             }
-    #             for account in subheader.account_ids:
-    #                 if account.currency_id.id == currency_id:
-    #                     balance = account.get_balance_as_of_date(report_date)
-    #                     subheader_data['accounts'].append({
-    #                         'account_code': account.code,
-    #                         'account_name': account.name,
-    #                         'balance': "{:,.2f}".format(balance),
-    #                         'currency_symbol': account.currency_id.symbol
-    #                     })
-    #                     subheader_data['subheader_total'] += balance
-    #
-    #             # Format subheader total
-    #             subheader_data['subheader_total'] = "{:,.2f}".format(subheader_data['subheader_total'])
-    #             header_data['subheaders'].append(subheader_data)
-    #
-    #         report_data.append(header_data)
-    #
-    #     # Process expense headers after income headers
-    #     for header in expense_headers:
-    #         header_data = {
-    #             'header_name': header.name,
-    #             'subheaders': []
-    #         }
-    #         for subheader in header.sub_header_ids:
-    #             subheader_data = {
-    #                 'sub_header_name': subheader.name,
-    #                 'accounts': [],
-    #                 'subheader_total': 0.0
-    #             }
-    #             for account in subheader.account_ids:
-    #                 if account.currency_id.id == currency_id:
-    #                     balance = account.get_balance_as_of_date(report_date)
-    #                     subheader_data['accounts'].append({
-    #                         'account_code': account.code,
-    #                         'account_name': account.name,
-    #                         'balance': "{:,.2f}".format(balance),
-    #                         'currency_symbol': account.currency_id.symbol
-    #                     })
-    #                     subheader_data['subheader_total'] += balance
-    #
-    #             # Format subheader total
-    #             subheader_data['subheader_total'] = "{:,.2f}".format(subheader_data['subheader_total'])
-    #             header_data['subheaders'].append(subheader_data)
-    #
-    #         report_data.append(header_data)
-    #
-    #     return {
-    #         'report_date': report_date,
-    #         'currency_symbol': currency_obj.symbol,
-    #         'report_data': report_data
-    #     }
-
-
-class ReportCurrencyWizard(models.TransientModel):
-    _name = 'report.currency.wizard'
-    _description = 'Currency Selection Wizard for Reports'
-
-    currency_id = fields.Many2one('res.currency', string='Currency', required=True,
-                                  help='Select the currency for the report.')
-    report_date = fields.Date(string="Report Date", required=True,
-                              default=fields.Date.context_today,
-                              help="Select the date for which the report is to be generated.")
-
-    def generate_report(self):
-        self.ensure_one()
-        data = {
-            'currency_id': self.currency_id.id,
-            'report_name': 'Balance Sheet for ' + self.currency_id.name,  # Custom dynamic report name based on currency
-            'report_date': self.report_date  # Pass the selected date to the report
-        }
-        context = dict(self.env.context, currency_id=self.currency_id.id)
-        return {
-            'type': 'ir.actions.report',
-            'report_name': 'idil.report_bs_template',
-            'report_type': 'qweb-html',
-            'context': context,
-            'data': data
-        }
-
 
 class IncomeReportCurrencyWizard(models.TransientModel):
     _name = 'report.income.currency.wizard'
@@ -282,6 +128,106 @@ class Account(models.Model):
     transaction_bookingline_ids = fields.One2many(
         'idil.transaction_bookingline', 'account_number', string='Transaction Booking Lines'
     )
+
+    @api.model
+    def get_balance_sheet_data(self):
+        """
+        Dynamically fetch and calculate the balances for assets, liabilities, and equity,
+        using only accounts where FinancialReporting is 'BS', showing only accounts with non-zero balances.
+        Ensures that total liabilities + equity ± net profit/loss reflects non-zero values.
+        """
+
+        # Get today's date
+        today = fields.Date.context_today(self)
+
+        # If as_of_date is not provided, use today's date
+        as_of_date = self.env.context.get('as_of_date', today)
+        company = self.env.company  # Get the current company
+
+        result = {
+            'headers': [],
+            'profit_loss': 0.0,
+            'total_liabilities': 0.0,
+            'total_equity': 0.0,  # Store total equity (without profit/loss adjustment)
+            'total_owners_equity': 0.0,  # Store total equity after adjusting with profit/loss
+            'total_liabilities_equity': 0.0,  # Store total of liabilities and equity adjusted by profit/loss
+            'as_of_date': as_of_date,  # Pass as_of_date to the template
+            'company': company  # Pass the company data to the template
+
+        }
+
+        # Fetching only accounts with FinancialReporting = 'BS'
+        account_obj = self.env['idil.chart.account']
+        bs_accounts = account_obj.search([('FinancialReporting', '=', 'BS')])
+
+        # Group accounts by their header and subheader
+        account_header_obj = self.env['idil.chart.account.header']
+        headers = account_header_obj.search([])  # Get all headers
+
+        for header in headers:
+            header_data = {
+                'header_name': header.name,
+                'subheaders': [],
+                'header_total': 0.0  # To store the total for this header
+            }
+
+            for subheader in header.sub_header_ids:
+                subheader_data = {
+                    'sub_header_name': subheader.name,
+                    'accounts': [],
+                    'subheader_total': 0.0
+                }
+
+                # Fetch only accounts under this subheader and FinancialReporting = 'BS'
+                for account in subheader.account_ids.filtered(lambda a: a.FinancialReporting == 'BS'):
+                    balance = self._compute_account_balance(account)
+
+                    # Only add the account if its balance is non-zero
+                    if balance != 0.0:
+                        subheader_data['accounts'].append({
+                            'account_name': account.name,
+                            'balance': balance,
+                        })
+                        subheader_data['subheader_total'] += balance
+
+                if subheader_data[
+                    'accounts']:  # Only append subheader if it has relevant accounts with non-zero balance
+                    header_data['header_total'] += subheader_data['subheader_total']
+                    header_data['subheaders'].append(subheader_data)
+
+            if header_data['subheaders']:
+                if header.name == 'Liabilities':
+                    result['total_liabilities'] += header_data['header_total']
+                elif header.name == "Owner's Equity":
+                    result['total_equity'] += header_data['header_total']
+
+                result['headers'].append(header_data)
+
+        # Compute Profit/Loss for Income and Expense accounts (starting with '4' and '5')
+        income_accounts = account_obj.search([('code', 'like', '4%')])  # Income accounts
+        expense_accounts = account_obj.search([('code', 'like', '5%')])  # Expense accounts
+
+        total_income = sum(self._compute_account_balance(account) for account in income_accounts)
+        total_expenses = sum(self._compute_account_balance(account) for account in expense_accounts)
+
+        result['profit_loss'] = total_income - total_expenses
+
+        # Calculate total owner's equity (equity + profit/loss)
+        result['total_owners_equity'] = result['total_equity'] + result['profit_loss']
+
+        # Calculate total liabilities + owner's equity
+        result['total_liabilities_equity'] = result['total_liabilities'] + result['total_owners_equity']
+
+        return result
+
+    def _compute_account_balance(self, account):
+        """
+        Compute the balance of an account as sum(debit) - sum(credit)
+        """
+        moves = self.env['idil.transaction_bookingline'].search([('account_number', '=', account.id)])
+        debit = sum(moves.mapped('dr_amount'))
+        credit = sum(moves.mapped('cr_amount'))
+        return abs(debit - credit)
 
     @api.depends('transaction_bookingline_ids.dr_amount', 'transaction_bookingline_ids.cr_amount')
     def _compute_balance(self):

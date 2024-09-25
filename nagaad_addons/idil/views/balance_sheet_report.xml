@@ -1,0 +1,283 @@
+<odoo>
+    <!--    <template id="balance_sheet_report_template">-->
+    <!--        <t t-call="web.html_container">-->
+    <!--            <t t-set="balance_sheet" t-value="docs.get_balance_sheet_data()"/>-->
+    <!--            <div class="page">-->
+    <!--                <h2 style="text-align: center; font-size: 24px;">Balance Sheet Report</h2>-->
+    <!--                <p style="text-align: center;">As of Date:-->
+    <!--                    <t t-esc="balance_sheet['as_of_date']"/>-->
+    <!--                </p>-->
+
+    <!--                &lt;!&ndash; Loop through each Header (Assets, Liabilities, Equity) &ndash;&gt;-->
+    <!--                <t t-foreach="balance_sheet['headers']" t-as="header">-->
+    <!--                    &lt;!&ndash; Header Name &ndash;&gt;-->
+    <!--                    <h3 style="font-size: 20px; color: #337ab7;">-->
+    <!--                        <strong>-->
+    <!--                            <t t-esc="header['header_name']"/>-->
+    <!--                        </strong>-->
+    <!--                    </h3>-->
+
+    <!--                    &lt;!&ndash; Loop through each Subheader under the Header &ndash;&gt;-->
+    <!--                    <t t-foreach="header['subheaders']" t-as="subheader">-->
+    <!--                        &lt;!&ndash; Subheader Name &ndash;&gt;-->
+    <!--                        <h4 style="margin-bottom: 0; color: #555;">-->
+    <!--                            <strong>-->
+    <!--                                <t t-esc="subheader['sub_header_name']"/>-->
+    <!--                            </strong>-->
+    <!--                        </h4>-->
+
+    <!--                        &lt;!&ndash; Accounts for the Subheader &ndash;&gt;-->
+    <!--                        <table class="table table-sm table-striped" style="width: 100%; margin-top: 5px;">-->
+    <!--                            <thead style="background-color: #f2f2f2;">-->
+    <!--                                <tr>-->
+    <!--                                    <th style="padding: 5px; text-align: left;">Account</th>-->
+    <!--                                    <th style="padding: 5px; text-align: right;">Balance</th>-->
+    <!--                                </tr>-->
+    <!--                            </thead>-->
+    <!--                            <tbody>-->
+    <!--                                <t t-foreach="subheader['accounts']" t-as="account">-->
+    <!--                                    <tr>-->
+    <!--                                        <td style="padding: 5px;">-->
+    <!--                                            <t t-esc="account['account_name']"/>-->
+    <!--                                        </td>-->
+    <!--                                        <td style="padding: 5px; text-align: right;">-->
+    <!--                                            <t t-esc="account['balance']"/>-->
+    <!--                                        </td>-->
+    <!--                                    </tr>-->
+    <!--                                </t>-->
+    <!--                            </tbody>-->
+    <!--                        </table>-->
+
+    <!--                        &lt;!&ndash; Subheader Total &ndash;&gt;-->
+    <!--                        <p style="text-align: right; font-weight: bold; margin-top: 10px;">-->
+    <!--                            Subheader Total (<t t-esc="subheader['sub_header_name']"/>):-->
+    <!--                            <t t-esc="subheader['subheader_total']"/>-->
+    <!--                        </p>-->
+
+    <!--                        &lt;!&ndash; Display Net Profit/Loss as an account after Capital subheader &ndash;&gt;-->
+    <!--                        <t t-if="subheader['sub_header_name'] == 'Capital'">-->
+    <!--                            &lt;!&ndash; Net Profit/Loss &ndash;&gt;-->
+    <!--                            <table class="table table-sm table-striped" style="width: 100%; margin-top: 5px;">-->
+    <!--                                <tbody>-->
+    <!--                                    <thead style="background-color: #f2f2f2;">-->
+    <!--                                        <tr>-->
+    <!--                                            <th style="padding: 5px; text-align: left;">Net Profit/Loss</th>-->
+    <!--                                            <th style="padding: 5px; text-align: right;">Balance</th>-->
+    <!--                                        </tr>-->
+    <!--                                    </thead>-->
+    <!--                                    <tr>-->
+
+    <!--                                        <td style="padding: 5px;">Net Profit/Loss</td>-->
+    <!--                                        <td style="padding: 5px; text-align: right;">-->
+    <!--                                            &lt;!&ndash; Conditional formatting for Net Profit/Loss &ndash;&gt;-->
+    <!--                                            <span t-if="balance_sheet['profit_loss'] &gt;= 0"-->
+    <!--                                                  style="color: green; font-weight: bold;">-->
+    <!--                                                <t t-esc="balance_sheet['profit_loss']"/>-->
+    <!--                                            </span>-->
+    <!--                                            <span t-if="balance_sheet['profit_loss'] &lt; 0"-->
+    <!--                                                  style="color: red; font-weight: bold;">-->
+    <!--                                                <t t-esc="balance_sheet['profit_loss']"/>-->
+    <!--                                            </span>-->
+    <!--                                        </td>-->
+    <!--                                    </tr>-->
+    <!--                                </tbody>-->
+    <!--                            </table>-->
+
+    <!--                            &lt;!&ndash; Total Owner's Equity (Adjusted by Profit/Loss) &ndash;&gt;-->
+    <!--                            <p style="text-align: right; font-size: 18px; font-weight: bold; color: #337ab7; margin-top: 10px;">-->
+    <!--                                Total Owner's Equity:-->
+    <!--                                <t t-esc="balance_sheet['total_owners_equity']"/>-->
+    <!--                            </p>-->
+    <!--                        </t>-->
+
+    <!--                    </t>-->
+
+    <!--                    &lt;!&ndash; Header Total with Custom Color (e.g., Green for Assets, Red for Liabilities, etc.) &ndash;&gt;-->
+    <!--                    <p t-if="header['header_name'] == 'Assets'"-->
+    <!--                       style="text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; color: green;">-->
+    <!--                        <t t-esc="header['header_name']"/>-->
+    <!--                        Total:-->
+    <!--                        <t t-esc="header['header_total']"/>-->
+    <!--                    </p>-->
+
+    <!--                    <p t-if="header['header_name'] == 'Liabilities'"-->
+    <!--                       style="text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; color: red;">-->
+    <!--                        <t t-esc="header['header_name']"/>-->
+    <!--                        Total:-->
+    <!--                        <t t-esc="header['header_total']"/>-->
+    <!--                    </p>-->
+
+    <!--                    <p t-if="header['header_name'] == 'Equity'"-->
+    <!--                       style="text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; color: blue;">-->
+    <!--                        <t t-esc="header['header_name']"/>-->
+    <!--                        Total:-->
+    <!--                        <t t-esc="header['header_total']"/>-->
+    <!--                    </p>-->
+
+    <!--                </t>-->
+
+    <!--                &lt;!&ndash; Total Liabilities + Equity + Net Profit/Loss &ndash;&gt;-->
+    <!--                <div class="section">-->
+    <!--                    <p style="text-align: right; font-size: 18px; font-weight: bold; color: #337ab7;">-->
+    <!--                        Total Liabilities + Equity:-->
+    <!--                        <t t-esc="balance_sheet['total_liabilities_equity']"/>-->
+    <!--                    </p>-->
+    <!--                </div>-->
+    <!--            </div>-->
+    <!--        </t>-->
+    <!--    </template>-->
+    <template id="balance_sheet_report_template">
+        <t t-call="web.html_container">
+            <t t-set="balance_sheet" t-value="docs.get_balance_sheet_data()"/>
+            <div class="page">
+                <!-- Company Logo and Name -->
+                <div style="text-align: center;">
+                    <t t-if="balance_sheet['company'].logo">
+                        <img t-att-src="'data:image/png;base64,%s' % (balance_sheet['company'].logo)"
+                             style="max-height: 100px;" alt="Company Logo"/>
+                    </t>
+                    <h2 style="margin-top: 0;">Balance Sheet Report</h2>
+                </div>
+
+                <!-- As of Date: Show the computed or selected as_of_date -->
+                <p style="text-align: center;">As of Date:
+                    <t t-esc="balance_sheet['as_of_date']"/>
+                </p>
+
+                <!-- Loop through each Header (Assets, Liabilities, Equity) -->
+                <t t-foreach="balance_sheet['headers']" t-as="header">
+                    <!-- Header Name -->
+                    <h3 style="font-size: 20px; color: #337ab7;">
+                        <strong>
+                            <t t-esc="header['header_name']"/>
+                        </strong>
+                    </h3>
+
+                    <!-- Loop through each Subheader under the Header -->
+                    <t t-foreach="header['subheaders']" t-as="subheader">
+                        <!-- Subheader Name -->
+                        <h4 style="margin-bottom: 0; color: #555;">
+                            <strong>
+                                <t t-esc="subheader['sub_header_name']"/>
+                            </strong>
+                        </h4>
+
+                        <!-- Accounts for the Subheader -->
+                        <table class="table table-sm table-striped" style="width: 100%; margin-top: 5px;">
+                            <thead style="background-color: #f2f2f2;">
+                                <tr>
+                                    <th style="padding: 5px; text-align: left;">Account</th>
+                                    <th style="padding: 5px; text-align: right;">Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="subheader['accounts']" t-as="account">
+                                    <tr>
+                                        <td style="padding: 5px;">
+                                            <t t-esc="account['account_name']"/>
+                                        </td>
+                                        <td style="padding: 5px; text-align: right;">
+                                            <t t-esc="account['balance']"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+
+                        <!-- Subheader Total -->
+                        <p style="text-align: right; font-weight: bold; margin-top: 10px;">
+                            Subheader Total (<t t-esc="subheader['sub_header_name']"/>):
+                            <t t-esc="subheader['subheader_total']"/>
+                        </p>
+
+                        <!-- Display Net Profit/Loss as an account after Capital subheader -->
+                        <t t-if="subheader['sub_header_name'] == 'Capital'">
+                            <!-- Net Profit/Loss -->
+                            <table class="table table-sm table-striped" style="width: 100%; margin-top: 5px;">
+                                <tbody>
+                                    <thead style="background-color: #f2f2f2;">
+                                        <tr>
+                                            <th style="padding: 5px; text-align: left;">Net Profit/Loss</th>
+                                            <th style="padding: 5px; text-align: right;">Balance</th>
+                                        </tr>
+                                    </thead>
+                                    <tr>
+                                        <td style="padding: 5px;">Net Profit/Loss</td>
+                                        <td style="padding: 5px; text-align: right;">
+                                            <!-- Conditional formatting for Net Profit/Loss -->
+                                            <span t-if="balance_sheet['profit_loss'] &gt;= 0"
+                                                  style="color: green; font-weight: bold;">
+                                                <t t-esc="balance_sheet['profit_loss']"/>
+                                            </span>
+                                            <span t-if="balance_sheet['profit_loss'] &lt; 0"
+                                                  style="color: red; font-weight: bold;">
+                                                <t t-esc="balance_sheet['profit_loss']"/>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <!-- Total Owner's Equity (Adjusted by Profit/Loss) -->
+                            <p style="text-align: right; font-size: 18px; font-weight: bold; color: #337ab7; margin-top: 10px;">
+                                Total Owner's Equity:
+                                <t t-esc="balance_sheet['total_owners_equity']"/>
+                            </p>
+                        </t>
+
+                    </t>
+
+                    <!-- Header Total with Custom Color (e.g., Green for Assets, Red for Liabilities, etc.) -->
+                    <p t-if="header['header_name'] == 'Assets'"
+                       style="text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; color: green;">
+                        <t t-esc="header['header_name']"/>
+                        Total:
+                        <t t-esc="header['header_total']"/>
+                    </p>
+
+                    <p t-if="header['header_name'] == 'Liabilities'"
+                       style="text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; color: red;">
+                        <t t-esc="header['header_name']"/>
+                        Total:
+                        <t t-esc="header['header_total']"/>
+                    </p>
+
+                    <p t-if="header['header_name'] == 'Equity'"
+                       style="text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; color: blue;">
+                        <t t-esc="header['header_name']"/>
+                        Total:
+                        <t t-esc="header['header_total']"/>
+                    </p>
+
+                </t>
+
+                <!-- Total Liabilities + Equity + Net Profit/Loss -->
+                <div class="section">
+                    <p style="text-align: right; font-size: 18px; font-weight: bold; color: #337ab7;">
+                        Total Liabilities + Equity:
+                        <t t-esc="balance_sheet['total_liabilities_equity']"/>
+                    </p>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <report
+            id="balance_sheet_report"
+            model="idil.chart.account"
+            string="Balance Sheet Report"
+            report_type="qweb-html"
+            file="idil.balance_sheet_report_template"
+            name="idil.balance_sheet_report_template"
+    />
+
+
+    <record id="balance_sheet_report_action" model="ir.actions.report">
+        <field name="name">Balance Sheet Report</field>
+        <field name="model">idil.chart.account</field>
+        <field name="report_name">idil.balance_sheet_report_template</field>
+        <field name="report_type">qweb-html</field>
+    </record>
+
+
+</odoo>

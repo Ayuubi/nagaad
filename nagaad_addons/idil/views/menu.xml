@@ -169,10 +169,11 @@
               sequence="-2"
               action="action_open_income_statement_wizard"/>
 
-    <menuitem id="menu_company_balance_sheet_report"
-              name="Balance Sheet -- By Company"
+    <menuitem id="menu_company_balance_sheet"
+              name="Balance Sheet Report -- By Company"
               parent="menu_by_company"
-              sequence="3"/>
+              sequence="-3"
+              action="balance_sheet_report_action"/>
 
     <menuitem id="menu_by_currency"
               name="By Currency"
@@ -184,13 +185,6 @@
               parent="menu_by_currency"
               sequence="1"
               action="action_open_trial_balance_wizard"/>
-
-    <!-- Menu Item Definition -->
-    <menuitem id="menu_balance_sheet_report"
-              name="Balance Sheet -- By Currency"
-              parent="menu_by_currency"
-              action="action_report_currency_wizard"
-              sequence="2"/>
 
 
     <menuitem id="OtherReports"
