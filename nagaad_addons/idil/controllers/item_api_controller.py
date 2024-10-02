@@ -3,6 +3,7 @@ from odoo.http import request, Response
 
 class ItemAPIController(http.Controller):
 
+    
     @http.route('/api/items', type='json', auth='public', methods=['GET'], csrf=False)
     def get_items(self, **kwargs):
         """Fetch all items"""
