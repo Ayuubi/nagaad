@@ -85,6 +85,7 @@
         'views/idil_hall_pricing_rule_view.xml',
         'views/idil_hall_dashboard_view.xml',
         'views/balance_sheet_report.xml',
+        'views/custom_pos_template.xml',
         'views/menu.xml',
     ],
 

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="point_of_sale_index_inherit" inherit_id="point_of_sale.index">
+        <!-- Change the page title -->
+        <xpath expr="//title" position="replace">
+            <title>Nagaad POS</title>
+        </xpath>
+
+        <!-- Update the favicon to use your custom logo -->
+        <xpath expr="//link[@rel='shortcut icon']" position="replace">
+            <link rel="shortcut icon" href="/idil/static/src/img/idil.ico" type="image/x-icon"/>
+
+        </xpath>
+    </template>
+</odoo>
