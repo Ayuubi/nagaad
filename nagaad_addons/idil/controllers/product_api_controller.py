@@ -3,6 +3,7 @@ from odoo.http import request
 import json
 
 
+
 class ProductAPIManager(http.Controller):
     
     @http.route('/product_api_manager/products', type='json', auth='user', methods=['GET'], csrf=False)
