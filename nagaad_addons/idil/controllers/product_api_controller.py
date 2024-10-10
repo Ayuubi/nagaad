@@ -1,6 +1,8 @@
 from odoo import http
 from odoo.http import request, Response
 import json
+import base64
+
 
 
 class ProductAPIController(http.Controller):
