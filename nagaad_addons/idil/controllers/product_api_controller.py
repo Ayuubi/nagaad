@@ -6,7 +6,7 @@ import json
 
 class ProductAPIManager(http.Controller):
     
-    @http.route('/product_api_manager/products', type='json', auth='user', methods=['GET'], csrf=False)
+    @http.route('/api/product/get_products', type='json', auth='public', methods=['GET'], csrf=False)
     def get_products(self):
         products = request.env['my_product.product'].search([])
         product_list = []
@@ -26,7 +26,7 @@ class ProductAPIManager(http.Controller):
             })
         return {'status': 200, 'data': product_list}
 
-    @http.route('/product_api_manager/products', type='json', auth='user', methods=['POST'], csrf=False)
+    @http.route('/api/product/create_product', type='json', auth='public', methods=['POST'], csrf=False)
     def create_product(self, **kwargs):
         try:
             vals = {
@@ -46,7 +46,7 @@ class ProductAPIManager(http.Controller):
         except Exception as e:
             return {'status': 500, 'message': str(e)}
 
-    @http.route('/product_api_manager/products/<int:product_id>', type='json', auth='user', methods=['PUT'], csrf=False)
+    @http.route('/api/product/update_product/<int:product_id>', type='json', auth='public', methods=['PUT'], csrf=False)
     def update_product(self, product_id, **kwargs):
         try:
             product = request.env['my_product.product'].browse(product_id)
@@ -70,7 +70,7 @@ class ProductAPIManager(http.Controller):
         except Exception as e:
             return {'status': 500, 'message': str(e)}
 
-    @http.route('/product_api_manager/products/<int:product_id>', type='json', auth='user', methods=['DELETE'], csrf=False)
+    @http.route('/api/product/delete_products/<int:product_id>', type='json', auth='public', methods=['DELETE'], csrf=False)
     def delete_product(self, product_id):
         try:
             product = request.env['my_product.product'].browse(product_id)
