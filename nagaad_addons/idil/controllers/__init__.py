@@ -1,2 +1,2 @@
 from . import item_api_controller
-from . import product_api_controller.py
+from . import product_api_controller
