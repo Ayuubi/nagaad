@@ -90,6 +90,7 @@
     ],
 
     'controllers': [
-        'controllers/item_api_controller.py',  # Ensure controller is loaded
+        'controllers/item_api_controller.py',
+        'product_api_controller.py'# Ensure controller is loaded
     ],
 }
