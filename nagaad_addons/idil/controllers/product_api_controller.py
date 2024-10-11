@@ -17,10 +17,7 @@ class ProductAPIController(http.Controller):
                     'title': product.name,  # 'name' field from your model
                     'price': product.sale_price,  # 'sale_price' from your model
                     'category': product.category_id.name if product.category_id else '',  # 'category_id' from your model
-                    'thumbnail': f"data:image/png;base64,{base64.b64encode(product.image_1920).decode('utf-8')}" if product.image_1920 else None,  # 'image_1920' as base64
-                    'images': [
-                        f"data:image/png;base64,{base64.b64encode(product.image_1920).decode('utf-8')}" if product.image_1920 else None  # Assuming one image for now
-                    ],
+                    'thumbnail': f"data:image/png;base64,{base64.b64encode(product.image_1920).decode('utf-8')}" if product.image_1920 else None,  
                     'available_in_pos': product.available_in_pos,  # 'available_in_pos' from your model
                     'uom': product.uom_id.name if product.uom_id else ''  # 'uom_id' field from your model
                 })
@@ -42,9 +39,6 @@ class ProductAPIController(http.Controller):
                 'price': product.sale_price,
                 'category': product.category_id.name if product.category_id else '',
                 'thumbnail': f"data:image/png;base64,{base64.b64encode(product.image_1920).decode('utf-8')}" if product.image_1920 else None,
-                'images': [
-                    f"data:image/png;base64,{base64.b64encode(product.image_1920).decode('utf-8')}" if product.image_1920 else None
-                ],
                 'available_in_pos': product.available_in_pos,
                 'uom': product.uom_id.name if product.uom_id else ''
             }
