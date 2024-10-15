@@ -16,6 +16,7 @@ class ProductAPIController(http.Controller):
                     'id': product.id,
                     'title': product.name,  # 'name' field from your model
                     'price': product.sale_price,  # 'sale_price' from your model
+                    'Type' : product.pos_categ_ids,
                     'category': product.category_id.name if product.category_id else '',  # 'category_id' from your model
                     #'thumbnail': f"data:image/png;base64,{base64.b64encode(product.image_1920).decode('utf-8')}" if product.image_1920 else None,  
                     'available_in_pos': product.available_in_pos,  # 'available_in_pos' from your model
