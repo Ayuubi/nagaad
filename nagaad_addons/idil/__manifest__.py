@@ -7,7 +7,7 @@
     'depends': ['mail', 'point_of_sale', 'web'],
     'application': True,
     'sequence': -100,
-    'author': 'MDC',
+    'author': 'mdc',
 
     'assets': {
         'web.assets_common': [
