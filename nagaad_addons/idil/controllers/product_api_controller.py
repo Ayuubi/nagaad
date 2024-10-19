@@ -9,33 +9,33 @@ class ProductAPIController(http.Controller):
     @http.route('/api/products/get_products', type='http', auth='public', methods=['GET'], csrf=False)
     def get_products(self, **kwargs):
         try:
-            products = request.env['my_product.product'].sudo().search([])
+            # Check if a 'type' parameter was provided in the query
+            product_type = kwargs.get('type', None)  # Get the 'type' query parameter
+
+            # Search products, optionally filtering by 'type' (i.e., pos_category)
+            domain = []
+            if product_type:
+                # Filter products whose 'pos_categ_ids' include the selected type (category)
+                domain.append(('pos_categ_ids.name', '=', product_type))
+
+            # Perform the search with or without filtering
+            products = request.env['my_product.product'].sudo().search(domain)
             products_data = []
-            all_types = set()  # Initialize an empty set to store unique types across all products
-            
             for product in products:
-                pos_categories = set(product.pos_categ_ids.mapped('name'))  # Using a set to automatically remove duplicates
-                all_types.update(pos_categories)  # Add product types to the overall set of types
+                pos_categories = product.pos_categ_ids.mapped('name')  # Serialize 'pos_categ_ids'
                 products_data.append({
                     'id': product.id,
                     'title': product.name,  # 'name' field from your model
                     'price': product.sale_price,  # 'sale_price' from your model
-                    'Type': list(pos_categories),  # Convert the set to a list for JSON serialization
+                    'Type': pos_categories,  # Serialized 'pos_categ_ids'
                     'category': product.category_id.name if product.category_id else '',  # 'category_id' from your model
+                    # 'thumbnail': f"data:image/png;base64,{base64.b64encode(product.image_1920).decode('utf-8')}" if product.image_1920 else None,  
                     'available_in_pos': product.available_in_pos,  # 'available_in_pos' from your model
                     'uom': product.uom_id.name if product.uom_id else ''  # 'uom_id' field from your model
                 })
 
-            # Return the unique types in the response along with product data
-            return Response(
-                json.dumps({
-                    'products': products_data, 
-                    'unique_types': list(all_types),  # Return unique types separately
-                    'total': len(products_data)
-                }), 
-                content_type='application/json', 
-                headers={'Access-Control-Allow-Origin': '*'}
-            )
+            # Return the filtered or full list of products
+            return Response(json.dumps({'products': products_data, 'total': len(products_data)}), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
         except Exception as e:
             return Response(json.dumps({'error': str(e)}), status=500, content_type='application/json')
 
@@ -47,13 +47,14 @@ class ProductAPIController(http.Controller):
             if not product.exists():
                 return Response(json.dumps({'error': 'Product not found'}), status=404, content_type='application/json')
 
-            pos_categories = set(product.pos_categ_ids.mapped('name'))  # Using a set to remove duplicates
+            pos_categories = product.pos_categ_ids.mapped('name')  # Serialize 'pos_categ_ids'
             product_data = {
                 'id': product.id,
                 'title': product.name,
                 'price': product.sale_price,
                 'category': product.category_id.name if product.category_id else '',
-                'Type': list(pos_categories),  # Convert set to list for JSON serialization
+                # 'thumbnail': f"data:image/png;base64,{base64.b64encode(product.image_1920).decode('utf-8')}" if product.image_1920 else None,
+                'Type': pos_categories,  # Serialized 'pos_categ_ids'
                 'available_in_pos': product.available_in_pos,
                 'uom': product.uom_id.name if product.uom_id else ''
             }
