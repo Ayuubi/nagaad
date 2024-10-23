@@ -2,14 +2,54 @@ from odoo import http
 from odoo.http import request, Response
 import json
 import base64
- 
+
 class ProductAPIController(http.Controller):
  
-    # GET all products with relevant fields from the Odoo model
-    @http.route('/api/products/get_products', type='http', auth='public', methods=['GET'], csrf=False)
+    # GET products (either all products or a single product by ID)
+    @http.route('/api/products', type='http', auth='public', methods=['GET'], csrf=False)
     def get_products(self, **kwargs):
         try:
-            products = request.env['my_product.product'].sudo().search([])
+            # Initialize the domain for searching products
+            domain = []
+            product_id = kwargs.get('id')  # Get the 'id' query parameter for a specific product
+
+            if product_id:
+                product = request.env['my_product.product'].sudo().browse(int(product_id))
+                if not product.exists():
+                    return Response(json.dumps({'error': 'Product not found'}), status=404, content_type='application/json')
+                
+                # Prepare data for that specific product
+                pos_categories = set(product.pos_categ_ids.mapped('name'))
+                product_data = {
+                    'id': product.id,
+                    'title': product.name,
+                    'price': product.sale_price,
+                    'category': product.category_id.name if product.category_id else '',
+                    'Type': list(pos_categories),
+                    'available_in_pos': product.available_in_pos,
+                    'uom': product.uom_id.name if product.uom_id else ''
+                }
+                return Response(json.dumps(product_data), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
+            
+            # Handle search by various parameters
+            title = kwargs.get('title')
+            price = kwargs.get('price')
+            product_type = kwargs.get('type')
+
+            if title:
+                domain.append(('name', 'ilike', title))  # Search by title (case-insensitive)
+
+            if price:
+                try:
+                    price_value = float(price)  # Convert price to float
+                    domain.append(('sale_price', '=', price_value))  # Search by exact price
+                except ValueError:
+                    return Response(json.dumps({'error': 'Invalid price format'}), status=400, content_type='application/json')
+
+            if product_type:
+                domain.append(('pos_categ_ids.name', '=', product_type))  # Filter by type if specified
+
+            products = request.env['my_product.product'].sudo().search(domain)
             products_data = []
             all_types = set()  # Initialize an empty set to store unique types across all products
  
@@ -23,7 +63,6 @@ class ProductAPIController(http.Controller):
                     'price': product.sale_price,  # 'sale_price' from your model
                     'Type': list(pos_categories),  # Convert set to list for JSON serialization
                     'category': product.category_id.name if product.category_id else '',  # 'category_id' from your model
-                    # 'thumbnail': f"data:image/png;base64,{base64.b64encode(product.image_1920).decode('utf-8')}" if product.image_1920 else None,
                     'available_in_pos': product.available_in_pos,  # 'available_in_pos' from your model
                     'uom': product.uom_id.name if product.uom_id else ''  # 'uom_id' field from your model
                 })
@@ -38,28 +77,5 @@ class ProductAPIController(http.Controller):
                 content_type='application/json', 
                 headers={'Access-Control-Allow-Origin': '*'}
             )
-        except Exception as e:
-            return Response(json.dumps({'error': str(e)}), status=500, content_type='application/json')
- 
-    # GET single product by ID with the relevant fields
-    @http.route('/api/products/get_product/<int:product_id>', type='http', auth='public', methods=['GET'], csrf=False)
-    def get_product(self, product_id, **kwargs):
-        try:
-            product = request.env['my_product.product'].sudo().browse(product_id)
-            if not product.exists():
-                return Response(json.dumps({'error': 'Product not found'}), status=404, content_type='application/json')
- 
-            pos_categories = set(product.pos_categ_ids.mapped('name'))  # Using a set to remove duplicates
-            product_data = {
-                'id': product.id,
-                'title': product.name,
-                'price': product.sale_price,
-                'category': product.category_id.name if product.category_id else '',
-                'Type': list(pos_categories),  # Convert set to list for JSON serialization
-                # 'thumbnail': f"data:image/png;base64,{base64.b64encode(product.image_1920).decode('utf-8')}" if product.image_1920 else None,
-                'available_in_pos': product.available_in_pos,
-                'uom': product.uom_id.name if product.uom_id else ''
-            }
-            return Response(json.dumps(product_data), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
         except Exception as e:
             return Response(json.dumps({'error': str(e)}), status=500, content_type='application/json')
