@@ -34,7 +34,7 @@ class ProductAPIController(http.Controller):
             # Handle search by various parameters
             title = kwargs.get('title')
             price = kwargs.get('price')
-            product_type = kwargs.get('type')
+            product_types = kwargs.get('type')  # Now this can accept multiple types
 
             if title:
                 domain.append(('name', 'ilike', title))  # Search by title (case-insensitive)
@@ -46,8 +46,10 @@ class ProductAPIController(http.Controller):
                 except ValueError:
                     return Response(json.dumps({'error': 'Invalid price format'}), status=400, content_type='application/json')
 
-            if product_type:
-                domain.append(('pos_categ_ids.name', '=', product_type))  # Filter by type if specified
+            if product_types:
+                # Split the types by comma and create a domain condition for each type
+                types_list = [ptype.strip() for ptype in product_types.split(',')]
+                domain.append(('pos_categ_ids.name', 'in', types_list))  # Search by multiple types
 
             products = request.env['my_product.product'].sudo().search(domain)
             products_data = []
