@@ -24,10 +24,7 @@ class ProductAPIController(http.Controller):
                     'id': product.id,
                     'title': product.name,
                     'price': product.sale_price,
-                    'category': product.category_id.name if product.category_id else '',
                     'Type': list(pos_categories),
-                    'available_in_pos': product.available_in_pos,
-                    'uom': product.uom_id.name if product.uom_id else ''
                 }
                 return Response(json.dumps(product_data), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
             
@@ -64,9 +61,6 @@ class ProductAPIController(http.Controller):
                     'title': product.name,  # 'name' field from your model
                     'price': product.sale_price,  # 'sale_price' from your model
                     'Type': list(pos_categories),  # Convert set to list for JSON serialization
-                    'category': product.category_id.name if product.category_id else '',  # 'category_id' from your model
-                    'available_in_pos': product.available_in_pos,  # 'available_in_pos' from your model
-                    'uom': product.uom_id.name if product.uom_id else ''  # 'uom_id' field from your model
                 })
  
             # Return the unique types in the response along with product data
