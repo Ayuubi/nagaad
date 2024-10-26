@@ -15,6 +15,7 @@
                 </tree>
             </field>
         </record>
+        
         <!-- Product Form View -->
         <record id="view_product_form" model="ir.ui.view">
             <field name="name">product.form</field>
@@ -31,8 +32,9 @@
                                 <!-- Hiding internal_reference field -->
                              </group>
                             <group>
-                                <field name="image_1920" class="o_kanban_image_fill_left d-block"
-                                       widget="image" options="{'size': [200, 200], 'zoom': true, 'zoom_delay': 5}"
+                                <!-- Update to use image_url instead of image_1920 -->
+                                <field name="image_url" class="o_kanban_image_fill_left d-block"
+                                       options="{'size': [200, 200], 'zoom': true, 'zoom_delay': 5}"
                                        style="width: 200px; height: 200px;"/>
                             </group>
                         </group>
@@ -55,11 +57,9 @@
                                     <group>
                                         <field name="sale_price"/>
                                     </group>
-
                                     <group>
                                         <field name="income_account_id"/>
                                     </group>
-
                                 </group>
                             </page>
                         </notebook>
@@ -67,6 +67,7 @@
                 </form>
             </field>
         </record>
+        
         <!-- Product Action -->
         <record id="action_view_product" model="ir.actions.act_window">
             <field name="name">Products</field>
@@ -78,6 +79,5 @@
                 </p>
             </field>
         </record>
-
     </data>
 </odoo>
