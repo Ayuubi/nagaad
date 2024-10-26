@@ -27,7 +27,7 @@ class Product(models.Model):
         domain="[('code', 'like', '4')]"  # Domain to filter accounts starting with '4'
     )
 
-    image_url = fields.Char(string='Image URL')  # New field to store the image URL instead of binary
+    image_url = fields.Char(string='Image URL')  # Updated to store image URL instead of binary data
 
     @api.model
     def create(self, vals):
@@ -35,7 +35,6 @@ class Product(models.Model):
             # Generate the next internal reference
             last_product = self.search([], order='id desc', limit=1)
             if last_product:
-                # Assuming the internal reference is a numeric value
                 last_id = int(last_product.internal_reference) if last_product.internal_reference.isdigit() else 0
                 vals['internal_reference'] = str(last_id + 1)
             else:
@@ -52,26 +51,41 @@ class Product(models.Model):
 
     def _sync_with_odoo_product(self):
         ProductProduct = self.env['product.product']
+        type_mapping = {
+            'stockable': 'product',
+            'consumable': 'consu',
+            'service': 'service'
+        }
         for product in self:
             odoo_product = ProductProduct.search([('default_code', '=', product.internal_reference)], limit=1)
-            product_data = {
-                'my_product_id': product.id,
-                'name': product.name,
-                'default_code': product.internal_reference,
-                'type': product.detailed_type,
-                'list_price': product.sale_price,
-                'standard_price': product.sale_price,
-                'categ_id': product.category_id.id,
-                'pos_categ_ids': product.pos_categ_ids,
-                'uom_id': product.uom_id.id if product.uom_id else 1,
-                'available_in_pos': product.available_in_pos,
-                'image_url': product.image_url,  # Using image URL instead of binary image
-            }
-
             if not odoo_product:
-                odoo_product = ProductProduct.create(product_data)
+                odoo_product = ProductProduct.create({
+                    'my_product_id': product.id,
+                    'name': product.name,
+                    'default_code': product.internal_reference,
+                    'type': product.detailed_type,
+                    'list_price': product.sale_price,
+                    'standard_price': product.sale_price,
+                    'categ_id': product.category_id.id,
+                    'pos_categ_ids': product.pos_categ_ids,
+                    'uom_id': 1,
+                    'available_in_pos': product.available_in_pos,
+                    'image_url': product.image_url,  # Use image URL in place of image_1920
+                })
             else:
-                odoo_product.write(product_data)
+                odoo_product.write({
+                    'my_product_id': product.id,
+                    'name': product.name,
+                    'default_code': product.internal_reference,
+                    'type': product.detailed_type,
+                    'list_price': product.sale_price,
+                    'standard_price': product.sale_price,
+                    'categ_id': product.category_id.id,
+                    'pos_categ_ids': product.pos_categ_ids,
+                    'uom_id': 1,
+                    'available_in_pos': product.available_in_pos,
+                    'image_url': product.image_url,  # Use image URL in place of image_1920
+                })
 
 # Extend the `product.product` model with an `image_url` field in the same file
 class ProductProduct(models.Model):
