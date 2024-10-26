@@ -1,6 +1,5 @@
 from odoo import models, fields, api
 
-
 class Product(models.Model):
     _name = 'my_product.product'
     _description = 'Product'
@@ -8,7 +7,6 @@ class Product(models.Model):
     name = fields.Char(string='Product Name', required=True)
     internal_reference = fields.Char(string='Internal Reference', required=True)
     category_id = fields.Many2one('product.category', string='Product Category')
-    # New field for POS categories
     available_in_pos = fields.Boolean(string='Available in POS', default=True)
     pos_categ_ids = fields.Many2many('pos.category', string='POS Categories')
     detailed_type = fields.Selection([
@@ -29,7 +27,7 @@ class Product(models.Model):
         domain="[('code', 'like', '4')]"  # Domain to filter accounts starting with '4'
     )
 
-    image_1920 = fields.Binary(string='Image')  # Assuming you use Odoo's standard image field
+    image_url = fields.Char(string='Image URL')  # New field to store the image URL instead of binary
 
     @api.model
     def create(self, vals):
@@ -54,38 +52,29 @@ class Product(models.Model):
 
     def _sync_with_odoo_product(self):
         ProductProduct = self.env['product.product']
-        type_mapping = {
-            'stockable': 'product',
-            'consumable': 'consu',
-            'service': 'service'
-        }
         for product in self:
             odoo_product = ProductProduct.search([('default_code', '=', product.internal_reference)], limit=1)
+            product_data = {
+                'my_product_id': product.id,
+                'name': product.name,
+                'default_code': product.internal_reference,
+                'type': product.detailed_type,
+                'list_price': product.sale_price,
+                'standard_price': product.sale_price,
+                'categ_id': product.category_id.id,
+                'pos_categ_ids': product.pos_categ_ids,
+                'uom_id': product.uom_id.id if product.uom_id else 1,
+                'available_in_pos': product.available_in_pos,
+                'image_url': product.image_url,  # Using image URL instead of binary image
+            }
+
             if not odoo_product:
-                odoo_product = ProductProduct.create({
-                    'my_product_id': product.id,
-                    'name': product.name,
-                    'default_code': product.internal_reference,
-                    'type': product.detailed_type,
-                    'list_price': product.sale_price,
-                    'standard_price': product.sale_price,
-                    'categ_id': product.category_id.id,
-                    'pos_categ_ids': product.pos_categ_ids,
-                    'uom_id': 1,
-                    'available_in_pos': product.available_in_pos,
-                    'image_1920': product.image_1920,
-                })
+                odoo_product = ProductProduct.create(product_data)
             else:
-                odoo_product.write({
-                    'my_product_id': product.id,
-                    'name': product.name,
-                    'default_code': product.internal_reference,
-                    'type': product.detailed_type,
-                    'list_price': product.sale_price,
-                    'standard_price': product.sale_price,
-                    'categ_id': product.category_id.id,
-                    'pos_categ_ids': product.pos_categ_ids,
-                    'uom_id': 1,
-                    'available_in_pos': product.available_in_pos,
-                    'image_1920': product.image_1920,
-                })
+                odoo_product.write(product_data)
+
+# Extend the `product.product` model with an `image_url` field in the same file
+class ProductProduct(models.Model):
+    _inherit = 'product.product'
+
+    image_url = fields.Char(string='Image URL')  # New field to store the image URL
