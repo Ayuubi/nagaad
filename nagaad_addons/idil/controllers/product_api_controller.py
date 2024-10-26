@@ -18,13 +18,14 @@ class ProductAPIController(http.Controller):
                 if not product.exists():
                     return Response(json.dumps({'error': 'Product not found'}), status=404, content_type='application/json')
                 
-                # Prepare data for that specific product
+                # Prepare data for that specific product, including image URL
                 pos_categories = set(product.pos_categ_ids.mapped('name'))
                 product_data = {
                     'id': product.id,
                     'title': product.name,
                     'price': product.sale_price,
                     'Type': list(pos_categories),
+                    'image_url': product.image_url  # Add image URL to response
                 }
                 return Response(json.dumps(product_data), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
             
@@ -61,6 +62,7 @@ class ProductAPIController(http.Controller):
                     'title': product.name,  # 'name' field from your model
                     'price': product.sale_price,  # 'sale_price' from your model
                     'Type': list(pos_categories),  # Convert set to list for JSON serialization
+                    'image_url': product.image_url  # Add image URL to each product in the list
                 })
  
             # Return the unique types in the response along with product data
