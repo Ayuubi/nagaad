@@ -6,8 +6,9 @@ class OrderAPIController(http.Controller):
 
     @http.route('/api/orders', type='json', auth='public', methods=['POST'], csrf=False)
     def create_order(self, **kwargs):
-        # Retrieve session ID and order details from request
+        # Retrieve session ID, order details, and cashier ID from request
         session_id = kwargs.get('session_id')
+        cashier_id = kwargs.get('cashier_id')  # New parameter for cashier ID
         order_data = kwargs.get('order_data')  # Example: [{'product_id': 1, 'quantity': 2}, ...]
 
         # Check if session exists and is active
@@ -19,6 +20,7 @@ class OrderAPIController(http.Controller):
         try:
             order = request.env['pos.order'].sudo().create({
                 'session_id': pos_session.id,
+                'user_id': cashier_id,  # Assign the cashier who placed the order
                 'lines': [(0, 0, {
                     'product_id': item['product_id'],
                     'qty': item['quantity'],
