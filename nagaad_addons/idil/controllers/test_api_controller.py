@@ -16,7 +16,7 @@ class PosOrderAPI(http.Controller):
                 'name': product.name,
                 'price': product.lst_price,
                 'type': product.categ_id.name,  # You can use product type or category name
-                #'image_url': product.image_1920,  # Adjust as needed for image handling
+                'image_url': product.image_url  # Adjust as needed for image handling
             })
         
         # Return JSON response with products list
