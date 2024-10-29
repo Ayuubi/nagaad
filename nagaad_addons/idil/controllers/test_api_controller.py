@@ -96,6 +96,9 @@ class PosOrderAPI(http.Controller):
                 'name': order_reference  # Set custom order reference
             })
 
+            # Force recompute on the order to update related fields
+            pos_order._compute_fields()
+
             return {
                 'status': 'success',
                 'order_id': pos_order.id,
