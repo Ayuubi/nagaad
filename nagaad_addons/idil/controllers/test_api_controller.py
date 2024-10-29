@@ -59,7 +59,8 @@ class PosOrderAPI(http.Controller):
 
                 pos_order_lines.append((0, 0, {
                     'product_id': product.id,
-                    'name': product.name,  # Setting the product name manually
+                    'name': product.name,
+                    'full_product_name':product.name, # Setting the product name manually
                     'price_unit': price_unit,
                     'qty': quantity,
                     'price_subtotal': price_subtotal,
@@ -80,7 +81,7 @@ class PosOrderAPI(http.Controller):
                 'amount_paid': 0.0,
                 'amount_return': 0.0,
                 'lines': pos_order_lines,
-                'name': order_reference  # Set the custom order reference
+                'name': order_reference  # Set the custom order reference     
             })
 
             # Return success response
