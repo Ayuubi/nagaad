@@ -96,8 +96,8 @@ class PosOrderAPI(http.Controller):
                 'name': order_reference  # Set custom order reference
             })
 
-            # Force recompute on the order to update related fields
-            pos_order._compute_fields()
+            # Optional: Refresh cache to ensure related fields display correctly
+            request.env.cache_invalidated()
 
             return {
                 'status': 'success',
