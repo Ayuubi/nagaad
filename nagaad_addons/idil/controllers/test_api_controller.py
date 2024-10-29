@@ -2,6 +2,7 @@ from odoo import http
 from odoo.http import request
 import json
 import logging
+from datetime import datetime
 
 _logger = logging.getLogger(__name__)
 
@@ -46,8 +47,21 @@ class PosOrderAPI(http.Controller):
             if not pos_session or pos_session.state != 'opened':
                 return {'status': 'error', 'message': 'No valid open POS session found'}
 
+            cashier_name = pos_session.user_id.name  # Retrieve the cashier's name
             total_price = 0
             pos_order_lines = []
+
+            # Get the current timestamp
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+
+            # Get the product category from the first product in the order lines
+            first_product_id = order_lines[0]['product_id']
+            product_category = request.env['product.product'].browse(first_product_id).categ_id.name or "Uncategorized"
+
+            # Generate the order reference
+            last_order = request.env['pos.order'].search([], order='id desc', limit=1)
+            incremental_number = (last_order.id + 1) if last_order else 1
+            order_reference = f"nagaad/{cashier_name}/{product_category}/api/{timestamp}-{incremental_number}"
 
             for line in order_lines:
                 product = request.env['product.product'].browse(line['product_id'])
@@ -78,13 +92,15 @@ class PosOrderAPI(http.Controller):
                 'amount_tax': amount_tax,
                 'amount_paid': 0.0,
                 'amount_return': 0.0,
-                'lines': pos_order_lines
+                'lines': pos_order_lines,
+                'name': order_reference  # Set custom order reference
             })
 
             return {
                 'status': 'success',
                 'order_id': pos_order.id,
-                'session_id': pos_session.id
+                'session_id': pos_session.id,
+                'order_reference': order_reference
             }
 
         except Exception as e:
