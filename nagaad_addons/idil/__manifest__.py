@@ -93,5 +93,6 @@
         'controllers/item_api_controller.py',
         'product_api_controller.py', 
         'order_api_controller.py'
+        'test_api_controller.py'
     ],
 }
