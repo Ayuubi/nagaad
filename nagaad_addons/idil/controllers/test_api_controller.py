@@ -3,6 +3,7 @@ from odoo.http import request
 import json
 import logging
 from datetime import datetime
+import uuid
 
 _logger = logging.getLogger(__name__)
 
@@ -34,17 +35,18 @@ class PosOrderAPI(http.Controller):
             total_price = 0
             pos_order_lines = []
 
-            # Get the current timestamp for the order reference
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            # Get the current timestamp for the order reference with milliseconds for uniqueness
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
+            
+            # Generate a UUID for further uniqueness
+            unique_id = uuid.uuid4().hex[:6]
 
             # Determine the category of the first product in the order lines
             first_product_id = order_lines[0]['product_id']
             product_category = request.env['product.product'].browse(first_product_id).categ_id.name or "Uncategorized"
 
             # Generate a unique order reference
-            last_order = request.env['pos.order'].search([], order='id desc', limit=1)
-            incremental_number = (last_order.id + 1) if last_order else 1
-            order_reference = f"nagaad/{cashier_name}/{product_category}/api/{timestamp}-{incremental_number}"
+            order_reference = f"nagaad/{cashier_name}/{product_category}/api/{timestamp}-{unique_id}"
 
             # Process each order line and add it to pos_order_lines
             for line in order_lines:
@@ -59,8 +61,8 @@ class PosOrderAPI(http.Controller):
 
                 pos_order_lines.append((0, 0, {
                     'product_id': product.id,
-                    'name': product.name,
-                    'full_product_name':product.name, # Setting the product name manually
+                    'name': product.name,  # Setting the product name manually
+                    'full_product_name': product.name,  # Full product name
                     'price_unit': price_unit,
                     'qty': quantity,
                     'price_subtotal': price_subtotal,
