@@ -96,9 +96,6 @@ class PosOrderAPI(http.Controller):
                 'name': order_reference  # Set custom order reference
             })
 
-            # Optional: Refresh cache to ensure related fields display correctly
-            request.env.cache_invalidated()
-
             return {
                 'status': 'success',
                 'order_id': pos_order.id,
