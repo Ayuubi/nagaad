@@ -57,7 +57,6 @@ class PosOrderAPI(http.Controller):
 
         # Set initial amounts for the POS order
         amount_paid = 0.0
-        amount_due = total_price - amount_paid  # amount_due is typically the same as total on creation
         amount_return = 0.0  # No return amount at order creation
 
         # Create the POS order
@@ -67,7 +66,6 @@ class PosOrderAPI(http.Controller):
             'amount_total': total_price,   # Set the total amount
             'amount_tax': amount_tax,      # Set the tax amount as 5% of total
             'amount_paid': amount_paid,    # Set the paid amount to 0.0 initially
-            'amount_due': amount_due,      # Set the due amount
             'amount_return': amount_return,  # Set the return amount to 0.0
             'lines': [(0, 0, {
                 'product_id': line['product_id'],
