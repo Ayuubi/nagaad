@@ -33,14 +33,15 @@ class PosOrderAPI(http.Controller):
 
     @http.route('/api/pos/order', type='json', auth='public', methods=['POST'], csrf=False)
     def create_order(self, **kwargs):
-        """Endpoint to create a POS order."""
-        data = request.httprequest.get_json()  # Alternative to request.jsonrequest
-        
+        """Endpoint to create a POS order with a 5% tax calculation."""
+        data = request.jsonrequest
+        _logger.info("Received data: %s", data)  # Log the request data for debugging
+
         # Fetch necessary data from the request
-        partner_id = data.get('partner_id')
+        partner_id = data.get('partner_id')  # Optional, if you track customers
         order_lines = data.get('order_lines')
-        session_id = data.get('session_id')
-        
+        session_id = data.get('session_id')  # Optional, specify session ID
+
         if not order_lines:
             return {'status': 'error', 'message': 'Order lines cannot be empty'}
         
@@ -49,17 +50,23 @@ class PosOrderAPI(http.Controller):
         if not pos_session or pos_session.state != 'opened':
             return {'status': 'error', 'message': 'No valid open POS session found'}
 
+        # Calculate the total price and amount tax
+        total_price = sum(line['price'] * line['quantity'] for line in order_lines)
+        amount_tax = total_price * 0.05  # 5% tax
+
         # Create the POS order
         pos_order = request.env['pos.order'].create({
             'partner_id': partner_id,
             'session_id': pos_session.id,
+            'amount_total': total_price,  # Set the total amount
+            'amount_tax': amount_tax,     # Set the tax amount as 5% of total
             'lines': [(0, 0, {
                 'product_id': line['product_id'],
                 'price_unit': line['price'],
                 'qty': line['quantity'],
             }) for line in order_lines]
         })
-        
+
         return {
             'status': 'success',
             'order_id': pos_order.id,
