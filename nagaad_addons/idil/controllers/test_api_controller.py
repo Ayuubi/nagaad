@@ -23,7 +23,8 @@ class PosOrderAPI(http.Controller):
         return request.make_response(
             json.dumps({
                 'status': 'success',
-                'products': product_data
+                'products': product_data ,
+                'Type': list(pos_categories)
             }),
             headers={'Content-Type': 'application/json'}
         )
