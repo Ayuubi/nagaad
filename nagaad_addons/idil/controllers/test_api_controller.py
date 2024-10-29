@@ -34,7 +34,8 @@ class PosOrderAPI(http.Controller):
     @http.route('/api/pos/order', type='json', auth='public', methods=['POST'], csrf=False)
     def create_order(self, **kwargs):
         """Endpoint to create a POS order with a 5% tax calculation."""
-        data = request.jsonrequest
+        # Use get_json() instead of jsonrequest to handle JSON data
+        data = request.httprequest.get_json()  
         _logger.info("Received data: %s", data)  # Log the request data for debugging
 
         # Fetch necessary data from the request
