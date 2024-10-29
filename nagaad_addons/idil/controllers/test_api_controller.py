@@ -3,7 +3,7 @@ from odoo.http import request
 import json
 import logging
 
-logger = logging.getLogger(__name_)
+_logger = logging.getLogger(__name__)
 
 class PosOrderAPI(http.Controller):
 
