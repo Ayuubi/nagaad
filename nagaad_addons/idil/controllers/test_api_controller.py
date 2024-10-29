@@ -96,6 +96,9 @@ class PosOrderAPI(http.Controller):
                 'name': order_reference  # Set custom order reference
             })
 
+            # Trigger recompute on related fields
+            pos_order.lines._compute_product_id()
+
             return {
                 'status': 'success',
                 'order_id': pos_order.id,
