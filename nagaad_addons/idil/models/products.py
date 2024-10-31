@@ -5,7 +5,7 @@ import logging
 
 # Initialize Firebase Admin SDK
 if not firebase_admin._apps:
-    cred = credentials.Certificate('/mnt/extra-addons/nagad-f6ebd-firebase-adminsdk-thdw2-8bda9a1d9f.json')
+    cred = credentials.Certificate('/path/to/your/serviceAccountKey.json')
     firebase_admin.initialize_app(cred)
 db = firestore.client()
 
@@ -96,14 +96,9 @@ class Product(models.Model):
         data = {
             'name': product.name,
             'description': product.name,  # Duplicate of name
-            'display_name': product.name,  # Using product name as display_name
-            'email': "ayoubdahir10@gmail.com",  # Hardcoded email
-            'phone_number': "+252614440378",  # Hardcoded phone number
-            'photo_url': product.image_url,  # URL of the product image
-            'price': product.sale_price,
+            'price': product.sale_price,  # Keeping sale_price as a float
             'type': [product.detailed_type],  # Storing type in an array
-            'created_time': "2024-01-01T00:00:00Z",  # Hardcoded created time
-            'uid': "",  # Empty UID as per your structure
+            'image': product.image_url,  # URL of the product image
         }
         _logger.info("Saving product to Firebase: %s", data)
         db.collection('menu').document(str(product.id)).set(data)
@@ -116,14 +111,9 @@ class Product(models.Model):
             data = {
                 'name': product.name,
                 'description': product.name,
-                'display_name': product.name,
-                'email': "ayoubdahir10@gmail.com",
-                'phone_number': "+252614440378",
-                'photo_url': product.image_url,
                 'price': product.sale_price,
                 'type': [product.detailed_type],
-                'created_time': "2024-01-01T00:00:00Z",
-                'uid': "",
+                'image': product.image_url,
             }
             doc_ref = db.collection('menu').document(str(product.id))
             batch.set(doc_ref, data)
