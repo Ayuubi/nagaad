@@ -1,4 +1,11 @@
 from odoo import models, fields, api
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+# Initialize Firebase Admin SDK
+cred = credentials.Certificate('/mnt/extra-addons/nagad-f6ebd-firebase-adminsdk-thdw2-8bda9a1d9f.json')
+firebase_admin.initialize_app(cred)
+db = firestore.client()
 
 class Product(models.Model):
     _name = 'my_product.product'
@@ -13,8 +20,7 @@ class Product(models.Model):
         ('consu', 'Consumable'),
         ('service', 'Service')
     ], string='Product Type', default='consu', required=True,
-        help='A storable product is a product for which you manage stock. The Inventory app has to be installed.\n'
-             'A consumable product is a product for which stock is not managed.\n'
+        help='A consumable product is a product for which stock is not managed.\n'
              'A service is a non-material product you provide.')
 
     sale_price = fields.Float(string='Sales Price', required=True)
@@ -40,9 +46,9 @@ class Product(models.Model):
             else:
                 vals['internal_reference'] = '1'  # Start from 1 if no product exists
 
-        res = super(Product, self).create(vals)
-        res._sync_with_odoo_product()
-        return res
+        product = super(Product, self).create(vals)
+        product._save_product_to_firebase(product)  # Save to Firebase
+        return product
 
     def write(self, vals):
         res = super(Product, self).write(vals)
@@ -86,6 +92,27 @@ class Product(models.Model):
                     'available_in_pos': product.available_in_pos,
                     'image_url': product.image_url,  # Use image URL in place of image_1920
                 })
+
+    def _save_product_to_firebase(self, product):
+        """Save a single product to Firebase."""
+        data = {
+            'name': product.name,
+            'internal_reference': product.internal_reference,
+            'category_id': product.category_id.id,
+            'available_in_pos': product.available_in_pos,
+            'detailed_type': product.detailed_type,
+            'sale_price': product.sale_price,
+            'uom_id': product.uom_id.id,
+            'income_account_id': product.income_account_id.id,
+            'image_url': product.image_url,
+        }
+        db.collection('products').document(str(product.id)).set(data)
+
+    def push_all_products_to_firebase(self):
+        """Push all existing products to Firebase."""
+        products = self.search([])  # Fetch all products
+        for product in products:
+            self._save_product_to_firebase(product)
 
 # Extend the `product.product` model with an `image_url` field in the same file
 class ProductProduct(models.Model):
