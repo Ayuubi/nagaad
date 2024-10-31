@@ -5,7 +5,7 @@ import logging
 
 # Initialize Firebase Admin SDK
 if not firebase_admin._apps:
-    cred = credentials.Certificate('/path/to/your/serviceAccountKey.json')
+    cred = credentials.Certificate('/mnt/extra-addons/nagad-f6ebd-firebase-adminsdk-thdw2-8bda9a1d9f.json')
     firebase_admin.initialize_app(cred)
 db = firestore.client()
 
