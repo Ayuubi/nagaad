@@ -1,11 +1,15 @@
 from odoo import models, fields, api
 import firebase_admin
 from firebase_admin import credentials, firestore
+import logging
 
 # Initialize Firebase Admin SDK
-cred = credentials.Certificate('/mnt/extra-addons/nagad-f6ebd-firebase-adminsdk-thdw2-8bda9a1d9f.json')
-firebase_admin.initialize_app(cred)
+if not firebase_admin._apps:
+    cred = credentials.Certificate('/mnt/extra-addons/nagad-f6ebd-firebase-adminsdk-thdw2-8bda9a1d9f.json')
+    firebase_admin.initialize_app(cred)
 db = firestore.client()
+
+_logger = logging.getLogger(__name__)
 
 class Product(models.Model):
     _name = 'my_product.product'
@@ -30,21 +34,20 @@ class Product(models.Model):
         string='Income Account',
         help='Account to report Sales Income',
         required=True,
-        domain="[('code', 'like', '4')]"  # Domain to filter accounts starting with '4'
+        domain="[('code', 'like', '4')]"
     )
 
-    image_url = fields.Char(string='Image URL')  # Updated to store image URL instead of binary data
+    image_url = fields.Char(string='Image URL')
 
     @api.model
     def create(self, vals):
         if 'internal_reference' not in vals or not vals['internal_reference']:
-            # Generate the next internal reference
             last_product = self.search([], order='id desc', limit=1)
             if last_product:
                 last_id = int(last_product.internal_reference) if last_product.internal_reference.isdigit() else 0
                 vals['internal_reference'] = str(last_id + 1)
             else:
-                vals['internal_reference'] = '1'  # Start from 1 if no product exists
+                vals['internal_reference'] = '1'
 
         product = super(Product, self).create(vals)
         product._save_product_to_firebase(product)  # Save to Firebase
@@ -57,11 +60,6 @@ class Product(models.Model):
 
     def _sync_with_odoo_product(self):
         ProductProduct = self.env['product.product']
-        type_mapping = {
-            'stockable': 'product',
-            'consumable': 'consu',
-            'service': 'service'
-        }
         for product in self:
             odoo_product = ProductProduct.search([('default_code', '=', product.internal_reference)], limit=1)
             if not odoo_product:
@@ -76,7 +74,7 @@ class Product(models.Model):
                     'pos_categ_ids': product.pos_categ_ids,
                     'uom_id': 1,
                     'available_in_pos': product.available_in_pos,
-                    'image_url': product.image_url,  # Use image URL in place of image_1920
+                    'image_url': product.image_url,
                 })
             else:
                 odoo_product.write({
@@ -90,32 +88,50 @@ class Product(models.Model):
                     'pos_categ_ids': product.pos_categ_ids,
                     'uom_id': 1,
                     'available_in_pos': product.available_in_pos,
-                    'image_url': product.image_url,  # Use image URL in place of image_1920
+                    'image_url': product.image_url,
                 })
 
     def _save_product_to_firebase(self, product):
-        """Save a single product to Firebase."""
+        """Save a single product to Firebase, customized to the 'menu' collection."""
         data = {
             'name': product.name,
-            'internal_reference': product.internal_reference,
-            'category_id': product.category_id.id,
-            'available_in_pos': product.available_in_pos,
-            'detailed_type': product.detailed_type,
-            'sale_price': product.sale_price,
-            'uom_id': product.uom_id.id,
-            'income_account_id': product.income_account_id.id,
-            'image_url': product.image_url,
+            'description': product.name,  # Duplicate of name
+            'display_name': product.name,  # Using product name as display_name
+            'email': "ayoubdahir10@gmail.com",  # Hardcoded email
+            'phone_number': "+252614440378",  # Hardcoded phone number
+            'photo_url': product.image_url,  # URL of the product image
+            'price': product.sale_price,
+            'type': [product.detailed_type],  # Storing type in an array
+            'created_time': "2024-01-01T00:00:00Z",  # Hardcoded created time
+            'uid': "",  # Empty UID as per your structure
         }
-        db.collection('products').document(str(product.id)).set(data)
+        _logger.info("Saving product to Firebase: %s", data)
+        db.collection('menu').document(str(product.id)).set(data)
 
     def push_all_products_to_firebase(self):
         """Push all existing products to Firebase."""
+        batch = db.batch()
         products = self.search([])  # Fetch all products
         for product in products:
-            self._save_product_to_firebase(product)
+            data = {
+                'name': product.name,
+                'description': product.name,
+                'display_name': product.name,
+                'email': "ayoubdahir10@gmail.com",
+                'phone_number': "+252614440378",
+                'photo_url': product.image_url,
+                'price': product.sale_price,
+                'type': [product.detailed_type],
+                'created_time': "2024-01-01T00:00:00Z",
+                'uid': "",
+            }
+            doc_ref = db.collection('menu').document(str(product.id))
+            batch.set(doc_ref, data)
+        
+        batch.commit()
 
 # Extend the `product.product` model with an `image_url` field in the same file
 class ProductProduct(models.Model):
     _inherit = 'product.product'
 
-    image_url = fields.Char(string='Image URL')  # New field to store the image URL
+    image_url = fields.Char(string='Image URL')
