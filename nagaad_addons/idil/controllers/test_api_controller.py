@@ -9,6 +9,30 @@ _logger = logging.getLogger(__name__)
 
 class PosOrderAPI(http.Controller):
 
+    @http.route('/api/pos/products', type='http', auth='public', methods=['GET'])
+    def get_products(self, **kwargs):
+        """Endpoint to retrieve POS products with necessary details."""
+        products = request.env['product.product'].search([('available_in_pos', '=', True)])
+        product_data = []
+        
+        for product in products:
+            product_data.append({
+                'id': product.id,
+                'name': product.name,
+                'price': product.lst_price,
+                'type': product.categ_id.name,  # You can use product type or category name
+                'image_url': product.image_url  # Adjust as needed for image handling
+            })
+        
+        # Return JSON response with products list
+        return request.make_response(
+            json.dumps({
+                'status': 'success',
+                'products': product_data   
+            }),
+            headers={'Content-Type': 'application/json'}
+        )
+    
     @http.route('/api/pos/order', type='json', auth='public', methods=['POST'], csrf=False)
     def create_order(self, **kwargs):
         # Get JSON data from the request
@@ -83,7 +107,7 @@ class PosOrderAPI(http.Controller):
                 'amount_paid': 0.0,
                 'amount_return': 0.0,
                 'lines': pos_order_lines,
-                ##'name': order_reference  # Set the custom order reference
+                # 'name': order_reference  # Set the custom order reference
             })
 
             # Return success response
@@ -91,7 +115,7 @@ class PosOrderAPI(http.Controller):
                 'status': 'success',
                 'order_id': pos_order.id,
                 'session_id': pos_session.id,
-                ##'order_reference': order_reference
+                # 'order_reference': order_reference
             }
 
         except Exception as e:
