@@ -1,11 +1,12 @@
 from odoo import http
 from odoo.http import request, Response
-from firebase_admin import credentials, firestore, initialize_app
+from firebase_admin import credentials, firestore, initialize_app, _apps
 import json
 
-# Firebase setup: initialize Firebase app only once
-cred = credentials.Certificate('/mnt/extra-addons/nagad-f6ebd-firebase-adminsdk-thdw2-8bda9a1d9f.json')
-initialize_app(cred)
+# Firebase setup: initialize Firebase app only if it hasn't been initialized
+if not _apps:
+    cred = credentials.Certificate('/mnt/extra-addons/nagad-f6ebd-firebase-adminsdk-thdw2-8bda9a1d9f.json')
+    initialize_app(cred)
 db = firestore.client()
 
 class ProductAPIController(http.Controller):
