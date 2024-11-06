@@ -85,29 +85,32 @@ class ProductAPIController(http.Controller):
             return Response(json.dumps({'error': str(e)}), status=500, content_type='application/json')
 
     # Route to save all products to Firebase in the required format
+    class ProductAPIController(http.Controller):
+    
     @http.route('/api/save_all_products_to_firebase', type='json', auth='public', methods=['POST'], csrf=False)
     def save_all_products_to_firebase(self, **kwargs):
         try:
-            # Fetch all products from Odoo
-            products = request.env['my_product.product'].sudo().search([])
+            # Fetch all products from Odoo's product.product model
+            products = request.env['product.product'].sudo().search([('available_in_pos', '=', True)])
             products_data = []
 
             # Iterate over each product to prepare and save it to Firebase
             for product in products:
-                pos_categories = set(product.pos_categ_ids.mapped('name'))  # Get product types as a list
+                # Get product POS category
+                pos_categories = [product.pos_categ_id.name] if product.pos_categ_id else []
                 transformed_data = {
                     'id': product.id,
-                    'description': product.name,  # 'description' uses the 'name' field in Odoo
-                    'name': product.name,         # 'name' also uses the 'name' field
-                    'image': product.image_url,   # 'image' from 'image_url' field in Odoo
-                    'price': product.sale_price,
-                    'type': list(pos_categories),  # 'type' as a list of categories
-                    'url': product.image_url      # Assuming you want 'url' to also point to the image URL
+                    'description': product.name,
+                    'name': product.name,
+                    'image': product.image_url,
+                    'price': product.lst_price,
+                    'type': pos_categories,
+                    'url': product.image_url
                 }
 
                 # Save the transformed product data to the 'menu' collection in Firebase
                 db.collection('menu').document(str(product.id)).set(transformed_data)
-                products_data.append(transformed_data)  # Optional: collect data for response
+                products_data.append(transformed_data)
 
             # Return a success response with a list of all products saved to Firebase
             return Response(
