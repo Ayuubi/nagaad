@@ -2,19 +2,29 @@ from odoo import http
 from odoo.http import request, Response
 from firebase_admin import credentials, firestore, initialize_app, _apps
 import json
+import logging
+
+# Setup logging for debugging
+_logger = logging.getLogger(__name__)
 
 # Firebase setup: initialize Firebase app only if it hasn't been initialized
 if not _apps:
-    cred = credentials.Certificate('/mnt/extra-addons/nagad-f6ebd-firebase-adminsdk-thdw2-8bda9a1d9f.json')
-    initialize_app(cred)
+    try:
+        _logger.info("Initializing Firebase app with provided credentials.")
+        cred = credentials.Certificate('/mnt/extra-addons/nagad-f6ebd-firebase-adminsdk-thdw2-8bda9a1d9f.json')
+        initialize_app(cred)
+        _logger.info("Firebase app initialized successfully.")
+    except Exception as e:
+        _logger.error(f"Failed to initialize Firebase: {str(e)}")
 db = firestore.client()
 
 class ProductAPIController(http.Controller):
-    
-    # GET products (either all products or a single product by ID)
+
+    # Route to fetch products (all products or a single product by ID)
     @http.route('/api/products', type='http', auth='public', methods=['GET'], csrf=False)
     def get_products(self, **kwargs):
         try:
+            _logger.info("Fetching products from Odoo.")
             # Initialize the domain for searching products
             domain = []
             product_id = kwargs.get('id')  # Get the 'id' query parameter for a specific product
@@ -22,6 +32,7 @@ class ProductAPIController(http.Controller):
             if product_id:
                 product = request.env['my_product.product'].sudo().browse(int(product_id))
                 if not product.exists():
+                    _logger.warning(f"Product with ID {product_id} not found.")
                     return Response(json.dumps({'error': 'Product not found'}), status=404, content_type='application/json')
                 
                 # Prepare data for that specific product, including image URL
@@ -33,6 +44,7 @@ class ProductAPIController(http.Controller):
                     'Type': list(pos_categories),
                     'image_url': product.image_url  # Add image URL to response
                 }
+                _logger.info(f"Returning data for product ID {product_id}")
                 return Response(json.dumps(product_data), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
 
             # Handle search by various parameters
@@ -48,6 +60,7 @@ class ProductAPIController(http.Controller):
                     price_value = float(price)  # Convert price to float
                     domain.append(('sale_price', '=', price_value))  # Search by exact price
                 except ValueError:
+                    _logger.error("Invalid price format provided.")
                     return Response(json.dumps({'error': 'Invalid price format'}), status=400, content_type='application/json')
 
             if product_types:
@@ -71,6 +84,7 @@ class ProductAPIController(http.Controller):
                     'image_url': product.image_url  # Add image URL to each product in the list
                 })
 
+            _logger.info("Returning list of products with unique types.")
             # Return the unique types in the response along with product data
             return Response(
                 json.dumps({
@@ -82,18 +96,22 @@ class ProductAPIController(http.Controller):
                 headers={'Access-Control-Allow-Origin': '*'}
             )
         except Exception as e:
+            _logger.error(f"Error fetching products: {str(e)}")
             return Response(json.dumps({'error': str(e)}), status=500, content_type='application/json')
 
     # Route to save all products to Firebase in the required format
     @http.route('/api/save_all_products_to_firebase', type='json', auth='public', methods=['POST'], csrf=False)
     def save_all_products_to_firebase(self, **kwargs):
         try:
-            # Fetch all products from Odoo's product.product model
+            _logger.info("Starting to fetch products from Odoo's product.product model")
             products = request.env['product.product'].sudo().search([('available_in_pos', '=', True)])
+            _logger.info(f"Fetched {len(products)} products from Odoo.")
+
             products_data = []
 
-            # Iterate over each product to prepare and save it to Firebase
             for product in products:
+                _logger.info(f"Processing product ID: {product.id}")
+
                 # Get product POS category
                 pos_categories = [product.pos_categ_id.name] if product.pos_categ_id else []
                 transformed_data = {
@@ -106,11 +124,12 @@ class ProductAPIController(http.Controller):
                     'url': product.image_url
                 }
 
-                # Save the transformed product data to the 'menu' collection in Firebase
+                _logger.info(f"Attempting to save product ID {product.id} to Firebase.")
                 db.collection('menu').document(str(product.id)).set(transformed_data)
+                _logger.info(f"Successfully saved product ID {product.id} to Firebase.")
                 products_data.append(transformed_data)
 
-            # Return a success response with a list of all products saved to Firebase
+            _logger.info("Finished saving products to Firebase.")
             return Response(
                 json.dumps({
                     'status': 'success',
@@ -122,6 +141,7 @@ class ProductAPIController(http.Controller):
             )
 
         except Exception as e:
+            _logger.error(f"Error saving products to Firebase: {str(e)}")
             return Response(
                 json.dumps({'error': str(e)}),
                 status=500,
