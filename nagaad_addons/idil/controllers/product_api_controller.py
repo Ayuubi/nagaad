@@ -30,18 +30,18 @@ class ProductAPIController(http.Controller):
             product_id = kwargs.get('id')  # Get the 'id' query parameter for a specific product
 
             if product_id:
-                product = request.env['my_product.product'].sudo().browse(int(product_id))
+                product = request.env['product.product'].sudo().browse(int(product_id))
                 if not product.exists():
                     _logger.warning(f"Product with ID {product_id} not found.")
                     return Response(json.dumps({'error': 'Product not found'}), status=404, content_type='application/json')
                 
                 # Prepare data for that specific product, including image URL
-                pos_categories = set(product.pos_categ_ids.mapped('name'))
+                category_name = product.categ_id.name if product.categ_id else "Uncategorized"
                 product_data = {
                     'id': product.id,
                     'title': product.name,
                     'price': product.sale_price,
-                    'Type': list(pos_categories),
+                    'Type': category_name,
                     'image_url': product.image_url  # Add image URL to response
                 }
                 _logger.info(f"Returning data for product ID {product_id}")
@@ -66,21 +66,21 @@ class ProductAPIController(http.Controller):
             if product_types:
                 # Split the types by comma and create a domain condition for each type
                 types_list = [ptype.strip() for ptype in product_types.split(',')]
-                domain.append(('pos_categ_ids.name', 'in', types_list))  # Search by multiple types
+                domain.append(('categ_id.name', 'in', types_list))  # Search by multiple types
 
-            products = request.env['my_product.product'].sudo().search(domain)
+            products = request.env['product.product'].sudo().search(domain)
             products_data = []
             all_types = set()  # Initialize an empty set to store unique types across all products
 
             for product in products:
-                pos_categories = set(product.pos_categ_ids.mapped('name'))  # Using a set to automatically remove duplicates
-                all_types.update(pos_categories)  # Add product types to the overall set of types
+                category_name = product.categ_id.name if product.categ_id else "Uncategorized"
+                all_types.add(category_name)
 
                 products_data.append({
                     'id': product.id,
                     'title': product.name,  # 'name' field from your model
                     'price': product.sale_price,  # 'sale_price' from your model
-                    'Type': list(pos_categories),  # Convert set to list for JSON serialization
+                    'Type': category_name,  # Use category name for type
                     'image_url': product.image_url  # Add image URL to each product in the list
                 })
 
@@ -112,15 +112,15 @@ class ProductAPIController(http.Controller):
             for product in products:
                 _logger.info(f"Processing product ID: {product.id}")
 
-                # Get product POS category
-                pos_categories = [product.pos_categ_id.name] if product.pos_categ_id else []
+                # Get product category name
+                category_name = product.categ_id.name if product.categ_id else "Uncategorized"
                 transformed_data = {
                     'id': product.id,
                     'description': product.name,
                     'name': product.name,
                     'image': product.image_url,
                     'price': product.lst_price,
-                    'type': pos_categories,
+                    'type': [category_name],  # Use a list with the single category name
                     'url': product.image_url
                 }
 
