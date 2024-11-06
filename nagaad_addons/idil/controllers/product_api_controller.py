@@ -85,8 +85,6 @@ class ProductAPIController(http.Controller):
             return Response(json.dumps({'error': str(e)}), status=500, content_type='application/json')
 
     # Route to save all products to Firebase in the required format
-    class ProductAPIController(http.Controller):
-    
     @http.route('/api/save_all_products_to_firebase', type='json', auth='public', methods=['POST'], csrf=False)
     def save_all_products_to_firebase(self, **kwargs):
         try:
