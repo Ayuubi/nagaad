@@ -11,117 +11,50 @@ db = firestore.client()
 
 _logger = logging.getLogger(__name__)
 
-class Product(models.Model):
-    _name = 'my_product.product'
-    _description = 'Product'
-
-    name = fields.Char(string='Product Name', required=True)
-    internal_reference = fields.Char(string='Internal Reference', required=True)
-    category_id = fields.Many2one('product.category', string='Product Category')
-    available_in_pos = fields.Boolean(string='Available in POS', default=True)
-    pos_categ_ids = fields.Many2many('pos.category', string='POS Categories')
-    detailed_type = fields.Selection([
-        ('consu', 'Consumable'),
-        ('service', 'Service')
-    ], string='Product Type', default='consu', required=True,
-        help='A consumable product is a product for which stock is not managed.\n'
-             'A service is a non-material product you provide.')
-
-    sale_price = fields.Float(string='Sales Price', required=True)
-    uom_id = fields.Many2one('idil.unit.measure', string='Unit of Measure')
-    income_account_id = fields.Many2one(
-        'idil.chart.account',
-        string='Income Account',
-        help='Account to report Sales Income',
-        required=True,
-        domain="[('code', 'like', '4')]"
-    )
+class ProductProduct(models.Model):
+    _inherit = 'product.product'
 
     image_url = fields.Char(string='Image URL')
 
     @api.model
     def create(self, vals):
-        if 'internal_reference' not in vals or not vals['internal_reference']:
-            last_product = self.search([], order='id desc', limit=1)
-            if last_product:
-                last_id = int(last_product.internal_reference) if last_product.internal_reference.isdigit() else 0
-                vals['internal_reference'] = str(last_id + 1)
-            else:
-                vals['internal_reference'] = '1'
-
-        product = super(Product, self).create(vals)
-        product._save_product_to_firebase(product)  # Save to Firebase
+        product = super(ProductProduct, self).create(vals)
+        product._save_pos_product_to_firebase(product)
         return product
 
     def write(self, vals):
-        res = super(Product, self).write(vals)
-        self._sync_with_odoo_product()
+        res = super(ProductProduct, self).write(vals)
+        self._save_pos_product_to_firebase(self)
         return res
 
-    def _sync_with_odoo_product(self):
-        ProductProduct = self.env['product.product']
-        for product in self:
-            odoo_product = ProductProduct.search([('default_code', '=', product.internal_reference)], limit=1)
-            if not odoo_product:
-                odoo_product = ProductProduct.create({
-                    'my_product_id': product.id,
-                    'name': product.name,
-                    'default_code': product.internal_reference,
-                    'type': product.detailed_type,
-                    'list_price': product.sale_price,
-                    'standard_price': product.sale_price,
-                    'categ_id': product.category_id.id,
-                    'pos_categ_ids': product.pos_categ_ids,
-                    'uom_id': 1,
-                    'available_in_pos': product.available_in_pos,
-                    'image_url': product.image_url,
-                })
-            else:
-                odoo_product.write({
-                    'my_product_id': product.id,
-                    'name': product.name,
-                    'default_code': product.internal_reference,
-                    'type': product.detailed_type,
-                    'list_price': product.sale_price,
-                    'standard_price': product.sale_price,
-                    'categ_id': product.category_id.id,
-                    'pos_categ_ids': product.pos_categ_ids,
-                    'uom_id': 1,
-                    'available_in_pos': product.available_in_pos,
-                    'image_url': product.image_url,
-                })
-
-    def _save_product_to_firebase(self, product):
-        """Save a single product to Firebase, customized to the 'menu' collection."""
+    def _save_pos_product_to_firebase(self, product):
+        """Save a single POS product to the 'menu' collection in Firebase, including product_id."""
         data = {
+            'product_id': product.id,  # Add the product ID
             'name': product.name,
-            'description': product.name,  # Duplicate of name
-            'price': product.sale_price,  # Keeping sale_price as a float
-            'type': product.category_id.name if product.category_id else '',  # Saving category name as type
-            'image': product.image_url,  # URL of the product image
+            'description': product.name,  # Duplicate of name as previously used
+            'price': product.list_price,
+            'type': product.categ_id.name if product.categ_id else '',
+            'image': product.image_url,
         }
-        _logger.info("Saving product to Firebase: %s", data)
+        _logger.info("Saving POS product to Firebase in 'menu' collection: %s", data)
         db.collection('menu').document(str(product.id)).set(data)
 
-    def push_all_products_to_firebase(self):
-        """Push all existing products to Firebase."""
+    def push_all_pos_products_to_firebase(self):
+        """Push all POS products to Firebase under the 'menu' collection, including product_id."""
         batch = db.batch()
-        products = self.search([])  # Fetch all products
+        products = self.search([('available_in_pos', '=', True)])  # Only POS products
         for product in products:
             data = {
+                'product_id': product.id,  # Add the product ID
                 'name': product.name,
                 'description': product.name,
-                'price': product.sale_price,
-                'type': product.category_id.name if product.category_id else '',  # Saving category name as type
+                'price': product.list_price,
+                'type': product.categ_id.name if product.categ_id else '',
                 'image': product.image_url,
             }
             doc_ref = db.collection('menu').document(str(product.id))
             batch.set(doc_ref, data)
         
         batch.commit()
-
-# Extend the `product.product` model with an `image_url` field in the same file
-class ProductProduct(models.Model):
-    _inherit = 'product.product'
-
-    image_url = fields.Char(string='Image URL')
+        _logger.info("All POS products have been pushed to Firebase under the 'menu' collection.")
