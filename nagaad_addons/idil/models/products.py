@@ -1,130 +1,127 @@
-from odoo import http
-from odoo.http import request
-import json
+from odoo import models, fields, api
+import firebase_admin
+from firebase_admin import credentials, firestore
 import logging
-from datetime import datetime
-import uuid
+
+# Initialize Firebase Admin SDK
+if not firebase_admin._apps:
+    cred = credentials.Certificate('/mnt/extra-addons/nagad-f6ebd-firebase-adminsdk-thdw2-8bda9a1d9f.json')
+    firebase_admin.initialize_app(cred)
+db = firestore.client()
 
 _logger = logging.getLogger(__name__)
 
-class PosOrderAPI(http.Controller):
+class Product(models.Model):
+    _name = 'my_product.product'
+    _description = 'Product'
 
-    @http.route('/api/pos/products', type='http', auth='public', methods=['GET'])
-    def get_products(self, **kwargs):
-        """Endpoint to retrieve POS products with necessary details."""
-        products = request.env['product.product'].search([('available_in_pos', '=', True)])
-        product_data = []
-        
+    name = fields.Char(string='Product Name', required=True)
+    internal_reference = fields.Char(string='Internal Reference', required=True)
+    category_id = fields.Many2one('product.category', string='Product Category')
+    available_in_pos = fields.Boolean(string='Available in POS', default=True)
+    pos_categ_ids = fields.Many2many('pos.category', string='POS Categories')
+    detailed_type = fields.Selection([
+        ('consu', 'Consumable'),
+        ('service', 'Service')
+    ], string='Product Type', default='consu', required=True,
+        help='A consumable product is a product for which stock is not managed.\n'
+             'A service is a non-material product you provide.')
+
+    sale_price = fields.Float(string='Sales Price', required=True)
+    uom_id = fields.Many2one('idil.unit.measure', string='Unit of Measure')
+    income_account_id = fields.Many2one(
+        'idil.chart.account',
+        string='Income Account',
+        help='Account to report Sales Income',
+        required=True,
+        domain="[('code', 'like', '4')]"
+    )
+
+    image_url = fields.Char(string='Image URL')
+
+    @api.model
+    def create(self, vals):
+        if 'internal_reference' not in vals or not vals['internal_reference']:
+            last_product = self.search([], order='id desc', limit=1)
+            if last_product:
+                last_id = int(last_product.internal_reference) if last_product.internal_reference.isdigit() else 0
+                vals['internal_reference'] = str(last_id + 1)
+            else:
+                vals['internal_reference'] = '1'
+
+        product = super(Product, self).create(vals)
+        product._save_product_to_firebase(product)  # Save to Firebase
+        return product
+
+    def write(self, vals):
+        res = super(Product, self).write(vals)
+        self._sync_with_odoo_product()
+        return res
+
+    def _sync_with_odoo_product(self):
+        ProductProduct = self.env['product.product']
+        for product in self:
+            odoo_product = ProductProduct.search([('default_code', '=', product.internal_reference)], limit=1)
+            if not odoo_product:
+                odoo_product = ProductProduct.create({
+                    'my_product_id': product.id,
+                    'name': product.name,
+                    'default_code': product.internal_reference,
+                    'type': product.detailed_type,
+                    'list_price': product.sale_price,
+                    'standard_price': product.sale_price,
+                    'categ_id': product.category_id.id,
+                    'pos_categ_ids': product.pos_categ_ids,
+                    'uom_id': 1,
+                    'available_in_pos': product.available_in_pos,
+                    'image_url': product.image_url,
+                })
+            else:
+                odoo_product.write({
+                    'my_product_id': product.id,
+                    'name': product.name,
+                    'default_code': product.internal_reference,
+                    'type': product.detailed_type,
+                    'list_price': product.sale_price,
+                    'standard_price': product.sale_price,
+                    'categ_id': product.category_id.id,
+                    'pos_categ_ids': product.pos_categ_ids,
+                    'uom_id': 1,
+                    'available_in_pos': product.available_in_pos,
+                    'image_url': product.image_url,
+                })
+
+    def _save_product_to_firebase(self, product):
+        """Save a single product to Firebase, customized to the 'menu' collection."""
+        data = {
+            'name': product.name,
+            'description': product.name,  # Duplicate of name
+            'price': product.sale_price,  # Keeping sale_price as a float
+            'type': [product.detailed_type],  # Storing type in an array
+            'image': product.image_url,  # URL of the product image
+        }
+        _logger.info("Saving product to Firebase: %s", data)
+        db.collection('menu').document(str(product.id)).set(data)
+
+    def push_all_products_to_firebase(self):
+        """Push all existing products to Firebase."""
+        batch = db.batch()
+        products = self.search([])  # Fetch all products
         for product in products:
-            product_data.append({
-                'id': product.id,
+            data = {
                 'name': product.name,
-                'price': product.lst_price,
-                'type': product.categ_id.name,  # You can use product type or category name
-                'image_url': product.image_url  # Adjust as needed for image handling
-            })
+                'description': product.name,
+                'price': product.sale_price,
+                'type': [product.detailed_type],
+                'image': product.image_url,
+            }
+            doc_ref = db.collection('menu').document(str(product.id))
+            batch.set(doc_ref, data)
         
-        # Return JSON response with products list
-        return request.make_response(
-            json.dumps({
-                'status': 'success',
-                'products': product_data   
-            }),
-            headers={'Content-Type': 'application/json'}
-        )
-    
-    @http.route('/api/pos/order', type='json', auth='public', methods=['POST'], csrf=False)
-    def create_order(self, **kwargs):
-        # Get JSON data from the request
-        data = request.httprequest.get_json()
-        _logger.info("Received data: %s", data)
+        batch.commit()
 
-        try:
-            # Extract partner_id, order_lines, and session_id from the request data
-            partner_id = data.get('partner_id')
-            order_lines = data.get('order_lines')
-            session_id = data.get('session_id')
+# Extend the `product.product` model with an `image_url` field in the same file
+class ProductProduct(models.Model):
+    _inherit = 'product.product'
 
-            # Check if order lines are present
-            if not order_lines:
-                return {'status': 'error', 'message': 'Order lines cannot be empty'}
-
-            # Get the POS session; check if it's opened and valid
-            pos_session = request.env['pos.session'].browse(session_id) if session_id else request.env['pos.session'].search([('state', '=', 'opened')], limit=1)
-            if not pos_session or pos_session.state != 'opened':
-                return {'status': 'error', 'message': 'No valid open POS session found'}
-
-            # Retrieve the cashier's name from the POS session
-            cashier_name = pos_session.user_id.name
-            total_price = 0
-            pos_order_lines = []
-
-            # Get the current timestamp for the order reference with milliseconds for uniqueness
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
-            
-            # Generate a UUID for further uniqueness
-            unique_id = uuid.uuid4().hex[:6]
-
-            # Determine the category of the first product in the order lines
-            first_product_id = order_lines[0]['product_id']
-            product_category = request.env['product.product'].browse(first_product_id).categ_id.name or "Uncategorized"
-
-            # Generate a unique order reference
-            order_reference = f"nagaad/{cashier_name}/{product_category}/api/{timestamp}-{unique_id}"
-
-            # Process each order line and add it to pos_order_lines
-            for line in order_lines:
-                product = request.env['product.product'].browse(line['product_id'])
-                if not product:
-                    return {'status': 'error', 'message': f"Product ID {line['product_id']} not found"}
-
-                price_unit = line['price']
-                quantity = line['quantity']
-                price_subtotal = price_unit * quantity
-                price_subtotal_incl = price_subtotal * 1.05  # Applying a 5% tax
-
-                pos_order_lines.append((0, 0, {
-                    'product_id': product.id,
-                    'name': product.name,  # Setting the product name manually
-                    'full_product_name': product.name,  # Full product name
-                    'price_unit': price_unit,
-                    'qty': quantity,
-                    'price_subtotal': price_subtotal,
-                    'price_subtotal_incl': price_subtotal_incl,
-                    'tax_ids': [(6, 0, product.taxes_id.ids)],  # Applying taxes
-                }))
-                total_price += price_subtotal_incl  # Adding to the total with tax
-
-            # Calculate total tax amount
-            amount_tax = total_price * 0.05
-
-            # Create the POS order
-            pos_order = request.env['pos.order'].create({
-                'partner_id': partner_id,
-                'session_id': pos_session.id,
-                'amount_total': total_price,
-                'amount_tax': amount_tax,
-                'amount_paid': 0.0,
-                'amount_return': 0.0,
-                'lines': pos_order_lines,
-                # 'name': order_reference  # Set the custom order reference
-            })
-
-            # Return success response
-            return {
-                'status': 'success',
-                'order_id': pos_order.id,
-                'session_id': pos_session.id,
-                # 'order_reference': order_reference
-            }
-
-        except Exception as e:
-            # Rollback any database transactions in case of an error
-            request.env.cr.rollback()
-            _logger.error("Error creating POS order: %s", str(e))
-            # Return error response
-            return {
-                'status': 'error',
-                'message': 'Failed to create POS order',
-                'details': str(e)
-            }
+    image_url = fields.Char(string='Image URL')
