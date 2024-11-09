@@ -94,6 +94,7 @@ class Product(models.Model):
     def _save_product_to_firebase(self, product):
         """Save a single product to Firebase, customized to the 'menu' collection."""
         data = {
+            'id': product.id,  # Add product ID here
             'name': product.name,
             'description': product.name,  # Duplicate of name
             'price': product.sale_price,  # Keeping sale_price as a float
@@ -109,6 +110,7 @@ class Product(models.Model):
         products = self.search([])  # Fetch all products
         for product in products:
             data = {
+                'id': product.id,  # Add product ID here
                 'name': product.name,
                 'description': product.name,
                 'price': product.sale_price,
