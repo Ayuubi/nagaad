@@ -28,30 +28,32 @@ class ProductProduct(models.Model):
         return res
 
     def _save_pos_product_to_firebase(self, product):
-        """Save a single POS product to the 'menu' collection in Firebase, including product_id."""
+        """Save a single POS product to the 'menu' collection in Firebase with matching fields and values."""
         data = {
-            'product_id': product.id,  # Add the product ID
+            'description': product.name or '',  # Use product name for description
+            'id': product.id,
+            'image': product.image_url or False,  # Use URL if available, otherwise False
             'name': product.name,
-            'description': product.name,  # Duplicate of name as previously used
-            'price': product.list_price,
-            'type': product.categ_id.name if product.categ_id else '',
-            'image': product.image_url,
+            'price': product.list_price or 0,  # Default to 0 if no price is set
+            'type': product.categ_id.name if product.categ_id else 'All',  # Default to 'All' if no category
+            'url': product.image_url or False,  # URL if available, otherwise False
         }
         _logger.info("Saving POS product to Firebase in 'menu' collection: %s", data)
         db.collection('menu').document(str(product.id)).set(data)
 
     def push_all_pos_products_to_firebase(self):
-        """Push all POS products to Firebase under the 'menu' collection, including product_id."""
+        """Push all POS products to Firebase under the 'menu' collection with the specified fields."""
         batch = db.batch()
         products = self.search([('available_in_pos', '=', True)])  # Only POS products
         for product in products:
             data = {
-                'product_id': product.id,  # Add the product ID
+                'description': product.name or '',
+                'id': product.id,
+                'image': product.image_url or False,
                 'name': product.name,
-                'description': product.name,
-                'price': product.list_price,
-                'type': product.categ_id.name if product.categ_id else '',
-                'image': product.image_url,
+                'price': product.list_price or 0,
+                'type': product.categ_id.name if product.categ_id else 'All',
+                'url': product.image_url or False,
             }
             doc_ref = db.collection('menu').document(str(product.id))
             batch.set(doc_ref, data)
