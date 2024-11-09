@@ -1,13 +1,12 @@
-from odoo import http
-from odoo.http import request
+from datetime import datetime
 import json
 import logging
-from datetime import datetime
-import uuid
+from odoo import http
+from odoo.http import request
 
 _logger = logging.getLogger(__name__)
 
-class PosOrderAPI(http.Controller):
+class POSOrderController(http.Controller):
 
     @http.route('/api/pos/products', type='http', auth='public', methods=['GET'])
     def get_products(self, **kwargs):
@@ -32,7 +31,7 @@ class PosOrderAPI(http.Controller):
             }),
             headers={'Content-Type': 'application/json'}
         )
-    
+
     @http.route('/api/pos/order', type='json', auth='public', methods=['POST'], csrf=False)
     def create_order(self, **kwargs):
         # Get JSON data from the request
@@ -59,19 +58,6 @@ class PosOrderAPI(http.Controller):
             total_price = 0
             pos_order_lines = []
 
-            # Get the current timestamp for the order reference with milliseconds for uniqueness
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
-            
-            # Generate a UUID for further uniqueness
-            unique_id = uuid.uuid4().hex[:6]
-
-            # Determine the category of the first product in the order lines
-            first_product_id = order_lines[0]['product_id']
-            product_category = request.env['product.product'].browse(first_product_id).categ_id.name or "Uncategorized"
-
-            # Generate a unique order reference
-            order_reference = f"nagaad/{cashier_name}/{product_category}/api/{timestamp}-{unique_id}"
-
             # Process each order line and add it to pos_order_lines
             for line in order_lines:
                 product = request.env['product.product'].browse(line['product_id'])
@@ -85,8 +71,7 @@ class PosOrderAPI(http.Controller):
 
                 pos_order_lines.append((0, 0, {
                     'product_id': product.id,
-                    'name': product.name,  # Setting the product name manually
-                    'full_product_name': product.name,  # Full product name
+                    'name': product.name,
                     'price_unit': price_unit,
                     'qty': quantity,
                     'price_subtotal': price_subtotal,
@@ -107,15 +92,18 @@ class PosOrderAPI(http.Controller):
                 'amount_paid': 0.0,
                 'amount_return': 0.0,
                 'lines': pos_order_lines,
-                # 'name': order_reference  # Set the custom order reference
             })
 
-            # Return success response
+            # Retrieve the auto-generated receipt number from the `name` field
+            receipt_number = pos_order.name
+
+            # Return success response, including the auto-generated receipt number
             return {
                 'status': 'success',
                 'order_id': pos_order.id,
                 'session_id': pos_session.id,
-                # 'order_reference': order_reference
+                'receipt_number': receipt_number,  # This will match the format in Odoo
+                'cashier': cashier_name
             }
 
         except Exception as e:
