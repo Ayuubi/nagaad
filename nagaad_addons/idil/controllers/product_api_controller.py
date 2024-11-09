@@ -120,7 +120,7 @@ class ProductAPIController(http.Controller):
                     'name': product.name,
                     'image': product.image_url,
                     'price': product.lst_price,
-                    'type': product.category_id.name if product.category_id else '',  # Use a list with the single category name
+                    'type': product.categ_id.name if product.categ_id else '',  # Use a list with the single category name
                     'url': product.image_url
                 }
 
