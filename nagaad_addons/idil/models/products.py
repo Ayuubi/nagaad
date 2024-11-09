@@ -97,7 +97,7 @@ class Product(models.Model):
             'name': product.name,
             'description': product.name,  # Duplicate of name
             'price': product.sale_price,  # Keeping sale_price as a float
-            'type': [product.detailed_type],  # Storing type in an array
+            'type': product.category_id.name if product.category_id else '',  # Saving category name as type
             'image': product.image_url,  # URL of the product image
         }
         _logger.info("Saving product to Firebase: %s", data)
@@ -112,7 +112,7 @@ class Product(models.Model):
                 'name': product.name,
                 'description': product.name,
                 'price': product.sale_price,
-                'type': [product.detailed_type],
+                'type': product.category_id.name if product.category_id else '',  # Saving category name as type
                 'image': product.image_url,
             }
             doc_ref = db.collection('menu').document(str(product.id))
