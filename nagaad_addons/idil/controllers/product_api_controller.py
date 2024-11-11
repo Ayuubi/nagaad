@@ -99,6 +99,7 @@ class ProductAPIController(http.Controller):
             _logger.error(f"Error fetching products: {str(e)}")
             return Response(json.dumps({'error': str(e)}), status=500, content_type='application/json')
 
+    # Route to save all products to Firebase in the required format
     @http.route('/api/save_all_products_to_firebase', type='json', auth='public', methods=['POST'], csrf=False)
     def save_all_products_to_firebase(self, **kwargs):
         try:
@@ -123,13 +124,16 @@ class ProductAPIController(http.Controller):
                 ''', (product.product_tmpl_id.id,))
                 pos_category_names = [row[0] for row in request.cr.fetchall()]
 
+                # Use the first POS category if available, otherwise fallback to product category
+                category_type = pos_category_names[0] if pos_category_names else category_name
+
                 transformed_data = {
                     'id': product.id,
                     'description': product.name,
                     'name': product.name,
                     'image': product.image_url,
                     'price': product.lst_price,
-                    'type': pos_category_names if pos_category_names else category_name,  # Use POS categories if available
+                    'type': category_type,
                     'url': product.image_url
                 }
 
