@@ -114,12 +114,12 @@ class ProductAPIController(http.Controller):
 
                 # Get product category name
                 category_name = product.categ_id.name if product.categ_id else "Uncategorized"
-                # Get POS categories for the product
-                pos_category_rel_records = request.env['pos.category'].sudo().search([
-                    ('product_tmpl_id', '=', product.product_tmpl_id.id)
+
+                # Fetch related POS categories
+                pos_categories = request.env['pos.category'].sudo().search([
+                    ('id', 'in', product.product_tmpl_id.pos_category_product_template_rel_ids.ids)
                 ])
-            
-                pos_category_names = [category.name for category in pos_category_rel_records] if pos_category_rel_records else ["Uncategorized"]
+                pos_category_names = [pos_category.name for pos_category in pos_categories]
 
                 transformed_data = {
                     'id': product.id,
@@ -127,7 +127,7 @@ class ProductAPIController(http.Controller):
                     'name': product.name,
                     'image': product.image_url,
                     'price': product.lst_price,
-                    'type': pos_category_names,  # Use a list with the single category name
+                    'type': pos_category_names if pos_category_names else category_name,  # Use POS categories if available
                     'url': product.image_url
                 }
 
