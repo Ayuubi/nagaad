@@ -111,10 +111,10 @@ class ProductAPIController(http.Controller):
             for product in products:
                 _logger.info(f"Processing product ID: {product.id}")
 
-                # Get product category name
-                category_name = product.categ_id.name.get("en_US") if product.categ_id and product.categ_id.name else "Uncategorized"
+                # Get product category name as a string
+                category_name = product.categ_id.name if product.categ_id and isinstance(product.categ_id.name, str) else "Uncategorized"
 
-                # Fetch related POS categories using SQL query and parse "en_US" for type
+                # Fetch related POS categories using SQL query
                 request.cr.execute('''
                     SELECT pc.name->>'en_US'
                     FROM pos_category_product_template_rel pl
