@@ -113,11 +113,11 @@ class ProductAPIController(http.Controller):
                 _logger.info(f"Processing product ID: {product.id}")
 
                 # Get product category name
-                category_name = product.categ_id.name if product.categ_id else "Uncategorized"
+                category_name = product.categ_id.name.get("en_US") if product.categ_id and product.categ_id.name else "Uncategorized"
 
                 # Fetch related POS categories using SQL query
                 request.cr.execute('''
-                    SELECT pc.name
+                    SELECT pc.name->>'en_US'
                     FROM pos_category_product_template_rel pl
                     JOIN pos_category pc ON pc.id = pl.pos_category_id
                     WHERE pl.product_template_id = %s
@@ -133,8 +133,7 @@ class ProductAPIController(http.Controller):
                     'name': product.name,
                     'image': product.image_url,
                     'price': product.lst_price,
-                    'type': category_type,
-                    'url': product.image_url
+                    'type': category_type  # Save only the type value without the locale key
                 }
 
                 _logger.info(f"Attempting to save product ID {product.id} to Firebase.")
@@ -159,4 +158,4 @@ class ProductAPIController(http.Controller):
                 json.dumps({'error': str(e)}),
                 status=500,
                 content_type='application/json'
-            )
+            ) 
