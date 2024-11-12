@@ -71,7 +71,7 @@ class POSOrderController(http.Controller):
 
                 pos_order_lines.append((0, 0, {
                     'product_id': product.id,
-                    'name': product.name,
+                    'name': product.display_name,
                     'price_unit': price_unit,
                     'qty': quantity,
                     'price_subtotal': price_subtotal,
