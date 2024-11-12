@@ -71,7 +71,7 @@ class POSOrderController(http.Controller):
 
                 pos_order_lines.append((0, 0, {
                     'product_id': product.id,
-                    'name': product.display_name,
+                    'name': product.name,
                     'price_unit': price_unit,
                     'qty': quantity,
                     'price_subtotal': price_subtotal,
@@ -92,6 +92,7 @@ class POSOrderController(http.Controller):
                 'amount_paid': 0.0,
                 'amount_return': 0.0,
                 'lines': pos_order_lines,
+                'cashier':cashier_name
             })
 
             # Retrieve the auto-generated receipt number from the `name` field
