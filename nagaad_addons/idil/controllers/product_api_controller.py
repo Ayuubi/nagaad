@@ -20,84 +20,88 @@ db = firestore.client()
 
 class ProductAPIController(http.Controller):
 
-    # Route to fetch products (all products or a single product by ID)
-    @http.route('/api/products', type='http', auth='public', methods=['GET'], csrf=False)
-    def get_products(self, **kwargs):
+    @http.route('/api/get_all_products_from_odoo', type='http', auth='public', methods=['GET'], csrf=False)
+    def get_all_products_from_odoo(self, **kwargs):
         try:
-            _logger.info("Fetching products from Odoo.")
-            # Initialize the domain for searching products
-            domain = []
-            product_id = kwargs.get('id')  # Get the 'id' query parameter for a specific product
+            _logger.info("Starting to fetch products from Odoo's product.product model with filters")
 
-            if product_id:
-                product = request.env['product.product'].sudo().browse(int(product_id))
-                if not product.exists():
-                    _logger.warning(f"Product with ID {product_id} not found.")
-                    return Response(json.dumps({'error': 'Product not found'}), status=404, content_type='application/json')
-                
-                # Prepare data for that specific product, including image URL
-                category_name = product.categ_id.name if product.categ_id else "Uncategorized"
-                product_data = {
-                    'id': product.id,
-                    'title': product.name,
-                    'price': product.sale_price,
-                    'Type': category_name,
-                    'image_url': product.image_url  # Add image URL to response
-                }
-                _logger.info(f"Returning data for product ID {product_id}")
-                return Response(json.dumps(product_data), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
-
-            # Handle search by various parameters
-            title = kwargs.get('title')
+            # Extract filters from query parameters
+            product_id = kwargs.get('id')
+            name = kwargs.get('name')
             price = kwargs.get('price')
-            product_types = kwargs.get('type')  # Now this can accept multiple types
+            category = kwargs.get('category')
+            product_type = kwargs.get('type')
 
-            if title:
-                domain.append(('name', 'ilike', title))  # Search by title (case-insensitive)
-
+            # Build search domain
+            domain = [('available_in_pos', '=', True)]
+            if product_id:
+                domain.append(('id', '=', int(product_id)))
+            if name:
+                domain.append(('name', 'ilike', name))
             if price:
-                try:
-                    price_value = float(price)  # Convert price to float
-                    domain.append(('sale_price', '=', price_value))  # Search by exact price
-                except ValueError:
-                    _logger.error("Invalid price format provided.")
-                    return Response(json.dumps({'error': 'Invalid price format'}), status=400, content_type='application/json')
+                domain.append(('lst_price', '=', float(price)))
+            if category:
+                domain.append(('categ_id.name', 'ilike', category))
+            # 'type' filter will be applied after querying products
 
-            if product_types:
-                # Split the types by comma and create a domain condition for each type
-                types_list = [ptype.strip() for ptype in product_types.split(',')]
-                domain.append(('categ_id.name', 'in', types_list))  # Search by multiple types
-
+            # Fetch products from Odoo
             products = request.env['product.product'].sudo().search(domain)
+            _logger.info(f"Fetched {len(products)} products from Odoo based on filters.")
+
             products_data = []
-            all_types = set()  # Initialize an empty set to store unique types across all products
 
             for product in products:
-                category_name = product.categ_id.name if product.categ_id else "Uncategorized"
-                all_types.add(category_name)
+                _logger.info(f"Processing product ID: {product.id}")
 
-                products_data.append({
+                # Get product category name
+                category_name = product.categ_id.name if product.categ_id and isinstance(product.categ_id.name, str) else "Uncategorized"
+
+                # Fetch related POS categories using SQL query
+                request.cr.execute('''
+                    SELECT pc.name->>'en_US'
+                    FROM pos_category_product_template_rel pl
+                    JOIN pos_category pc ON pc.id = pl.pos_category_id
+                    WHERE pl.product_template_id = %s
+                ''', (product.product_tmpl_id.id,))
+                pos_category_names = [row[0] for row in request.cr.fetchall()]
+
+                # Use the first POS category if available, otherwise fallback to product category
+                category_type = pos_category_names[0] if pos_category_names else category_name
+
+                # Apply 'type' filter if specified and skip this product if it doesn't match
+                if product_type and product_type != category_type:
+                    continue
+
+                transformed_data = {
                     'id': product.id,
-                    'title': product.name,  # 'name' field from your model
-                    'price': product.sale_price,  # 'sale_price' from your model
-                    'Type': category_name,  # Use category name for type
-                    'image_url': product.image_url  # Add image URL to each product in the list
-                })
+                    'description': product.name,
+                    'name': product.name,
+                    'image': product.image_url,
+                    'price': product.lst_price,
+                    'type': category_type
+                }
 
-            _logger.info("Returning list of products with unique types.")
-            # Return the unique types in the response along with product data
+                products_data.append(transformed_data)
+
+            _logger.info("Finished fetching products from Odoo.")
+
             return Response(
                 json.dumps({
-                    'products': products_data, 
-                    'unique_types': list(all_types),  # Return unique types separately
-                    'total': len(products_data)
-                }), 
-                content_type='application/json', 
+                    'status': 'success',
+                    'message': f'{len(products_data)} products fetched from Odoo',
+                    'products': products_data
+                }),
+                content_type='application/json',
                 headers={'Access-Control-Allow-Origin': '*'}
             )
+
         except Exception as e:
-            _logger.error(f"Error fetching products: {str(e)}")
-            return Response(json.dumps({'error': str(e)}), status=500, content_type='application/json')
+            _logger.error(f"Error fetching products from Odoo: {str(e)}")
+            return Response(
+                json.dumps({'error': str(e)}),
+                status=500,
+                content_type='application/json'
+            )
 
     @http.route('/api/save_all_products_to_firebase', type='json', auth='public', methods=['POST'], csrf=False)
     def save_all_products_to_firebase(self, **kwargs):
