@@ -4,7 +4,6 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
-
 class PosOrderController(http.Controller):
 
     @http.route('/api/pos/order', type='json', auth='public', methods=['POST'], csrf=False)
@@ -37,17 +36,12 @@ class PosOrderController(http.Controller):
                 if not partner.exists():
                     return {'status': 'error', 'message': f"Partner ID {partner_id} not found"}
 
-            # Validate cashier (from hr.employee)
+            # Fetch cashier (employee)
             cashier = None
-            user_id = None
             if cashier_id:
                 cashier = request.env['hr.employee'].browse(cashier_id)
                 if not cashier.exists():
                     return {'status': 'error', 'message': f"Cashier ID {cashier_id} not found"}
-                # Get the user_id linked to the employee
-                user_id = cashier.user_id.id  # Odoo user linked to this employee
-                if not user_id:
-                    return {'status': 'error', 'message': f"Employee {cashier.name} is not linked to any Odoo user"}
 
             # Process order lines
             pos_order_lines = []
@@ -94,7 +88,7 @@ class PosOrderController(http.Controller):
                 'lines': pos_order_lines,
                 'state': 'draft',  # Set the state to 'draft'
                 'cashier': cashier.name if cashier else "Unknown Cashier",  # Employee name
-                'user_id': user_id or pos_session.user_id.id,  # Set user_id to the linked Odoo user
+                'user_id': pos_session.user_id.id,  # Keep the user_id from the POS session
             }
             pos_order = request.env['pos.order'].create(pos_order_vals)
 
