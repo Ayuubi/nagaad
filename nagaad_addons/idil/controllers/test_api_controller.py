@@ -8,29 +8,7 @@ _logger = logging.getLogger(__name__)
 
 class POSOrderController(http.Controller):
 
-    @http.route('/api/pos/products', type='http', auth='public', methods=['GET'])
-    def get_products(self, **kwargs):
-        """Endpoint to retrieve POS products with necessary details."""
-        products = request.env['product.product'].search([('available_in_pos', '=', True)])
-        product_data = []
-        
-        for product in products:
-            product_data.append({
-                'id': product.id,
-                'name': product.name,
-                'price': product.lst_price,
-                'type': product.categ_id.name,  # You can use product type or category name
-                'image_url': product.image_url  # Adjust as needed for image handling
-            })
-        
-        # Return JSON response with products list
-        return request.make_response(
-            json.dumps({
-                'status': 'success',
-                'products': product_data   
-            }),
-            headers={'Content-Type': 'application/json'}
-        )
+
 
     @http.route('/api/pos/order', type='json', auth='public', methods=['POST'], csrf=False)
     def create_order(self, **kwargs):
