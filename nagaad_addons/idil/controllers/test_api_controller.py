@@ -17,7 +17,7 @@ class PosOrderController(http.Controller):
             partner_id = data.get('partner_id')
             order_lines = data.get('order_lines')
             session_id = data.get('session_id')
-            cashier_id = data.get('cashier_id')  # Optional field
+            cashier_id = data.get('cashier_id')  # Optional field for hr.employee
 
             # Validate mandatory fields
             if not order_lines:
@@ -37,10 +37,10 @@ class PosOrderController(http.Controller):
                 if not partner.exists():
                     return {'status': 'error', 'message': f"Partner ID {partner_id} not found"}
 
-            # Validate cashier (optional)
+            # Validate cashier (from hr.employee)
             cashier = None
             if cashier_id:
-                cashier = request.env['res.users'].browse(cashier_id)
+                cashier = request.env['hr.employee'].browse(cashier_id)
                 if not cashier.exists():
                     return {'status': 'error', 'message': f"Cashier ID {cashier_id} not found"}
 
@@ -88,7 +88,7 @@ class PosOrderController(http.Controller):
                 'amount_return': 0.0,
                 'lines': pos_order_lines,
                 'state': 'draft',  # Set the state to 'draft'
-                'cashier': cashier.name if cashier else pos_session.user_id.name,  # Use provided cashier or session's cashier
+                'cashier': cashier.name if cashier else "Unknown Cashier",  # Use provided cashier or default
             }
             pos_order = request.env['pos.order'].create(pos_order_vals)
 
@@ -103,7 +103,7 @@ class PosOrderController(http.Controller):
                     'point_of_sale': pos_order.session_id.config_id.display_name,  # Point of Sale
                     'receipt_number': pos_order.pos_reference,  # Receipt Number
                     'customer_name': pos_order.partner_id.name if pos_order.partner_id else None,  # Customer
-                    'employee': cashier.name if cashier else pos_order.user_id.name,  # Employee (Cashier)
+                    'employee': cashier.name if cashier else "Unknown Cashier",  # Employee (Cashier from hr.employee)
                     'amount_total': pos_order.amount_total,  # Total
                     'status': pos_order.state,  # Status
                     'lines': [
