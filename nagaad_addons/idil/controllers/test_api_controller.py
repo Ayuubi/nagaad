@@ -39,10 +39,15 @@ class PosOrderController(http.Controller):
 
             # Validate cashier (from hr.employee)
             cashier = None
+            user_id = None
             if cashier_id:
                 cashier = request.env['hr.employee'].browse(cashier_id)
                 if not cashier.exists():
                     return {'status': 'error', 'message': f"Cashier ID {cashier_id} not found"}
+                # Get the user_id linked to the employee
+                user_id = cashier.user_id.id  # Odoo user linked to this employee
+                if not user_id:
+                    return {'status': 'error', 'message': f"Employee {cashier.name} is not linked to any Odoo user"}
 
             # Process order lines
             pos_order_lines = []
@@ -88,7 +93,8 @@ class PosOrderController(http.Controller):
                 'amount_return': 0.0,
                 'lines': pos_order_lines,
                 'state': 'draft',  # Set the state to 'draft'
-                'cashier': cashier.name if cashier else "Unknown Cashier",  # Use provided cashier or default
+                'cashier': cashier.name if cashier else "Unknown Cashier",  # Employee name
+                'user_id': user_id or pos_session.user_id.id,  # Set user_id to the linked Odoo user
             }
             pos_order = request.env['pos.order'].create(pos_order_vals)
 
@@ -103,7 +109,7 @@ class PosOrderController(http.Controller):
                     'point_of_sale': pos_order.session_id.config_id.display_name,  # Point of Sale
                     'receipt_number': pos_order.pos_reference,  # Receipt Number
                     'customer_name': pos_order.partner_id.name if pos_order.partner_id else None,  # Customer
-                    'employee': cashier.name if cashier else "Unknown Cashier",  # Employee (Cashier from hr.employee)
+                    'employee': cashier.name if cashier else "Unknown Cashier",  # Employee name
                     'amount_total': pos_order.amount_total,  # Total
                     'status': pos_order.state,  # Status
                     'lines': [
