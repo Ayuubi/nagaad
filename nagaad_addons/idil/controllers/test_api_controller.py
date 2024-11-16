@@ -1,52 +1,68 @@
-from datetime import datetime
-import json
-import logging
 from odoo import http
 from odoo.http import request
+import logging
 
 _logger = logging.getLogger(__name__)
 
-class POSOrderController(http.Controller):
 
-
+class PosOrderController(http.Controller):
 
     @http.route('/api/pos/order', type='json', auth='public', methods=['POST'], csrf=False)
     def create_order(self, **kwargs):
-        # Get JSON data from the request
         data = request.httprequest.get_json()
         _logger.info("Received data: %s", data)
 
         try:
-            # Extract partner_id, order_lines, and session_id from the request data
+            # Extract partner_id, order_lines, session_id, and cashier_id from the request data
             partner_id = data.get('partner_id')
             order_lines = data.get('order_lines')
             session_id = data.get('session_id')
+            cashier_id = data.get('cashier_id')  # Optional field
 
-            # Check if order lines are present
+            # Validate mandatory fields
             if not order_lines:
                 return {'status': 'error', 'message': 'Order lines cannot be empty'}
+            if not session_id:
+                return {'status': 'error', 'message': 'Session ID is required'}
 
-            # Get the POS session; check if it's opened and valid
-            pos_session = request.env['pos.session'].browse(session_id) if session_id else request.env['pos.session'].search([('state', '=', 'opened')], limit=1)
+            # Get the POS session
+            pos_session = request.env['pos.session'].browse(session_id)
             if not pos_session or pos_session.state != 'opened':
                 return {'status': 'error', 'message': 'No valid open POS session found'}
 
-            # Retrieve the cashier's name from the POS session
-            cashier_name = pos_session.user_id.name
-            total_price = 0
-            pos_order_lines = []
+            # Validate partner (customer)
+            partner = None
+            if partner_id:
+                partner = request.env['res.partner'].browse(partner_id)
+                if not partner.exists():
+                    return {'status': 'error', 'message': f"Partner ID {partner_id} not found"}
 
-            # Process each order line and add it to pos_order_lines
+            # Validate cashier (optional)
+            cashier = None
+            if cashier_id:
+                cashier = request.env['res.users'].browse(cashier_id)
+                if not cashier.exists():
+                    return {'status': 'error', 'message': f"Cashier ID {cashier_id} not found"}
+
+            # Process order lines
+            pos_order_lines = []
+            total_price = 0.0
+            total_tax = 0.0
+
             for line in order_lines:
                 product = request.env['product.product'].browse(line['product_id'])
-                if not product:
+                if not product.exists():
                     return {'status': 'error', 'message': f"Product ID {line['product_id']} not found"}
 
-                price_unit = line['price']
-                quantity = line['quantity']
+                # Calculate line totals
+                price_unit = line.get('price', 0.0)
+                quantity = line.get('quantity', 1)
                 price_subtotal = price_unit * quantity
-                price_subtotal_incl = price_subtotal * 1.05  # Applying a 5% tax
+                taxes = product.taxes_id.compute_all(price_unit, pos_session.currency_id, quantity)
+                price_subtotal_incl = taxes['total_included']
+                tax_ids = [(6, 0, [tax.id for tax in product.taxes_id])]
 
+                # Add to order lines
                 pos_order_lines.append((0, 0, {
                     'product_id': product.id,
                     'name': product.name,
@@ -54,42 +70,59 @@ class POSOrderController(http.Controller):
                     'qty': quantity,
                     'price_subtotal': price_subtotal,
                     'price_subtotal_incl': price_subtotal_incl,
-                    'tax_ids': [(6, 0, product.taxes_id.ids)],  # Applying taxes
+                    'tax_ids': tax_ids,
                 }))
-                total_price += price_subtotal_incl  # Adding to the total with tax
+                total_price += price_subtotal_incl
+                total_tax += taxes['total_included'] - taxes['total_excluded']
 
-            # Calculate total tax amount
-            amount_tax = total_price * 0.05
-
-            # Create the POS order
-            pos_order = request.env['pos.order'].create({
-                'partner_id': partner_id,
+            # Create POS order in 'draft' state (not finalized)
+            pos_order_vals = {
+                'name': pos_session.config_id.sequence_id.next_by_id(),  # Generate the order name
                 'session_id': pos_session.id,
+                'partner_id': partner_id,
+                'pricelist_id': pos_session.config_id.pricelist_id.id,
+                'currency_id': pos_session.currency_id.id,
                 'amount_total': total_price,
-                'amount_tax': amount_tax,
-                'amount_paid': 0.0,
+                'amount_tax': total_tax,
+                'amount_paid': 0.0,  # Can be updated later for payments
                 'amount_return': 0.0,
                 'lines': pos_order_lines,
-                'cashier':cashier_name
-            })
+                'state': 'draft',  # Set the state to 'draft'
+                'cashier': cashier.name if cashier else pos_session.user_id.name,  # Use provided cashier or session's cashier
+            }
+            pos_order = request.env['pos.order'].create(pos_order_vals)
 
-            # Retrieve the auto-generated receipt number from the `name` field
-            receipt_number = pos_order.name
-
-            # Return success response, including the auto-generated receipt number
+            # Return success response with all relevant order details
             return {
                 'status': 'success',
-                'order_id': pos_order.id,
-                'session_id': pos_session.id,
-                'receipt_number': receipt_number,  # This will match the format in Odoo
-                'cashier': cashier_name
+                'order': {
+                    'id': pos_order.id,
+                    'name': pos_order.name,  # Order Ref
+                    'session_id': pos_order.session_id.id,  # Session
+                    'date_order': pos_order.date_order,  # Date
+                    'point_of_sale': pos_order.session_id.config_id.display_name,  # Point of Sale
+                    'receipt_number': pos_order.pos_reference,  # Receipt Number
+                    'customer_name': pos_order.partner_id.name if pos_order.partner_id else None,  # Customer
+                    'employee': cashier.name if cashier else pos_order.user_id.name,  # Employee (Cashier)
+                    'amount_total': pos_order.amount_total,  # Total
+                    'status': pos_order.state,  # Status
+                    'lines': [
+                        {
+                            'product_id': line.product_id.id,
+                            'product_name': line.product_id.name,
+                            'qty': line.qty,
+                            'price_unit': line.price_unit,
+                            'price_subtotal': line.price_subtotal,
+                            'price_subtotal_incl': line.price_subtotal_incl,
+                        }
+                        for line in pos_order.lines
+                    ],
+                }
             }
 
         except Exception as e:
-            # Rollback any database transactions in case of an error
             request.env.cr.rollback()
             _logger.error("Error creating POS order: %s", str(e))
-            # Return error response
             return {
                 'status': 'error',
                 'message': 'Failed to create POS order',
