@@ -12,11 +12,10 @@ class PosOrderController(http.Controller):
         _logger.info("Received data: %s", data)
 
         try:
-            # Extract partner_id, order_lines, session_id, and cashier_id from the request data
+            # Extract partner_id, order_lines, and session_id from the request data
             partner_id = data.get('partner_id')
             order_lines = data.get('order_lines')
             session_id = data.get('session_id')
-            cashier_id = data.get('cashier_id')  # Optional field for hr.employee
 
             # Validate mandatory fields
             if not order_lines:
@@ -29,19 +28,16 @@ class PosOrderController(http.Controller):
             if not pos_session or pos_session.state != 'opened':
                 return {'status': 'error', 'message': 'No valid open POS session found'}
 
+            # Retrieve the session user and their linked employee
+            session_user = pos_session.user_id
+            cashier = session_user.employee_id  # Retrieve the employee linked to the user
+
             # Validate partner (customer)
             partner = None
             if partner_id:
                 partner = request.env['res.partner'].browse(partner_id)
                 if not partner.exists():
                     return {'status': 'error', 'message': f"Partner ID {partner_id} not found"}
-
-            # Fetch cashier (employee)
-            cashier = None
-            if cashier_id:
-                cashier = request.env['hr.employee'].browse(cashier_id)
-                if not cashier.exists():
-                    return {'status': 'error', 'message': f"Cashier ID {cashier_id} not found"}
 
             # Process order lines
             pos_order_lines = []
@@ -87,8 +83,8 @@ class PosOrderController(http.Controller):
                 'amount_return': 0.0,
                 'lines': pos_order_lines,
                 'state': 'draft',  # Set the state to 'draft'
-                'cashier': cashier.name if cashier else "Unknown Cashier",  # Employee name
-                'user_id': pos_session.user_id.id,  # Keep the user_id from the POS session
+                'user_id': session_user.id,  # User who created the order
+                'cashier_id': cashier.id if cashier else False,  # Employee linked to the user
             }
             pos_order = request.env['pos.order'].create(pos_order_vals)
 
