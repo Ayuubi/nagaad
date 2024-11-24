@@ -70,8 +70,8 @@ class PosOrderController(http.Controller):
                 total_price += price_subtotal_incl
                 total_tax += taxes['total_included'] - taxes['total_excluded']
 
-            # Update user_id with the cashier (if available)
-            user_id = cashier.id if cashier else session_user.id
+            # Update user_id with the session user (cashier)
+            user_id = session_user.id
 
             # Create POS order
             pos_order_vals = {
@@ -86,9 +86,13 @@ class PosOrderController(http.Controller):
                 'amount_return': 0.0,
                 'lines': pos_order_lines,
                 'state': 'draft',  # Set the state to 'draft'
-                'user_id': user_id,  # Set the user as the cashier
+                'user_id': user_id,  # Set the user as the session user (cashier)
+                'employee_id': cashier.id if cashier else None,  # Explicitly set employee_id
             }
             pos_order = request.env['pos.order'].create(pos_order_vals)
+
+            # Force a commit to ensure data is saved properly before returning response
+            request.env.cr.commit()
 
             # Return success response with all relevant order details
             return {
@@ -101,7 +105,7 @@ class PosOrderController(http.Controller):
                     'point_of_sale': pos_order.session_id.config_id.display_name,  # Point of Sale
                     'receipt_number': pos_order.pos_reference,  # Receipt Number
                     'customer_name': pos_order.partner_id.name if pos_order.partner_id else None,  # Customer
-                    'employee': pos_order.user_id.name,  # Employee (Cashier or User)
+                    'employee': cashier.name if cashier else session_user.name,  # Employee (Cashier or User)
                     'amount_total': pos_order.amount_total,  # Total
                     'status': pos_order.state,  # Status
                     'lines': [
