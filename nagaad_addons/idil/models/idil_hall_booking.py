@@ -17,6 +17,8 @@ class HallBooking(models.Model):
     end_time = fields.Datetime(string='End Time', required=True)
     duration = fields.Float(string='Duration (Hours)', compute='_compute_duration', store=True)
     no_of_guest = fields.Float(string='Total Guests')
+    price_per_guest = fields.Float(string='Price per Guest', default=0.0)
+
     total_price = fields.Float(string='Total Price', compute='_compute_total_price', store=True)
     status = fields.Selection([
         ('draft', 'Draft'),
@@ -28,19 +30,15 @@ class HallBooking(models.Model):
     payment_method_id = fields.Many2one('idil.payment.method', string='Payment Method', required=True)
     # Account Number Field (related to the selected Payment Method)
     account_number = fields.Char(string='Account Number', compute='_compute_account_number', store=True)
-
     # Total amount paid will now be computed from the sum of payments
     amount = fields.Float(string='Amount to Pay', store=True, default='')
-
     amount_paid = fields.Float(string='Amount Paid', default=0.0, compute='_compute_amount_paid', store=True)
     remaining_amount = fields.Float(string='Remaining Amount', default=0.0, store=True)
-
     payment_ids = fields.One2many('idil.hall.booking.payment', 'booking_id', string='Payments')
 
     @api.model
     def create(self, vals):
         hall = self.env['idil.hall'].browse(vals.get('hall_id'))
-
         # Check if the hall is under maintenance by checking its availability
         if hall.availability == 'maintenance':
             # Fetch the maintenance schedule for this hall to get the maintenance end time
@@ -68,6 +66,23 @@ class HallBooking(models.Model):
                     "It will become available after {}.".format(last_booking.end_time)
                 )
 
+        # Check for overlapping bookings
+        start_time = vals.get('start_time')
+        end_time = vals.get('end_time')
+
+        overlapping_bookings = self.env['idil.hall.booking'].search([
+            ('hall_id', '=', vals.get('hall_id')),
+            ('status', 'in', ['booked', 'confirmed']),
+            ('start_time', '<', end_time),
+            ('end_time', '>', start_time)
+        ])
+
+        if overlapping_bookings:
+            raise ValidationError(
+                "The selected hall is already booked during the specified time. "
+                "Please choose a different time or hall."
+            )
+
         # Check if the number of guests is valid
         if 'no_of_guest' not in vals or vals.get('no_of_guest') <= 0:
             raise UserError("Please insert a valid number of guests.")
@@ -78,25 +93,40 @@ class HallBooking(models.Model):
         # Create the booking record
         booking = super(HallBooking, self).create(vals)
 
-        # Set the status and hall availability based on the amount and remaining amount
         if booking.remaining_amount > 0:
             booking.status = 'booked'
-            booking.hall_id.availability = 'booked'
         elif booking.amount == 0:
             booking.status = 'draft'
         elif booking.total_price == booking.amount:
             booking.status = 'confirmed'
-            booking.hall_id.availability = 'booked'
+
+        # Set the status and hall availability based on the amount, remaining amount, and current date
+        current_date = fields.Date.today()
+        start_date = fields.Date.to_date(booking.start_time)
+
+        if start_date == current_date:
+            if booking.remaining_amount > 0:
+                booking.status = 'booked'
+                booking.hall_id.availability = 'booked'
+            elif booking.amount == 0:
+                booking.status = 'draft'
+            elif booking.total_price == booking.amount:
+                booking.status = 'confirmed'
+                booking.hall_id.availability = 'booked'
 
         # Create a payment entry if there is an amount to pay
         if booking.amount > 0:
-            self.env['idil.hall.booking.payment'].create({
-                'booking_id': booking.id,
-                'payment_date': fields.Date.today(),
-                'amount': booking.amount,
-                'payment_method_id': booking.payment_method_id.id,
-                'payment_reference': 'Initial Payment for Booking {}'.format(booking.name),
-            })
+            if booking.amount <= booking.total_price:
+                self.env['idil.hall.booking.payment'].create({
+                    'booking_id': booking.id,
+                    'payment_date': fields.Date.today(),
+                    'amount': booking.amount,
+                    'payment_method_id': booking.payment_method_id.id,
+                    'payment_reference': 'Initial Payment for Booking {}'.format(booking.name),
+                })
+            else:
+                raise ValidationError(
+                    f"The amount exceeds the total price. Please pay the total price amount: {booking.total_price}.")
 
         # Create the transaction after booking
         if booking.amount == 0:
@@ -170,11 +200,14 @@ class HallBooking(models.Model):
                 delta = fields.Datetime.from_string(booking.end_time) - fields.Datetime.from_string(booking.start_time)
                 booking.duration = delta.total_seconds() / 3600  # Convert seconds to hours
 
-    @api.depends('no_of_guest', 'hall_id')
+    @api.depends('no_of_guest', 'hall_id', 'price_per_guest')
     def _compute_total_price(self):
         for booking in self:
-            if booking.no_of_guest and booking.hall_id:
-                booking.total_price = booking.no_of_guest * booking.hall_id.price_per_hour
+            if booking.price_per_guest == 0:
+                if booking.no_of_guest and booking.hall_id:
+                    booking.total_price = booking.no_of_guest * booking.hall_id.price_per_hour
+            elif booking.price_per_guest > 0:
+                booking.total_price = booking.no_of_guest * booking.price_per_guest
 
     def action_cancel_booking(self):
         """Custom action to cancel the booking"""
@@ -210,15 +243,26 @@ class HallBooking(models.Model):
                     # Adjust the transaction lines based on the price difference
                     self._adjust_transaction_lines_on_price_change(transaction, price_difference, new_total_price)
 
-                # Set the status and hall availability based on the amount and remaining amount
+                # Set the status and hall availability based on the amount, remaining amount, and current date
+                current_date = fields.Date.today()
+                start_date = fields.Date.to_date(booking.start_time)
+
                 if booking.remaining_amount > 0:
                     booking.status = 'booked'
-                    booking.hall_id.availability = 'booked'
                 elif booking.amount == 0:
                     booking.status = 'draft'
                 elif booking.total_price == booking.amount:
                     booking.status = 'confirmed'
-                    booking.hall_id.availability = 'booked'
+
+                if start_date == current_date:
+                    if booking.remaining_amount > 0:
+                        booking.status = 'booked'
+                        booking.hall_id.availability = 'booked'
+                    elif booking.amount == 0:
+                        booking.status = 'draft'
+                    elif booking.total_price == booking.amount:
+                        booking.status = 'confirmed'
+                        booking.hall_id.availability = 'booked'
 
         return res
 
@@ -314,15 +358,26 @@ class HallBookingPayment(models.Model):
             booking.amount_paid += payment.amount
             booking.remaining_amount = booking.total_price - booking.amount_paid
 
-            # Set the status and hall availability based on the amount and remaining amount
+            # Set the status and hall availability based on the amount, remaining amount, and current date
+            current_date = fields.Date.today()
+            start_date = fields.Date.to_date(booking.start_time)
+
             if booking.remaining_amount > 0:
                 booking.status = 'booked'
-                booking.hall_id.availability = 'booked'
             elif booking.amount == 0:
                 booking.status = 'draft'
             elif booking.total_price == booking.amount:
                 booking.status = 'confirmed'
-                booking.hall_id.availability = 'booked'
+
+            if start_date == current_date:
+                if booking.remaining_amount > 0:
+                    booking.status = 'booked'
+                    booking.hall_id.availability = 'booked'
+                elif booking.amount == 0:
+                    booking.status = 'draft'
+                elif booking.total_price == booking.amount:
+                    booking.status = 'confirmed'
+                    booking.hall_id.availability = 'booked'
 
             # Create the transaction booking only for the first payment
             payment._handle_transaction()
@@ -448,15 +503,26 @@ class HallBookingPayment(models.Model):
             booking.amount_paid += difference
             booking.remaining_amount = booking.total_price - booking.amount_paid
 
-            # Set the status and hall availability based on the amount and remaining amount
+            # Set the status and hall availability based on the amount, remaining amount, and current date
+            current_date = fields.Date.today()
+            start_date = fields.Date.to_date(booking.start_time)
+
             if booking.remaining_amount > 0:
                 booking.status = 'booked'
-                booking.hall_id.availability = 'booked'
             elif booking.amount == 0:
                 booking.status = 'draft'
             elif booking.total_price == booking.amount:
                 booking.status = 'confirmed'
-                booking.hall_id.availability = 'booked'
+
+            if start_date == current_date:
+                if booking.remaining_amount > 0:
+                    booking.status = 'booked'
+                    booking.hall_id.availability = 'booked'
+                elif booking.amount == 0:
+                    booking.status = 'draft'
+                elif booking.total_price == booking.amount:
+                    booking.status = 'confirmed'
+                    booking.hall_id.availability = 'booked'
 
             # Adjust transaction lines accordingly
             self._adjust_booking_lines(transaction, difference)
@@ -534,15 +600,26 @@ class HallBookingPayment(models.Model):
             booking.amount_paid -= old_amount
             booking.remaining_amount = booking.total_price - booking.amount_paid
 
-            # Set the status and hall availability based on the amount and remaining amount
+            # Set the status and hall availability based on the amount, remaining amount, and current date
+            current_date = fields.Date.today()
+            start_date = fields.Date.to_date(booking.start_time)
+
             if booking.remaining_amount > 0:
                 booking.status = 'booked'
-                booking.hall_id.availability = 'booked'
             elif booking.amount == 0:
                 booking.status = 'draft'
             elif booking.total_price == booking.amount:
                 booking.status = 'confirmed'
-                booking.hall_id.availability = 'booked'
+
+            if start_date == current_date:
+                if booking.remaining_amount > 0:
+                    booking.status = 'booked'
+                    booking.hall_id.availability = 'booked'
+                elif booking.amount == 0:
+                    booking.status = 'draft'
+                elif booking.total_price == booking.amount:
+                    booking.status = 'confirmed'
+                    booking.hall_id.availability = 'booked'
 
             # Adjust the transaction lines accordingly
             self._adjust_booking_lines_on_unlink(transaction, old_amount)
@@ -621,6 +698,17 @@ class HallBookingPaymentWizard(models.TransientModel):
         if not self.booking_id:
             raise UserError('Booking not found.')
 
+        # Calculate the due amount
+        due_amount = self.booking_id.total_price - sum(
+            payment.amount for payment in self.booking_id.payment_ids
+        )
+
+        # Check if the payment amount exceeds the due amount
+        if self.payment_amount > due_amount:
+            raise UserError(
+                f"The payment amount exceeds the due amount. "
+                f"Due amount: {due_amount:.2f}, Payment amount: {self.payment_amount:.2f}."
+            )
         # Create a new payment record
         payment = self.env['idil.hall.booking.payment'].create({
             'booking_id': self.booking_id.id,

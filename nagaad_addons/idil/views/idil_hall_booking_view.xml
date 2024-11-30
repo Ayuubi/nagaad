@@ -30,6 +30,7 @@
 
                         <group string="Payment and Pricing Information" col="2">
                             <field name="no_of_guest" placeholder="Enter Number of Guests"/>
+                            <field name="price_per_guest" placeholder="Price Per Guests"/>
                             <field name="total_price" readonly="1" class="oe_inline"/>
                             <field name="payment_method_id" placeholder="Select Payment Method"/>
                             <field name="account_number" placeholder="Account Number"/>
