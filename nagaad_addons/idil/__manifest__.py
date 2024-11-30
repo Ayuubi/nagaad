@@ -86,7 +86,10 @@
         'views/idil_hall_dashboard_view.xml',
         'views/balance_sheet_report.xml',
         'views/custom_pos_template.xml',
-        'views/menu.xml',
+        'views/group_creation.xml',
+        # "views/email.xml",
+        # 'views/report_account_statements.xml',
+         'views/menu.xml',
     ],
 
     'controllers': [

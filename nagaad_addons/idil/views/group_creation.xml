@@ -1,0 +1,185 @@
+<odoo>
+    <data noupdate="1">
+        <!-- Custom Category: Customer Management -->
+        <record id="nagaad_module_category_customer_management" model="ir.module.category">
+            <field name="name">Customer Management</field>
+            <field name="sequence">10</field>
+        </record>
+
+        <!-- Custom Category: Inventory Management -->
+        <record id="nagaad_module_category_inventory_management" model="ir.module.category">
+            <field name="name">Inventory Management</field>
+            <field name="sequence">20</field>
+        </record>
+
+        <!-- Custom Category: Purchase Order Creation -->
+        <record id="nagaad_module_category_purchase_order_creation" model="ir.module.category">
+            <field name="name">Purchase Order Creation</field>
+            <field name="sequence">30</field>
+        </record>
+
+        <!-- Custom Category: Vendor Transactions -->
+        <record id="nagaad_module_category_vendor_transactions" model="ir.module.category">
+            <field name="name">Vendor Transactions</field>
+            <field name="sequence">40</field>
+        </record>
+
+        <!-- Custom Category: Chart of Accounts -->
+        <record id="nagaad_module_category_chart_of_accounts" model="ir.module.category">
+            <field name="name">Chart of Accounts</field>
+            <field name="sequence">50</field>
+        </record>
+
+        <!-- Custom Category: Transaction Management -->
+        <record id="nagaad_module_category_transaction_management" model="ir.module.category">
+            <field name="name">Transaction Management</field>
+            <field name="sequence">60</field>
+        </record>
+
+        <!-- Custom Category: Payment Methods -->
+        <record id="nagaad_module_category_payment_methods" model="ir.module.category">
+            <field name="name">Payment Methods</field>
+            <field name="sequence">70</field>
+        </record>
+
+        <!-- Custom Category: Journal Entries -->
+        <record id="nagaad_module_category_journal_entries" model="ir.module.category">
+            <field name="name">Journal Entries</field>
+            <field name="sequence">80</field>
+        </record>
+
+        <!-- Custom Category: Currency Exchange -->
+        <record id="nagaad_module_category_currency_exchange" model="ir.module.category">
+            <field name="name">Currency Exchange</field>
+            <field name="sequence">90</field>
+        </record>
+
+        <!-- Custom Category: POS Session -->
+        <record id="nagaad_module_category_pos_session" model="ir.module.category">
+            <field name="name">POS Session</field>
+            <field name="sequence">100</field>
+        </record>
+
+        <!-- Custom Category: Employee Creation -->
+        <record id="nagaad_module_category_employee_creation" model="ir.module.category">
+            <field name="name">Employee Creation</field>
+            <field name="sequence">110</field>
+        </record>
+
+        <!-- Custom Category: Hall Management -->
+        <record id="nagaad_module_category_hall_management" model="ir.module.category">
+            <field name="name">Hall Management</field>
+            <field name="sequence">120</field>
+        </record>
+
+        <!-- Custom Category: Kitchen Management -->
+        <record id="nagaad_module_category_kitchen_management" model="ir.module.category">
+            <field name="name">Kitchen Management</field>
+            <field name="sequence">130</field>
+        </record>
+
+        <!-- Custom Category: Menu Creation -->
+        <record id="nagaad_module_category_menu_creation" model="ir.module.category">
+            <field name="name">Menu Creation</field>
+            <field name="sequence">140</field>
+        </record>
+
+        <!-- Custom Category: Reports Access -->
+        <record id="nagaad_module_category_reports_access" model="ir.module.category">
+            <field name="name">Reports Access</field>
+            <field name="sequence">150</field>
+        </record>
+
+        <!-- Define the New Groups under these categories -->
+
+        <!-- Customer Management Group -->
+        <record id="nagaad_group_customer_management" model="res.groups">
+            <field name="name">Customer Management</field>
+            <field name="category_id" ref="nagaad_module_category_customer_management"/>
+        </record>
+
+        <!-- Inventory Management Group -->
+        <record id="nagaad_group_inventory_management" model="res.groups">
+            <field name="name">Inventory Management</field>
+            <field name="category_id" ref="nagaad_module_category_inventory_management"/>
+        </record>
+
+        <!-- Purchase Order Creation Group -->
+        <record id="nagaad_group_purchase_order_creation" model="res.groups">
+            <field name="name">Purchase Order Creation</field>
+            <field name="category_id" ref="nagaad_module_category_purchase_order_creation"/>
+        </record>
+
+        <!-- Vendor Transactions Group -->
+        <record id="nagaad_group_vendor_transactions" model="res.groups">
+            <field name="name">Vendor Transactions</field>
+            <field name="category_id" ref="nagaad_module_category_vendor_transactions"/>
+        </record>
+
+        <!-- Chart of Accounts Group -->
+        <record id="nagaad_group_chart_of_accounts" model="res.groups">
+            <field name="name">Chart of Accounts</field>
+            <field name="category_id" ref="nagaad_module_category_chart_of_accounts"/>
+        </record>
+
+        <!-- Transaction Management Group -->
+        <record id="nagaad_group_transaction_management" model="res.groups">
+            <field name="name">Transaction Management</field>
+            <field name="category_id" ref="nagaad_module_category_transaction_management"/>
+        </record>
+
+        <!-- Payment Methods Group -->
+        <record id="nagaad_group_payment_methods" model="res.groups">
+            <field name="name">Payment Methods</field>
+            <field name="category_id" ref="nagaad_module_category_payment_methods"/>
+        </record>
+
+        <!-- Journal Entries Group -->
+        <record id="nagaad_group_journal_entries" model="res.groups">
+            <field name="name">Journal Entries</field>
+            <field name="category_id" ref="nagaad_module_category_journal_entries"/>
+        </record>
+
+        <!-- Currency Exchange Group -->
+        <record id="nagaad_group_currency_exchange" model="res.groups">
+            <field name="name">Currency Exchange</field>
+            <field name="category_id" ref="nagaad_module_category_currency_exchange"/>
+        </record>
+
+        <!-- POS Session Group -->
+        <record id="nagaad_group_pos_session" model="res.groups">
+            <field name="name">POS Session</field>
+            <field name="category_id" ref="nagaad_module_category_pos_session"/>
+        </record>
+
+        <!-- Employee Creation Group -->
+        <record id="nagaad_group_employee_creation" model="res.groups">
+            <field name="name">Employee Creation</field>
+            <field name="category_id" ref="nagaad_module_category_employee_creation"/>
+        </record>
+
+        <!-- Hall Management Group -->
+        <record id="nagaad_group_hall_management" model="res.groups">
+            <field name="name">Hall Management</field>
+            <field name="category_id" ref="nagaad_module_category_hall_management"/>
+        </record>
+
+        <!-- Kitchen Management Group -->
+        <record id="nagaad_group_kitchen_management" model="res.groups">
+            <field name="name">Kitchen Management</field>
+            <field name="category_id" ref="nagaad_module_category_kitchen_management"/>
+        </record>
+
+        <!-- Menu Creation Group -->
+        <record id="nagaad_group_menu_creation" model="res.groups">
+            <field name="name">Menu Creation</field>
+            <field name="category_id" ref="nagaad_module_category_menu_creation"/>
+        </record>
+
+        <!-- Reports Access Group -->
+        <record id="nagaad_group_reports_access" model="res.groups">
+            <field name="name">Reports Access</field>
+            <field name="category_id" ref="nagaad_module_category_reports_access"/>
+        </record>
+    </data>
+</odoo>
