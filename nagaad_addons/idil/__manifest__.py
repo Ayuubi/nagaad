@@ -4,7 +4,7 @@
     'category': 'nagaad',
     'summary': 'Nagaad Management System',
     'description': "Mohamed Dahir",
-    'depends': ['mail', 'point_of_sale', 'web'],
+    'depends': ['mail', 'point_of_sale', 'base', 'web'],
     'application': True,
     'sequence': -100,
     'author': 'mdc',
@@ -15,6 +15,8 @@
         ],
         'point_of_sale.assets': [
             'idil/static/src/js/pos_customer_modification.js',
+            'idil/static/src/js/pos_user_modification.js',  # Reference your JS file here
+            'idil/static/src/js/pos_order_restrictions.js',
         ],
         'web.assets_backend': [
             'idil/static/src/css/kanban.css',
@@ -26,6 +28,7 @@
     },
 
     'data': [
+        'views/group_creation.xml',
         'security/ir.model.access.csv',
         'data/transaction_source_data.xml',
         'data/seq_journal_entry.xml',
