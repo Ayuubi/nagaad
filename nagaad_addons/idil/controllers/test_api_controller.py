@@ -1,8 +1,10 @@
 from odoo import http
 from odoo.http import request
 import logging
- 
+import requests  # Use requests for making HTTP calls
+
 _logger = logging.getLogger(__name__)
+
 class PosOrderController(http.Controller):
 
     @http.route('/api/pos/order', type='json', auth='public', methods=['POST'], csrf=False)
@@ -29,7 +31,8 @@ class PosOrderController(http.Controller):
                 }
             }
 
-            auth_response = request.env['ir.http'].session_request(auth_url, data=auth_payload, headers={'Content-Type': 'application/json'})
+            # Use the requests library to authenticate
+            auth_response = requests.post(auth_url, json=auth_payload, headers={'Content-Type': 'application/json'})
             if auth_response.status_code != 200:
                 return {'status': 'error', 'message': 'Authentication failed'}
 
