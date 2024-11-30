@@ -1,3 +1,6 @@
+from odoo import http
+from odoo.http import request
+
 class PosOrderController(http.Controller):
 
     @http.route('/api/pos/order', type='json', auth='public', methods=['POST'], csrf=False)
