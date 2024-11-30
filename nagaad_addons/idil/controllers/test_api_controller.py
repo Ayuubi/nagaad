@@ -60,7 +60,8 @@ class PosOrderController(http.Controller):
                 # Add to order lines
                 pos_order_lines.append((0, 0, {
                     'product_id': product.id,
-                    'name': product.product_tmpl_id.name,
+                    'name': product.name,
+                    'full_product_name': product.name,
                     'price_unit': price_unit,
                     'qty': quantity,
                     'price_subtotal': price_subtotal,
