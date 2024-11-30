@@ -1,6 +1,8 @@
 from odoo import http
 from odoo.http import request
-
+import logging
+ 
+_logger = logging.getLogger(__name__)
 class PosOrderController(http.Controller):
 
     @http.route('/api/pos/order', type='json', auth='public', methods=['POST'], csrf=False)
