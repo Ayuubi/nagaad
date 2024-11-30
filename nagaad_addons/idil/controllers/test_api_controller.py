@@ -87,7 +87,7 @@ class PosOrderController(http.Controller):
                 'lines': pos_order_lines,
                 'state': 'draft',  # Set the state to 'draft'
                 'user_id': user_id,  # Set the user as the session user (cashier)
-                'employee_i': 30,
+                'employee_id': 30,
             }
             pos_order = request.env['pos.order'].create(pos_order_vals)
 
