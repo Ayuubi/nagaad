@@ -1,9 +1,3 @@
-from odoo import http
-from odoo.http import request
-import logging
-
-_logger = logging.getLogger(__name__)
-
 class PosOrderController(http.Controller):
 
     @http.route('/api/pos/order', type='json', auth='public', methods=['POST'], csrf=False)
@@ -12,25 +6,50 @@ class PosOrderController(http.Controller):
         _logger.info("Received data: %s", data)
 
         try:
-            # Extract partner_id, order_lines, and session_id from the request data
+            # Extract partner_id, order_lines, session_id, and employee_id from the request data
             partner_id = data.get('partner_id')
             order_lines = data.get('order_lines')
             session_id = data.get('session_id')
+            employee_id = data.get('employee_id')  # Employee ID provided by the user
+
+            # Hardcoded user_id via authentication
+            auth_url = 'https://nagaadhalls.com/web/session/authenticate'
+            auth_payload = {
+                "jsonrpc": "2.0",
+                "method": "call",
+                "params": {
+                    "db": "postgres",
+                    "login": "admin",
+                    "password": "d2cdec4f12##"
+                }
+            }
+
+            auth_response = request.env['ir.http'].session_request(auth_url, data=auth_payload, headers={'Content-Type': 'application/json'})
+            if auth_response.status_code != 200:
+                return {'status': 'error', 'message': 'Authentication failed'}
+
+            auth_result = auth_response.json().get('result', {})
+            user_id = auth_result.get('uid')
+            if not user_id:
+                return {'status': 'error', 'message': 'Failed to retrieve user_id from authentication'}
 
             # Validate mandatory fields
             if not order_lines:
                 return {'status': 'error', 'message': 'Order lines cannot be empty'}
             if not session_id:
                 return {'status': 'error', 'message': 'Session ID is required'}
+            if not employee_id:
+                return {'status': 'error', 'message': 'Employee ID is required'}
+
+            # Validate the employee_id
+            employee = request.env['hr.employee'].browse(employee_id)
+            if not employee.exists():
+                return {'status': 'error', 'message': f"Employee ID {employee_id} not found"}
 
             # Get the POS session
             pos_session = request.env['pos.session'].browse(session_id)
             if not pos_session or pos_session.state != 'opened':
                 return {'status': 'error', 'message': 'No valid open POS session found'}
-
-            # Retrieve the session user and their linked employee
-            session_user = pos_session.user_id
-            cashier = session_user.employee_id  # Retrieve the employee linked to the user
 
             # Validate partner (customer)
             partner = None
@@ -71,9 +90,6 @@ class PosOrderController(http.Controller):
                 total_price += price_subtotal_incl
                 total_tax += taxes['total_included'] - taxes['total_excluded']
 
-            # Update user_id with the session user (cashier)
-            user_id = session_user.id
-
             # Create POS order
             pos_order_vals = {
                 'name': pos_session.config_id.sequence_id.next_by_id(),  # Generate the order name
@@ -87,8 +103,8 @@ class PosOrderController(http.Controller):
                 'amount_return': 0.0,
                 'lines': pos_order_lines,
                 'state': 'draft',  # Set the state to 'draft'
-                'user_id': user_id,  # Set the user as the session user (cashier)
-                'employee_id': 30,
+                'user_id': user_id,  # Set the user as the hardcoded user_id
+                'employee_id': employee_id,  # Set the employee ID from the request
             }
             pos_order = request.env['pos.order'].create(pos_order_vals)
 
@@ -106,7 +122,7 @@ class PosOrderController(http.Controller):
                     'point_of_sale': pos_order.session_id.config_id.display_name,  # Point of Sale
                     'receipt_number': pos_order.pos_reference,  # Receipt Number
                     'customer_name': pos_order.partner_id.name if pos_order.partner_id else None,  # Customer
-                    'employee': cashier.name if cashier else session_user.name,  # Employee (Cashier or User)
+                    'employee': employee.name,  # Employee Name
                     'amount_total': pos_order.amount_total,  # Total
                     'status': pos_order.state,  # Status
                     'lines': [
