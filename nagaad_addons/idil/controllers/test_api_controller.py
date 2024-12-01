@@ -1,8 +1,6 @@
 from odoo import http
 from odoo.http import request
 import logging
-import requests  # Use requests for making HTTP calls
-import re  # To handle regex safely
 
 _logger = logging.getLogger(__name__)
 
@@ -15,33 +13,11 @@ class PosOrderController(http.Controller):
         _logger.info("Received data: %s", data)
 
         try:
-            # Extract partner_id, order_lines, session_id, and employee_id from the request data
+            # Extract partner_id, order_lines, session_id, and employee_id
             partner_id = data.get('partner_id')
             order_lines = data.get('order_lines')
             session_id = data.get('session_id')
             employee_id = data.get('employee_id')  # Employee ID provided by the user
-
-            # Hardcoded user_id via authentication
-            auth_url = 'https://nagaadhalls.com/web/session/authenticate'
-            auth_payload = {
-                "jsonrpc": "2.0",
-                "method": "call",
-                "params": {
-                    "db": "postgres",
-                    "login": "admin",
-                    "password": "d2cdec4f12##"
-                }
-            }
-
-            # Use the requests library to authenticate
-            auth_response = requests.post(auth_url, json=auth_payload, headers={'Content-Type': 'application/json'})
-            if auth_response.status_code != 200:
-                return {'status': 'error', 'message': 'Authentication failed'}
-
-            auth_result = auth_response.json().get('result', {})
-            user_id = auth_result.get('uid')
-            if not user_id:
-                return {'status': 'error', 'message': 'Failed to retrieve user_id from authentication'}
 
             # Validate mandatory fields
             if not order_lines:
@@ -101,48 +77,52 @@ class PosOrderController(http.Controller):
                 total_tax += taxes['total_included'] - taxes['total_excluded']
 
             # Generate order reference (pos_reference)
-            pos_reference = pos_session.config_id.sequence_id.next_by_id() or 'POS/0001'
-
-            # Validate that pos_reference is set
+            pos_reference = pos_session.config_id.sequence_id.next_by_id()
             if not pos_reference:
-                return {'status': 'error', 'message': 'Failed to generate POS reference'}
+                pos_reference = f"POS/DEFAULT/{session_id}/{request.env.cr.timestamp}"
+
+            # Log the generated pos_reference
+            _logger.info("Generated pos_reference: %s", pos_reference)
 
             # Create POS order
             pos_order_vals = {
-                'name': pos_reference,  # Generate the order name
-                'pos_reference': pos_reference,  # Set the pos_reference explicitly
+                'name': pos_reference,  # Order name
+                'pos_reference': pos_reference,  # Ensure this field is never null
                 'session_id': pos_session.id,
-                'partner_id': partner_id,
+                'partner_id': partner_id or None,
                 'pricelist_id': pos_session.config_id.pricelist_id.id,
                 'currency_id': pos_session.currency_id.id,
                 'amount_total': total_price,
                 'amount_tax': total_tax,
-                'amount_paid': 0.0,  # Can be updated later for payments
+                'amount_paid': 0.0,
                 'amount_return': 0.0,
-                'lines': pos_order_lines,
-                'state': 'draft',  # Set the state to 'draft'
-                'user_id': user_id,  # Set the user as the hardcoded user_id
-                'employee_id': employee_id,  # Set the employee ID from the request
+                'lines': pos_order_lines or [],
+                'state': 'draft',
+                'user_id': request.env.user.id,
+                'employee_id': employee_id,
             }
+
+            _logger.info("pos_order_vals: %s", pos_order_vals)
+
             pos_order = request.env['pos.order'].create(pos_order_vals)
 
-            # Force a commit to ensure data is saved properly before returning response
+            # Commit changes
             request.env.cr.commit()
 
-            # Return success response with all relevant order details
+            # Return success response
             return {
                 'status': 'success',
                 'order': {
                     'id': pos_order.id,
-                    'name': pos_order.name,  # Order Ref
-                    'session_id': pos_order.session_id.id,  # Session
-                    'date_order': pos_order.date_order,  # Date
-                    'point_of_sale': pos_order.session_id.config_id.display_name,  # Point of Sale
-                    'receipt_number': pos_order.pos_reference,  # Receipt Number
-                    'customer_name': pos_order.partner_id.name if pos_order.partner_id else None,  # Customer
-                    'employee': employee.name,  # Employee Name
-                    'amount_total': pos_order.amount_total,  # Total
-                    'status': pos_order.state,  # Status
+                    'name': pos_order.name,
+                    'session_id': pos_order.session_id.id,
+                    'date_order': pos_order.date_order,
+                    'point_of_sale': pos_order.session_id.config_id.display_name,
+                    'receipt_number': pos_order.pos_reference,
+                    'customer_name': pos_order.partner_id.name if pos_order.partner_id else None,
+                    'employee': employee.name,
+                    'amount_total': pos_order.amount_total,
+                    'status': pos_order.state,
                     'lines': [
                         {
                             'product_id': line.product_id.id,
