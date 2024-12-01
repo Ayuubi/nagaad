@@ -4,7 +4,6 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
-
 class PosOrderController(http.Controller):
 
     @http.route('/api/pos/order', type='json', auth='public', methods=['POST'], csrf=False)
@@ -76,16 +75,10 @@ class PosOrderController(http.Controller):
                 total_price += price_subtotal_incl
                 total_tax += taxes['total_included'] - taxes['total_excluded']
 
-            # Generate order reference (pos_reference)
-            # Generate pos_reference with the desired format
-            sequence_number = pos_session.config_id.sequence_id._next()  # Get the next sequence value
-            formatted_sequence = f"{sequence_number[:5]}-{sequence_number[5:8]}-{sequence_number[8:12]}"
-            pos_reference = f"Order {formatted_sequence}"
+            # Generate pos_reference using Odoo's standard logic
+            sequence_number = pos_session.config_id.sequence_id.next_by_id()  # Use Odoo's sequence logic
+            pos_reference = f"Order {sequence_number}"  # Match Odoo's standard format
 
-            # Log the generated pos_reference
-            _logger.info("Generated pos_reference: %s", pos_reference)
-
-            # Log the generated pos_reference
             _logger.info("Generated pos_reference: %s", pos_reference)
 
             # Create POS order
