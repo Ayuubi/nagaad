@@ -77,7 +77,7 @@ class PosOrderController(http.Controller):
                 total_tax += taxes['total_included'] - taxes['total_excluded']
 
             # Generate order reference (pos_reference)
-            pos_reference = pos_session.config_id.sequence_id.next_by_id()
+            pos_reference = pos_reference = pos_session.config_id.sequence_id._next()
             if not pos_reference:
                 pos_reference = f"POS/DEFAULT/{session_id}/{request.env.cr.timestamp}"
 
