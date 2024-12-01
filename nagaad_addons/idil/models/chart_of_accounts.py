@@ -129,7 +129,99 @@ class Account(models.Model):
         'idil.transaction_bookingline', 'account_number', string='Transaction Booking Lines'
     )
 
-    @api.model
+    # def get_balance_sheet_data(self):
+    #     """
+    #     Dynamically fetch and calculate the balances for assets, liabilities, and equity,
+    #     using only accounts where FinancialReporting is 'BS', showing only accounts with non-zero balances.
+    #     Ensures that total liabilities + equity ± net profit/loss reflects non-zero values.
+    #     """
+    #
+    #     # Get today's date
+    #     today = fields.Date.context_today(self)
+    #
+    #     # If as_of_date is not provided, use today's date
+    #     as_of_date = self.env.context.get('as_of_date', today)
+    #     company_id = self.env.context.get('company_id', self.env.company.id)  # Get company_id from context or default
+    #
+    #     company = self.env['res.company'].browse(company_id)  # Fetch the company record
+    #
+    #     result = {
+    #         'headers': [],
+    #         'profit_loss': 0.0,
+    #         'total_liabilities': 0.0,
+    #         'total_equity': 0.0,  # Store total equity (without profit/loss adjustment)
+    #         'total_owners_equity': 0.0,  # Store total equity after adjusting with profit/loss
+    #         'total_liabilities_equity': 0.0,  # Store total of liabilities and equity adjusted by profit/loss
+    #         'as_of_date': as_of_date,  # Pass as_of_date to the template
+    #         'company': company  # Pass the company data to the template
+    #
+    #     }
+    #
+    #     # Fetching only accounts with FinancialReporting = 'BS'
+    #     account_obj = self.env['idil.chart.account']
+    #     bs_accounts = account_obj.search([('FinancialReporting', '=', 'BS')])
+    #
+    #     # Group accounts by their header and subheader
+    #     account_header_obj = self.env['idil.chart.account.header']
+    #     headers = account_header_obj.search([])  # Get all headers
+    #
+    #     for header in headers:
+    #         header_data = {
+    #             'header_name': header.name,
+    #             'subheaders': [],
+    #             'header_total': 0.0  # To store the total for this header
+    #         }
+    #
+    #         for subheader in header.sub_header_ids:
+    #             subheader_data = {
+    #                 'sub_header_name': subheader.name,
+    #                 'accounts': [],
+    #                 'subheader_total': 0.0
+    #             }
+    #
+    #             # Fetch only accounts under this subheader and FinancialReporting = 'BS'
+    #             for account in subheader.account_ids.filtered(lambda a: a.FinancialReporting == 'BS'):
+    #                 balance = self._compute_account_balance(account, as_of_date, company_id)
+    #
+    #                 # Only add the account if its balance is non-zero
+    #                 if balance != 0.0:
+    #                     subheader_data['accounts'].append({
+    #                         'account_name': account.name,
+    #                         'balance': balance,
+    #                     })
+    #                     subheader_data['subheader_total'] += balance
+    #
+    #             if subheader_data[
+    #                 'accounts']:  # Only append subheader if it has relevant accounts with non-zero balance
+    #                 header_data['header_total'] += subheader_data['subheader_total']
+    #                 header_data['subheaders'].append(subheader_data)
+    #
+    #         if header_data['subheaders']:
+    #             if header.name == 'Liabilities':
+    #                 result['total_liabilities'] += header_data['header_total']
+    #             elif header.name == "Owner's Equity":
+    #                 result['total_equity'] += header_data['header_total']
+    #
+    #             result['headers'].append(header_data)
+    #
+    #     # Compute Profit/Loss for Income and Expense accounts (starting with '4' and '5')
+    #     income_accounts = account_obj.search([('code', 'like', '4%')])  # Income accounts
+    #     expense_accounts = account_obj.search([('code', 'like', '5%')])  # Expense accounts
+    #
+    #     total_income = sum(
+    #         self._compute_account_balance(account, as_of_date, company_id) for account in income_accounts)
+    #     total_expenses = sum(
+    #         self._compute_account_balance(account, as_of_date, company_id) for account in expense_accounts)
+    #
+    #     result['profit_loss'] = total_income - total_expenses
+    #
+    #     # Calculate total owner's equity (equity + profit/loss)
+    #     result['total_owners_equity'] = result['total_equity'] + result['profit_loss']
+    #
+    #     # Calculate total liabilities + owner's equity
+    #     result['total_liabilities_equity'] = result['total_liabilities'] + result['total_owners_equity']
+    #
+    #     return result
     def get_balance_sheet_data(self):
         """
         Dynamically fetch and calculate the balances for assets, liabilities, and equity,
@@ -142,7 +234,9 @@ class Account(models.Model):
 
         # If as_of_date is not provided, use today's date
         as_of_date = self.env.context.get('as_of_date', today)
-        company = self.env.company  # Get the current company
+        company_id = self.env.context.get('company_id', self.env.company.id)  # Get company_id from context or default
+
+        company = self.env['res.company'].browse(company_id)  # Fetch the company record
 
         result = {
             'headers': [],
@@ -153,14 +247,10 @@ class Account(models.Model):
             'total_liabilities_equity': 0.0,  # Store total of liabilities and equity adjusted by profit/loss
             'as_of_date': as_of_date,  # Pass as_of_date to the template
             'company': company  # Pass the company data to the template
-
         }
 
         # Fetching only accounts with FinancialReporting = 'BS'
         account_obj = self.env['idil.chart.account']
-        bs_accounts = account_obj.search([('FinancialReporting', '=', 'BS')])
-
-        # Group accounts by their header and subheader
         account_header_obj = self.env['idil.chart.account.header']
         headers = account_header_obj.search([])  # Get all headers
 
@@ -180,7 +270,7 @@ class Account(models.Model):
 
                 # Fetch only accounts under this subheader and FinancialReporting = 'BS'
                 for account in subheader.account_ids.filtered(lambda a: a.FinancialReporting == 'BS'):
-                    balance = self._compute_account_balance(account)
+                    balance = self._compute_account_balance(account, as_of_date, company_id)
 
                     # Only add the account if its balance is non-zero
                     if balance != 0.0:
@@ -207,26 +297,57 @@ class Account(models.Model):
         income_accounts = account_obj.search([('code', 'like', '4%')])  # Income accounts
         expense_accounts = account_obj.search([('code', 'like', '5%')])  # Expense accounts
 
-        total_income = sum(self._compute_account_balance(account) for account in income_accounts)
-        total_expenses = sum(self._compute_account_balance(account) for account in expense_accounts)
+        total_income = sum(
+            self._compute_account_balance(account, as_of_date, company_id) for account in income_accounts)
+        total_expenses = sum(
+            self._compute_account_balance(account, as_of_date, company_id) for account in expense_accounts)
 
         result['profit_loss'] = total_income - total_expenses
 
         # Calculate total owner's equity (equity + profit/loss)
         result['total_owners_equity'] = result['total_equity'] + result['profit_loss']
 
+        # Add profit/loss as a separate header if equity data is missing
+        if not any(header['header_name'] == "Owner's Equity" for header in result['headers']):
+            equity_header = {
+                'header_name': "Owner's Equity",
+                'subheaders': [
+                    {
+                        'sub_header_name': 'Profit/Loss',
+                        'accounts': [
+                            {
+                                'account_name': 'Net Profit/Loss',
+                                'balance': result['profit_loss']
+                            }
+                        ],
+                        'subheader_total': result['profit_loss']
+                    }
+                ],
+                'header_total': result['profit_loss']
+            }
+            result['headers'].append(equity_header)
+
         # Calculate total liabilities + owner's equity
         result['total_liabilities_equity'] = result['total_liabilities'] + result['total_owners_equity']
 
         return result
 
-    def _compute_account_balance(self, account):
+    def _compute_account_balance(self, account, as_of_date, company_id):
         """
-        Compute the balance of an account as sum(debit) - sum(credit)
+        Compute the balance of an account as sum(debit) - sum(credit), filtered by date and company.
         """
-        moves = self.env['idil.transaction_bookingline'].search([('account_number', '=', account.id)])
+        # Search for matching transaction booking lines
+        moves = self.env['idil.transaction_bookingline'].search([
+            ('account_number', '=', account.id),
+            ('transaction_date', '<=', as_of_date),  # Filter by date
+            ('company_id', '=', company_id)  # Filter by company
+        ])
+
+        # Calculate debit and credit sums
         debit = sum(moves.mapped('dr_amount'))
         credit = sum(moves.mapped('cr_amount'))
+
+        # Return the net balance
         return abs(debit - credit)
 
     @api.depends('transaction_bookingline_ids.dr_amount', 'transaction_bookingline_ids.cr_amount')
