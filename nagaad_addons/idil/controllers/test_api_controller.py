@@ -75,9 +75,20 @@ class PosOrderController(http.Controller):
                 total_price += price_subtotal_incl
                 total_tax += taxes['total_included'] - taxes['total_excluded']
 
-            # Generate pos_reference using Odoo's standard logic
-            sequence_number = pos_session.config_id.sequence_id.next_by_id()  # Use Odoo's sequence logic
-            pos_reference = f"Order {sequence_number}"  # Match Odoo's standard format
+            # Fetch pos_reference using web/dataset/call_kw
+            sequence_id = pos_session.config_id.sequence_id.id
+            result = request.env['ir.sequence'].sudo().search_read(
+                domain=[('id', '=', sequence_id)],
+                fields=['id', 'name'],
+                limit=1
+            )
+            
+            # Use the sequence logic to generate pos_reference
+            sequence_logic = result[0] if result else None
+            if sequence_logic:
+                pos_reference = request.env['ir.sequence'].sudo().browse(sequence_id).next_by_id()
+            else:
+                return {'status': 'error', 'message': 'Unable to generate pos_reference from the sequence.'}
 
             _logger.info("Generated pos_reference: %s", pos_reference)
 
