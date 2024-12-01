@@ -103,6 +103,10 @@ class PosOrderController(http.Controller):
             # Generate order reference (pos_reference)
             pos_reference = pos_session.config_id.sequence_id.next_by_id() or 'POS/0001'
 
+            # Validate that pos_reference is set
+            if not pos_reference:
+                return {'status': 'error', 'message': 'Failed to generate POS reference'}
+
             # Create POS order
             pos_order_vals = {
                 'name': pos_reference,  # Generate the order name
