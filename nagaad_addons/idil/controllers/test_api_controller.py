@@ -2,8 +2,10 @@ from odoo import http
 from odoo.http import request
 import logging
 import requests  # Use requests for making HTTP calls
+import re  # To handle regex safely
 
 _logger = logging.getLogger(__name__)
+
 
 class PosOrderController(http.Controller):
 
@@ -98,9 +100,13 @@ class PosOrderController(http.Controller):
                 total_price += price_subtotal_incl
                 total_tax += taxes['total_included'] - taxes['total_excluded']
 
+            # Generate order reference (pos_reference)
+            pos_reference = pos_session.config_id.sequence_id.next_by_id() or 'POS/0001'
+
             # Create POS order
             pos_order_vals = {
-                'name': pos_session.config_id.sequence_id.next_by_id(),  # Generate the order name
+                'name': pos_reference,  # Generate the order name
+                'pos_reference': pos_reference,  # Set the pos_reference explicitly
                 'session_id': pos_session.id,
                 'partner_id': partner_id,
                 'pricelist_id': pos_session.config_id.pricelist_id.id,
