@@ -531,7 +531,7 @@ class TransactionBookingline(models.Model):
     #         'target': 'new',
     #     }
 
-    def compute_income_statement(self, company_id):
+    def compute_income_statement(self, company_id, from_date, to_date):
         # Retrieve USD currency
         usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
 
@@ -555,11 +555,12 @@ class TransactionBookingline(models.Model):
                     idil_transaction_bookingline tb
                 WHERE
                     tb.company_id = %s AND tb.account_number = %s
+                    AND tb.transaction_date BETWEEN %s AND %s
                 GROUP BY
                     tb.account_number
                 HAVING
                     SUM(tb.cr_amount) - SUM(tb.dr_amount) != 0
-                """, (company_id.id, account.id))
+                """, (company_id.id, account.id, from_date, to_date))
 
             result = self.env.cr.fetchone()
             amount = result[0] if result else 0
@@ -599,11 +600,12 @@ class TransactionBookingline(models.Model):
                     idil_transaction_bookingline tb
                 WHERE
                     tb.company_id = %s AND tb.account_number = %s
+                    AND tb.transaction_date BETWEEN %s AND %s
                 GROUP BY
                     tb.account_number
                 HAVING
                     SUM(tb.dr_amount) - SUM(tb.cr_amount) != 0
-                """, (company_id.id, account.id))
+                """, (company_id.id, account.id, from_date, to_date))
 
             result = self.env.cr.fetchone()
             amount = result[0] if result else 0
@@ -668,10 +670,15 @@ class IncomeStatementWizard(models.TransientModel):
     _description = 'Income Statement Wizard'
 
     company_id = fields.Many2one('res.company', string='Company', required=True)
+    from_date = fields.Date(string='From Date', required=True)
+    to_date = fields.Date(string='To Date', required=True)
 
     def action_compute_income_statement(self):
         self.ensure_one()
-        action = self.env['idil.transaction_bookingline'].compute_income_statement(self.company_id)
+        # Pass the company, from_date, and to_date to the compute method
+        action = self.env['idil.transaction_bookingline'].compute_income_statement(
+            self.company_id, self.from_date, self.to_date
+        )
         return action
 
 
