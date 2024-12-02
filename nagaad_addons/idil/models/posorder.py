@@ -65,7 +65,7 @@ class PosOrder(models.Model):
     #                     'description': payment_method_record.name,
     #                     'account_number': payment_method_record.account_number.id,
     #                     'transaction_type': 'dr',
-    #                     'dr_amount': round(payment.amount, 2),
+    #                     'dr_amount': round(order.lines.price_subtotal, 2),
     #                     'cr_amount': 0.0,
     #                     'transaction_date': order.date_order
     #                 }
@@ -97,6 +97,24 @@ class PosOrder(models.Model):
     #                 line.price_subtotal * line.product_id.taxes_id.amount / 100 for line in order.lines)
     #
     #             if total_tax_amount > 0:
+    #                 for payment in order.payment_ids:
+    #                     payment_method_id = payment.payment_method_id.idil_payment_method_id.id
+    #                     payment_method_record = self.env['idil.payment.method'].search(
+    #                         [('id', '=', payment_method_id)], limit=1)
+    #                     debit_line_vals = {
+    #                         'transaction_booking_id': transaction_booking.id,
+    #                         'description': _('Tax Amount'),
+    #                         'account_number': payment_method_record.account_number.id,
+    #                         'transaction_type': 'dr',
+    #                         'dr_amount': round(total_tax_amount, 2),
+    #                         'cr_amount': 0.0,
+    #                         'transaction_date': order.date_order
+    #                     }
+    #                     self.env['idil.transaction_bookingline'].create(debit_line_vals)
+    #                     if not payment_method_record:
+    #                         _logger.error("Payment method not found for ID %s", payment_method_id)
+    #                         raise ValidationError(_("Payment method not found for ID %s") % payment_method_id)
+    #
     #                 vat_account = self.get_vat_account()
     #                 tax_line_vals = {
     #                     'transaction_booking_id': transaction_booking.id,
@@ -118,7 +136,6 @@ class PosOrder(models.Model):
     #             _logger.error("Error creating transaction booking lines for order %s: %s", order.name, str(e))
     #             self.env.cr.execute('ROLLBACK TO SAVEPOINT start_transaction')
     #             raise ValidationError(_("Error creating transaction booking lines: %s") % str(e))
-
     def create_transaction_booking_lines(self):
         trx_source_id = self.get_manual_transaction_source_id()
 
@@ -129,7 +146,7 @@ class PosOrder(models.Model):
 
                 # Step 1: Create the transaction booking
                 payment_methods = self.determine_payment_methods(order)
-                payment_method_id = next(iter(payment_methods))  # Get one payment method ID
+                payment_method_id = next(iter(payment_methods), None)  # Get one payment method ID safely
                 balance = order.amount_total - order.amount_paid
 
                 transaction_booking = self.env['idil.transaction_booking'].with_context(skip_validations=True).create({
@@ -148,19 +165,18 @@ class PosOrder(models.Model):
 
                 # Step 2: Create debit booking lines for each payment
                 for payment in order.payment_ids:
-                    payment_method_id = payment.payment_method_id.idil_payment_method_id.id
-                    payment_method_record = self.env['idil.payment.method'].search(
-                        [('id', '=', payment_method_id)], limit=1)
+                    payment_method_record = payment.payment_method_id.idil_payment_method_id
                     if not payment_method_record:
-                        _logger.error("Payment method not found for ID %s", payment_method_id)
-                        raise ValidationError(_("Payment method not found for ID %s") % payment_method_id)
+                        _logger.error("Payment method not found for ID %s", payment.payment_method_id.id)
+                        raise ValidationError(_("Payment method not found for ID %s") % payment.payment_method_id.id)
 
+                    payment_method_record.ensure_one()  # Ensure the record is a singleton
                     debit_line_vals = {
                         'transaction_booking_id': transaction_booking.id,
                         'description': payment_method_record.name,
                         'account_number': payment_method_record.account_number.id,
                         'transaction_type': 'dr',
-                        'dr_amount': round(order.lines.price_subtotal, 2),
+                        'dr_amount': round(sum(line.price_subtotal for line in order.lines), 2),
                         'cr_amount': 0.0,
                         'transaction_date': order.date_order
                     }
@@ -189,28 +205,12 @@ class PosOrder(models.Model):
 
                 # Step 4: Handle tax booking lines
                 total_tax_amount = sum(
-                    line.price_subtotal * line.product_id.taxes_id.amount / 100 for line in order.lines)
+                    line.price_subtotal * sum(tax.amount for tax in line.product_id.taxes_id) / 100 for line in
+                    order.lines)
 
                 if total_tax_amount > 0:
-                    for payment in order.payment_ids:
-                        payment_method_id = payment.payment_method_id.idil_payment_method_id.id
-                        payment_method_record = self.env['idil.payment.method'].search(
-                            [('id', '=', payment_method_id)], limit=1)
-                        debit_line_vals = {
-                            'transaction_booking_id': transaction_booking.id,
-                            'description': _('Tax Amount'),
-                            'account_number': payment_method_record.account_number.id,
-                            'transaction_type': 'dr',
-                            'dr_amount': round(total_tax_amount, 2),
-                            'cr_amount': 0.0,
-                            'transaction_date': order.date_order
-                        }
-                        self.env['idil.transaction_bookingline'].create(debit_line_vals)
-                        if not payment_method_record:
-                            _logger.error("Payment method not found for ID %s", payment_method_id)
-                            raise ValidationError(_("Payment method not found for ID %s") % payment_method_id)
-
                     vat_account = self.get_vat_account()
+
                     tax_line_vals = {
                         'transaction_booking_id': transaction_booking.id,
                         'description': _('Tax Amount'),
@@ -222,6 +222,24 @@ class PosOrder(models.Model):
                     }
                     self.env['idil.transaction_bookingline'].create(tax_line_vals)
                     _logger.info("Created tax booking line for order: %s", order.name)
+
+                    for payment in order.payment_ids:
+                        payment_method_record = payment.payment_method_id.idil_payment_method_id
+                        if not payment_method_record:
+                            _logger.error("Payment method not found for ID %s", payment.payment_method_id.id)
+                            raise ValidationError(
+                                _("Payment method not found for ID %s") % payment.payment_method_id.id)
+
+                        debit_line_vals = {
+                            'transaction_booking_id': transaction_booking.id,
+                            'description': payment_method_record.name + _('Tax Amount'),
+                            'account_number': payment_method_record.account_number.id,
+                            'transaction_type': 'dr',
+                            'dr_amount': round(total_tax_amount, 2),
+                            'cr_amount': 0.0,
+                            'transaction_date': order.date_order
+                        }
+                        self.env['idil.transaction_bookingline'].create(debit_line_vals)
 
                 # Commit the transaction if all operations are successful
                 self.env.cr.execute('RELEASE SAVEPOINT start_transaction')
