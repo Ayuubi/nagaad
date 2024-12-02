@@ -325,7 +325,7 @@ class TransactionBookingline(models.Model):
         }
 
     @api.model
-    def compute_company_trial_balance(self, report_currency_id, company_id):
+    def compute_company_trial_balance(self, report_currency_id, company_id, as_of_date):
         self.env.cr.execute("""
                 SELECT
                     tb.account_number,
@@ -341,6 +341,7 @@ class TransactionBookingline(models.Model):
                 JOIN idil_chart_account_header ch ON cb.header_id = ch.id
                 WHERE
                     tb.company_id = %s  -- Filter by company
+                    AND tb.transaction_date <= %s  -- Filter by as_of_date
                     AND ca.name != 'Exchange Clearing Account'  -- Exclude Exchange Clearing Account
                 GROUP BY
                     tb.account_number, ca.currency_id, tb.company_id, tb.transaction_date, ch.code
@@ -348,7 +349,7 @@ class TransactionBookingline(models.Model):
                     SUM(tb.dr_amount) - SUM(tb.cr_amount) <> 0
                 ORDER BY
                     ch.code
-            """, (company_id.id,))
+            """, (company_id.id, as_of_date))
         result = self.env.cr.dictfetchall()
 
         total_dr_balance = 0
@@ -700,10 +701,14 @@ class CompanyTrialBalanceWizard(models.TransientModel):
     _description = 'Company Trial Balance Wizard'
 
     company_id = fields.Many2one('res.company', string='Company', required=True)
+    as_of_date = fields.Date(string='As of Date', required=True)
 
     def action_compute_company_trial_balance(self):
         self.ensure_one()
         usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
-        action = self.env['idil.transaction_bookingline'].compute_company_trial_balance(usd_currency, self.company_id)
-        action['context'] = {'default_name': f'Company Trial Balance for {self.company_id.name}'}
+        action = self.env['idil.transaction_bookingline'].compute_company_trial_balance(usd_currency, self.company_id,
+                                                                                        self.as_of_date)
+        action['context'] = {
+            'default_name': f'Company Trial Balance for {self.company_id.name} as of {self.as_of_date}'}
+
         return action
