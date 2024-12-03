@@ -285,6 +285,8 @@ class Account(models.Model):
                     header_data['header_total'] += round(subheader_data['subheader_total'], 2)
                     header_data['subheaders'].append(subheader_data)
 
+            # Round header total and append if it has relevant subheaders
+            header_data['header_total'] = round(header_data['header_total'], 2)
             if header_data['subheaders']:
                 if header.name == 'Liabilities':
                     result['total_liabilities'] += round(header_data['header_total'], 2)
