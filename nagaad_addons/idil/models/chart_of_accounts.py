@@ -270,13 +270,13 @@ class Account(models.Model):
 
                 # Fetch only accounts under this subheader and FinancialReporting = 'BS'
                 for account in subheader.account_ids.filtered(lambda a: a.FinancialReporting == 'BS'):
-                    balance = self._compute_account_balance(account, as_of_date, company_id)
+                    balance = round(self._compute_account_balance(account, as_of_date, company_id), 2)
 
                     # Only add the account if its balance is non-zero
                     if balance != 0.0:
                         subheader_data['accounts'].append({
                             'account_name': account.name,
-                            'balance': balance,
+                            'balance': round(balance, 2),
                         })
                         subheader_data['subheader_total'] += balance
 
@@ -297,15 +297,15 @@ class Account(models.Model):
         income_accounts = account_obj.search([('code', 'like', '4%')])  # Income accounts
         expense_accounts = account_obj.search([('code', 'like', '5%')])  # Expense accounts
 
-        total_income = sum(
-            self._compute_account_balance(account, as_of_date, company_id) for account in income_accounts)
-        total_expenses = sum(
-            self._compute_account_balance(account, as_of_date, company_id) for account in expense_accounts)
+        total_income = round(sum(
+            self._compute_account_balance(account, as_of_date, company_id) for account in income_accounts), 2)
+        total_expenses = round(sum(
+            self._compute_account_balance(account, as_of_date, company_id) for account in expense_accounts), 2)
 
-        result['profit_loss'] = total_income - total_expenses
+        result['profit_loss'] = round((total_income - total_expenses), 2)
 
         # Calculate total owner's equity (equity + profit/loss)
-        result['total_owners_equity'] = result['total_equity'] + result['profit_loss']
+        result['total_owners_equity'] = round((result['total_equity'] + result['profit_loss']), 2)
 
         # Add profit/loss as a separate header if equity data is missing
         if not any(header['header_name'] == "Owner's Equity" for header in result['headers']):
@@ -323,12 +323,12 @@ class Account(models.Model):
                         'subheader_total': result['profit_loss']
                     }
                 ],
-                'header_total': result['profit_loss']
+                'header_total': round(result['profit_loss'], 2)
             }
             result['headers'].append(equity_header)
 
         # Calculate total liabilities + owner's equity
-        result['total_liabilities_equity'] = result['total_liabilities'] + result['total_owners_equity']
+        result['total_liabilities_equity'] = round((result['total_liabilities'] + result['total_owners_equity']), 2)
 
         return result
 
@@ -348,7 +348,7 @@ class Account(models.Model):
         credit = sum(moves.mapped('cr_amount'))
 
         # Return the net balance
-        return abs(debit - credit)
+        return round(abs(debit - credit), 2)
 
     @api.depends('transaction_bookingline_ids.dr_amount', 'transaction_bookingline_ids.cr_amount')
     def _compute_balance(self):
