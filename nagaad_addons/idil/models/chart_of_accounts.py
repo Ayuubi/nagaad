@@ -282,12 +282,12 @@ class Account(models.Model):
 
                 if subheader_data[
                     'accounts']:  # Only append subheader if it has relevant accounts with non-zero balance
-                    header_data['header_total'] += subheader_data['subheader_total']
+                    header_data['header_total'] += round(subheader_data['subheader_total'], 2)
                     header_data['subheaders'].append(subheader_data)
 
             if header_data['subheaders']:
                 if header.name == 'Liabilities':
-                    result['total_liabilities'] += header_data['header_total']
+                    result['total_liabilities'] += round(header_data['header_total'], 2)
                 elif header.name == "Owner's Equity":
                     result['total_equity'] += header_data['header_total']
 
