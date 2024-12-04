@@ -91,7 +91,8 @@
         'views/custom_pos_template.xml',
         'views/group_creation.xml',
         # "views/email.xml",
-        # 'views/report_account_statements.xml',
+        'views/report_account_statements.xml',
+        'views/sales_tax_report_template.xml',
          'views/menu.xml',
     ],
 
