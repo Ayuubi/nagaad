@@ -92,7 +92,7 @@
         'views/group_creation.xml',
         # "views/email.xml",
         'views/report_account_statements.xml',
-        'views/sales_tax_report_template.xml',
+        # 'views/sales_tax_report_template.xml',
          'views/menu.xml',
     ],
 
