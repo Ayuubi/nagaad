@@ -455,7 +455,6 @@ class TransactionBookingline(models.Model):
             account = self.env['idil.chart.account'].browse(line['account_number'])
             dr_total = line['dr_total']
             cr_total = line['cr_total']
-            transaction_date = line['transaction_date']
 
             # Convert amounts to USD using the as_of_date
             if line['currency_id'] != usd_currency.id:
