@@ -1,7 +1,13 @@
-from datetime import datetime
+import base64
+import io
+from datetime import datetime, date
 
-from odoo import models, fields, api, exceptions
+import xlsxwriter
+
+from odoo import models, fields, api, exceptions, _
 from odoo.exceptions import UserError, ValidationError
+from datetime import date
+
 import re
 import logging
 
@@ -496,125 +502,6 @@ class TransactionBookingline(models.Model):
             'res_model': 'idil.company.trial.balance',
             'target': 'new',
         }
-
-    # def compute_income_statement(self, company_id):
-    #     # Retrieve USD currency
-    #     usd_currency = self.env['res.currency'].search([('name', '=', 'USD')], limit=1)
-    #
-    #     # Clear previous report data
-    #     self.env['idil.income.statement.report'].search([]).unlink()
-    #
-    #     # Define account types for expenses and profits based on the starting code
-    #     profit_accounts = self.env['idil.chart.account'].search([('code', '=like', '4%')])
-    #     expense_accounts = self.env['idil.chart.account'].search([('code', '=like', '5%')])
-    #
-    #     total_income = 0
-    #     total_expenses = 0
-    #
-    #     # Compute total expenses
-    #     for account in expense_accounts:
-    #         self.env.cr.execute("""
-    #             SELECT
-    #                 SUM(tb.dr_amount) - SUM(tb.cr_amount) AS total
-    #             FROM
-    #                 idil_transaction_bookingline tb
-    #             WHERE
-    #                 tb.company_id = %s AND tb.account_number = %s
-    #             GROUP BY
-    #                 tb.account_number
-    #             HAVING
-    #                 SUM(tb.dr_amount) - SUM(tb.cr_amount) != 0
-    #             """, (company_id.id, account.id))
-    #
-    #         result = self.env.cr.fetchone()
-    #         amount = result[0] if result else 0
-    #
-    #         # Convert amount to USD if necessary
-    #         if account.currency_id.id != usd_currency.id:
-    #             amount = account.currency_id._convert(amount, usd_currency, self.env.user.company_id,
-    #                                                   fields.Date.today())
-    #
-    #         # Only create a report entry if the amount is non-zero
-    #         if amount != 0:
-    #             # Accumulate total expenses
-    #             total_expenses += amount
-    #
-    #             # Create report entry for each expense account
-    #             self.env['idil.income.statement.report'].create({
-    #                 'account_number': account.id,
-    #                 'amount': amount,
-    #                 'currency_id': usd_currency.id,
-    #             })
-    #
-    #     # Add subtotal for expenses only if there are any
-    #     if total_expenses != 0:
-    #         self.env['idil.income.statement.report'].create({
-    #             'account_number': None,
-    #             'account_type': 'Expense Subtotal',
-    #             'amount': total_expenses,
-    #             'currency_id': usd_currency.id,
-    #         })
-    #
-    #     # Compute total income
-    #     for account in profit_accounts:
-    #         self.env.cr.execute("""
-    #             SELECT
-    #                 SUM(tb.cr_amount) - SUM(tb.dr_amount) AS total
-    #             FROM
-    #                 idil_transaction_bookingline tb
-    #             WHERE
-    #                 tb.company_id = %s AND tb.account_number = %s
-    #             GROUP BY
-    #                 tb.account_number
-    #             HAVING
-    #                 SUM(tb.cr_amount) - SUM(tb.dr_amount) != 0
-    #             """, (company_id.id, account.id))
-    #
-    #         result = self.env.cr.fetchone()
-    #         amount = result[0] if result else 0
-    #
-    #         # Convert amount to USD if necessary
-    #         if account.currency_id.id != usd_currency.id:
-    #             amount = account.currency_id._convert(amount, usd_currency, self.env.user.company_id,
-    #                                                   fields.Date.today())
-    #
-    #         # Only create a report entry if the amount is non-zero
-    #         if amount != 0:
-    #             # Accumulate total income
-    #             total_income += amount
-    #
-    #             # Create report entry for each profit account
-    #             self.env['idil.income.statement.report'].create({
-    #                 'account_number': account.id,
-    #                 'amount': amount,
-    #                 'currency_id': usd_currency.id,
-    #             })
-    #
-    #     # Add subtotal for income only if there are any
-    #     if total_income != 0:
-    #         self.env['idil.income.statement.report'].create({
-    #             'account_number': None,
-    #             'account_type': 'Income Subtotal',
-    #             'amount': total_income,
-    #             'currency_id': usd_currency.id,
-    #         })
-    #
-    #     # Calculate and add gross profit
-    #     gross_profit = total_income - total_expenses
-    #     self.env['idil.income.statement.report'].create({
-    #         'account_number': None,
-    #         'account_type': 'Gross Profit',
-    #         'amount': gross_profit,
-    #         'currency_id': usd_currency.id,
-    #     })
-    #
-    #     return {
-    #         'type': 'ir.actions.act_window',
-    #         'name': 'Income Statement',
-    #         'view_mode': 'tree',
-    #         'res_model': 'idil.income.statement.report',
-    #         'target': 'new',
-    #     }
 
     def compute_income_statement(self, company_id, from_date, to_date):
         # Retrieve USD currency
