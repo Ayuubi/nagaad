@@ -434,11 +434,11 @@ class TransactionBookingline(models.Model):
                 AND tb.transaction_date <= %s  -- Filter by as_of_date
                 AND ca.name != 'Exchange Clearing Account'  -- Exclude Exchange Clearing Account
             GROUP BY
-                tb.account_number, ca.currency_id
+                tb.account_number,ca.code, ca.currency_id
             HAVING
                 SUM(tb.dr_amount) - SUM(tb.cr_amount) <> 0  -- Exclude accounts with zero net balance
             ORDER BY
-                tb.account_number
+                ca.code
         """, (company_id.id, as_of_date))
 
         result = self.env.cr.dictfetchall()
