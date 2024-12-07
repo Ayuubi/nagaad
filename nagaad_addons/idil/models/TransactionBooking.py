@@ -690,35 +690,3 @@ class CompanyTrialBalanceWizard(models.TransientModel):
             'default_name': f'Company Trial Balance for {self.company_id.name} as of {self.as_of_date}'}
 
         return action
-
-
-class TransactionBookinglineReportWizard(models.TransientModel):
-    _name = 'transaction.bookingline.report.wizard'
-    _description = 'Wizard for Transaction Booking Line Report'
-
-    start_date = fields.Date(string="Start Date")
-    end_date = fields.Date(string="End Date")
-    account_number_id = fields.Many2one(
-        'idil.chart.account',
-        string="Account Number",
-        help="Filter transactions by account number"
-    )
-
-    @api.model
-    def default_get(self, fields):
-        res = super(TransactionBookinglineReportWizard, self).default_get(fields)
-        # Add default values if necessary
-        return res
-
-    def generate_report(self):
-        """Generate the Transaction Booking Line Report."""
-        domain = []
-        if self.start_date:
-            domain.append(('transaction_date', '>=', self.start_date))
-        if self.end_date:
-            domain.append(('transaction_date', '<=', self.end_date))
-        if self.account_number_id:
-            domain.append(('account_number', '=', self.account_number_id.id))
-
-        records = self.env['idil.transaction_bookingline'].search(domain)
-        return self.env.ref('idil.transaction_bookingline_report_action').report_action(records)

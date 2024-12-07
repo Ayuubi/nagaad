@@ -1,128 +1,32 @@
 <odoo>
-    <template id="report_transaction_bookingline">
-        <t t-call="web.html_container">
-            <t t-call="web.external_layout">
-                <div class="page">
-                    <h1 style="text-align: center;">Nagaad Project</h1>
-                    <h2 style="text-align: center;">Statement of Account Report</h2>
-
-                    <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px;">
-                        <thead>
-                            <tr style="border-bottom: 2px solid black;">
-                                <th style="padding: 5px; text-align: left; border-bottom: 1px solid black;">Date</th>
-                                <th style="padding: 5px; text-align: left; border-bottom: 1px solid black;">Transaction
-                                    Type
-                                </th>
-                                <th style="padding: 5px; text-align: left; border-bottom: 1px solid black;">
-                                    Memo/Description
-                                </th>
-                                <th style="padding: 5px; text-align: left; border-bottom: 1px solid black;">Account Full
-                                    Name
-                                </th>
-                                <th style="padding: 5px; text-align: right; border-bottom: 1px solid black;">Credit</th>
-                                <th style="padding: 5px; text-align: right; border-bottom: 1px solid black;">Debit</th>
-                                <th style="padding: 5px; text-align: right; border-bottom: 1px solid black;">Balance
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td style="padding: 5px; border-bottom: 1px solid #ddd;">-</td>
-                                <td style="padding: 5px; border-bottom: 1px solid #ddd;">-</td>
-                                <td style="padding: 5px; border-bottom: 1px solid #ddd;">Previous Balance</td>
-                                <td style="padding: 5px; border-bottom: 1px solid #ddd;">-</td>
-                                <td style="padding: 5px; text-align: right; border-bottom: 1px solid #ddd;">-</td>
-                                <td style="padding: 5px; text-align: right; border-bottom: 1px solid #ddd;">-</td>
-                                <td style="padding: 5px; text-align: right; border-bottom: 1px solid #ddd;">
-                                    <span t-esc="previous_balance"/>
-                                </td>
-                            </tr>
-                            <t t-set="running_balance" t-value="0.0"/>
-                            <t t-foreach="docs" t-as="line">
-                                <tr>
-                                    <td style="padding: 5px; border-bottom: 1px solid #ddd;">
-                                        <span t-field="line.transaction_date"/>
-                                    </td>
-                                    <td style="padding: 5px; border-bottom: 1px solid #ddd;">
-                                        <span t-field="line.transaction_booking_id.transaction_number"/>
-                                    </td>
-                                    <td style="padding: 5px; border-bottom: 1px solid #ddd;">
-                                        <span t-field="line.description"/>
-                                    </td>
-                                    <td style="padding: 5px; border-bottom: 1px solid #ddd;">
-                                        <span t-field="line.account_display"/>
-                                    </td>
-                                    <td style="padding: 5px; text-align: right; border-bottom: 1px solid #ddd;">
-                                        <span t-field="line.cr_amount"/>
-                                    </td>
-                                    <td style="padding: 5px; text-align: right; border-bottom: 1px solid #ddd;">
-                                        <span t-field="line.dr_amount"/>
-                                    </td>
-                                    <td style="padding: 5px; text-align: right; border-bottom: 1px solid #ddd;">
-                                        <t t-if="line.dr_amount or line.cr_amount">
-                                            <t t-set="running_balance"
-                                               t-value="running_balance + line.dr_amount - line.cr_amount"/>
-                                        </t>
-                                        <span t-esc="running_balance"/>
-                                    </td>
-                                </tr>
-                            </t>
-                        </tbody>
-                    </table>
-                    <div style="margin-top: 20px; text-align: right; border-top: 2px solid black; padding-top: 10px;">
-                        <strong>Total Debit:</strong>
-                        <span t-esc="sum(doc.dr_amount for doc in docs)"/>
-                        <br/>
-                        <strong>Total Credit:</strong>
-                        <span t-esc="sum(doc.cr_amount for doc in docs)"/>
-                    </div>
-                </div>
-            </t>
-        </t>
-    </template>
-
-
-    <report
-            id="transaction_bookingline_report_action"
-            model="idil.transaction_bookingline"
-            string="Transaction Booking Line Report"
-            report_type="qweb-pdf"
-            name="idil.report_transaction_bookingline"
-            file="idil.report_transaction_bookingline"
-            print_report_name="'Transaction Report - %s' % (object.transaction_date)"
-    />
-
-
-    <record id="view_transaction_bookingline_report_wizard" model="ir.ui.view">
-        <field name="name">transaction.bookingline.report.wizard.form</field>
-        <field name="model">transaction.bookingline.report.wizard</field>
+    <record id="view_transaction_report_wizard_form" model="ir.ui.view">
+        <field name="name">transaction.report.wizard.form</field>
+        <field name="model">transaction.report.wizard</field>
         <field name="arch" type="xml">
-            <form string="Generate Transaction Booking Line Report">
+            <form string="Transaction Report">
                 <group>
-                    <field name="account_number_id"/>
+                    <field name="account_number"/>
                     <field name="start_date"/>
                     <field name="end_date"/>
+
                 </group>
                 <footer>
-                    <button string="Generate Report" type="object" name="generate_report" class="btn-primary"/>
+                    <button string="Download Excel Report" type="object" name="generate_excel_report"
+                            class="btn-primary"/>
+                    <button string="Download PDF Report" type="object" name="generate_pdf_report"
+                            class="btn-secondary"/>
+
                     <button string="Cancel" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>
         </field>
     </record>
-    <record id="action_transaction_bookingline_report_wizard" model="ir.actions.act_window">
-        <field name="name">Generate Transaction Report</field>
-        <field name="res_model">transaction.bookingline.report.wizard</field>
+
+    <record id="action_transaction_report_wizard" model="ir.actions.act_window">
+        <field name="name">Transaction Report</field>
+        <field name="res_model">transaction.report.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>
-    </record>
-
-    <record id="transaction_bookingline_report_action" model="ir.actions.report">
-        <field name="name">Transaction Booking Line Report</field>
-        <field name="model">idil.transaction_bookingline</field>
-        <field name="report_type">qweb-pdf</field>
-        <field name="report_name">idil.report_transaction_bookingline</field>
-        <field name="report_file">idil.report_transaction_bookingline</field>
     </record>
 
 </odoo>

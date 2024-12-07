@@ -197,7 +197,7 @@
               name="Transaction Reports"
               sequence="10"
               parent="OtherReports"
-              action="action_transaction_bookingline_report_wizard"/>
+              action="action_transaction_report_wizard"/>
 
     <menuitem id="Reports_bs"
               name="Account Balances"
