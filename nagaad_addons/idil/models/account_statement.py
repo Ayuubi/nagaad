@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from odoo import models, fields, api
 from odoo.exceptions import UserError
 import io
@@ -7,7 +9,7 @@ import xlsxwriter
 
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import letter, landscape
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
 
@@ -68,7 +70,8 @@ class TransactionReportWizard(models.TransientModel):
             ORDER BY 
                 transaction_date, transaction_booking_id
         """
-        self.env.cr.execute(transaction_query, (previous_balance, self.start_date, self.end_date, self.account_number.id))
+        self.env.cr.execute(transaction_query,
+                            (previous_balance, self.start_date, self.end_date, self.account_number.id))
         transactions = self.env.cr.fetchall()
 
         # Initialize totals
@@ -156,6 +159,14 @@ class TransactionReportWizard(models.TransientModel):
             'target': 'new',
         }
 
+    from reportlab.lib.pagesizes import letter, landscape
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+    import io
+    import base64
+
     def generate_pdf_report(self):
         # Query to compute the previous balance
         previous_balance_query = """
@@ -176,7 +187,7 @@ class TransactionReportWizard(models.TransientModel):
         transaction_query = """
             SELECT
                 transaction_date,
-                account_number,
+                 (SELECT code FROM idil_chart_account WHERE id = account_number) AS account_number,
                 transaction_booking_id,
                 description,
                 account_display,
@@ -197,7 +208,8 @@ class TransactionReportWizard(models.TransientModel):
             ORDER BY
                 transaction_date, transaction_booking_id
         """
-        self.env.cr.execute(transaction_query, (previous_balance, self.start_date, self.end_date, self.account_number.id))
+        self.env.cr.execute(transaction_query,
+                            (previous_balance, self.start_date, self.end_date, self.account_number.id))
         transactions = self.env.cr.fetchall()
 
         if not transactions:
@@ -207,60 +219,102 @@ class TransactionReportWizard(models.TransientModel):
         total_debit = sum(row[5] for row in transactions if row[5])
         total_credit = sum(row[6] for row in transactions if row[6])
 
-        # Create PDF document
+        # Create PDF document in landscape format
         buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=40, bottomMargin=30)
+        doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=30, leftMargin=30, topMargin=40,
+                                bottomMargin=30)
         elements = []
 
-        # Title and subtitle
-        styles = getSampleStyleSheet()
-        title_style = styles['Title']
-        title_style.alignment = 1  # Center alignment
-        title = Paragraph("<b>Account Statement</b>", title_style)
+        # Add logo
+        logo_path = "/path/to/logo.jpg"  # Replace with the actual path to your logo file
+        try:
+            logo = Image(logo_path, 2 * inch, 1 * inch)
+            elements.append(logo)
+        except Exception:
+            pass
 
+        # Add title with formatted transaction dates
+        title_style = getSampleStyleSheet()["Title"]
+        title_style.alignment = 1  # Center alignment
+        title_style.fontSize = 16
+        title_style.leading = 20
+        title_style.textColor = colors.black
+
+        subtitle_style = getSampleStyleSheet()["Normal"]
+        subtitle_style.alignment = 1  # Center alignment
+        subtitle_style.fontSize = 12
+        subtitle_style.textColor = colors.black
+
+        # Main title
+        title = Paragraph("<b>Nagaad Account Statement's Report</b>", title_style)
+
+        # Subtitle with transaction date range
         subtitle = Paragraph(
-            f"<b>Date Range:</b> {self.start_date} to {self.end_date}",
-            styles['Normal']
+            f"From Transaction Date: <b>{self.start_date.strftime('%m/%d/%Y') if self.start_date else 'N/A'}</b> "
+            f"| To Transaction Date: <b>{self.end_date.strftime('%m/%d/%Y') if self.end_date else 'N/A'}</b>",
+            subtitle_style
         )
 
         elements.append(title)
         elements.append(subtitle)
-        elements.append(Paragraph("<br/>", styles['Normal']))
+        elements.append(Spacer(1, 20))
+
+        # Get current user and print date
+        current_user = self.env.user.name
+        current_datetime = datetime.now().strftime('%d-%b-%y %H:%M:%S')
+
+        # Add printed by and print date info
+        footer_style = getSampleStyleSheet()["Normal"]
+        footer_style.fontSize = 10
+        footer_style.alignment = 2  # Right alignment
+
+        footer_text = Paragraph(
+            f"<b>PrintBy:</b> {current_user}<br/><b>PrintDate:</b> {current_datetime}",
+            footer_style
+        )
+
+        # Add the footer to the elements list
+        elements.append(Spacer(1, 12))  # Add some space before the footer
+        elements.append(footer_text)
 
         # Table header
         data = [
-            ["Date", "Transaction No", "Memo/Description", "Account Full Name", "Credit", "Debit", "Balance"],
-            ["", "", "Previous Balance", "", f"{0.0:,.2f}", f"{0.0:,.2f}", f"{previous_balance:,.2f}"],
+            ["Transaction Date", "Account Number", "Transaction ID", "Description", "Account Display", "Debit Amount",
+             "Credit Amount", "Running Balance"],
+            ["", self.account_number.code, "N/A", "Previous Balance", "", f"{0.0:,.2f}", f"{0.0:,.2f}",
+             f"{previous_balance:,.2f}"],
         ]
 
         # Add transaction rows
         for transaction in transactions:
             data.append([
                 transaction[0].strftime('%m/%d/%Y') if transaction[0] else "",
+                transaction[1] or "",
                 transaction[2] or "",
                 transaction[3] or "",
                 transaction[4] or "",
-                f"{transaction[6]:,.2f}" if transaction[6] else "0.00",
                 f"{transaction[5]:,.2f}" if transaction[5] else "0.00",
+                f"{transaction[6]:,.2f}" if transaction[6] else "0.00",
                 f"{transaction[7]:,.2f}" if transaction[7] else "0.00",
             ])
 
         # Add totals row
         data.append([
-            "", "", "Grand Total", "", f"{total_credit:,.2f}", f"{total_debit:,.2f}", "",
+            "", "", "Grand Total", "", "", f"{total_debit:,.2f}", f"{total_credit:,.2f}", "",
         ])
 
-        # Create a table without specifying static column widths
+        # Create a table with styling
         table = Table(data)
         table.setStyle(TableStyle([
-            ('LINEBELOW', (0, 0), (-1, 0), 2, colors.black),  # Bold line below header
-            ('LINEBELOW', (0, -1), (-1, -1), 2, colors.black),  # Bold line below totals
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Center align all text
-            ('ALIGN', (4, 1), (-1, -1), 'RIGHT'),  # Right-align numeric columns
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#B6862D")),  # Header background
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Header text color
+            ('LINEBELOW', (0, 0), (-1, 0), 1.5, colors.black),  # Bold line below header
+            ('LINEBELOW', (0, -1), (-1, -1), 1.5, colors.black),  # Bold line below totals
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Center-align text
+            ('ALIGN', (5, 1), (-1, -1), 'RIGHT'),  # Right-align numeric columns
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Bold font for header
             ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),  # Bold font for totals
             ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),  # Regular font for rows
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),  # Light grey background for header
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),  # Light grid lines for table
         ]))
 
@@ -273,7 +327,7 @@ class TransactionReportWizard(models.TransientModel):
         buffer.close()
 
         attachment = self.env['ir.attachment'].create({
-            'name': 'Account_Statement.pdf',
+            'name': 'Account_Statement_Attractive.pdf',
             'type': 'binary',
             'datas': base64.b64encode(pdf_data),
             'mimetype': 'application/pdf',
