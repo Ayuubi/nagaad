@@ -216,7 +216,20 @@ class TransactionReportWizard(models.TransientModel):
             account_info_style
         )
 
-        elements.extend([title, subtitle, account_info, Spacer(1, 20)])
+        elements.extend([title, subtitle, account_info])
+
+        # Footer details
+        current_user = self.env.user.name
+        current_datetime = datetime.now().strftime('%d-%b-%Y %H:%M:%S')
+        footer_style = styles["Normal"]
+        footer_style.fontSize = 10
+        footer_style.alignment = 2  # Right alignment
+        footer = Paragraph(
+            f"<b>Printed By:</b> {current_user}<br/><b>Report Printed Date:</b> {current_datetime}",
+            footer_style
+        )
+        elements.append(Spacer(1, 12))
+        elements.append(footer)
 
         # Query to fetch grouped transactions
         transaction_query = """
@@ -269,7 +282,7 @@ class TransactionReportWizard(models.TransientModel):
         ])
 
         # Create and style the table
-        table = Table(data, colWidths=[150, 100, 100, 100])
+        table = Table(data, colWidths=[200, 160, 160, 200])
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#B6862D")),  # Header background
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Header text color
@@ -281,19 +294,6 @@ class TransactionReportWizard(models.TransientModel):
         ]))
 
         elements.append(table)
-
-        # Footer details
-        current_user = self.env.user.name
-        current_datetime = datetime.now().strftime('%d-%b-%Y %H:%M:%S')
-        footer_style = styles["Normal"]
-        footer_style.fontSize = 10
-        footer_style.alignment = 2  # Right alignment
-        footer = Paragraph(
-            f"<b>Printed By:</b> {current_user}<br/><b>Report Printed Date:</b> {current_datetime}",
-            footer_style
-        )
-        elements.append(Spacer(1, 12))
-        elements.append(footer)
 
         # Build the PDF document
         doc.build(elements)
