@@ -194,10 +194,16 @@
 
     <!-- Parent Menu -->
     <menuitem id="menu_transaction_report_root"
-              name="Transaction Reports"
+              name="Account Statement Report"
               sequence="10"
               parent="OtherReports"
               action="action_transaction_report_wizard"/>
+
+     <menuitem id="menu_transaction_report_root"
+              name="Account Statement Summary Reports"
+              sequence="10"
+              parent="OtherReports"
+              action="action_transaction_report_wizard_summary"/>
 
     <menuitem id="Reports_bs"
               name="Account Balances"
