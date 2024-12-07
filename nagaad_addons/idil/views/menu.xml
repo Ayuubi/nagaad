@@ -199,7 +199,7 @@
               parent="OtherReports"
               action="action_transaction_report_wizard"/>
 
-     <menuitem id="menu_transaction_report_root"
+     <menuitem id="menu_transaction_report_summary_root"
               name="Account Statement Summary Reports"
               sequence="10"
               parent="OtherReports"
