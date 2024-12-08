@@ -1,0 +1,30 @@
+<odoo>
+    <record id="view_commission_report_wizard_form" model="ir.ui.view">
+        <field name="name">commission.report.wizard.form</field>
+        <field name="model">commission.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Commission Report">
+                <group>
+                    <field name="start_date"/>
+                    <field name="end_date"/>
+                    <field name="cashier"/>
+                </group>
+                <footer>
+                    <button name="generate_commission_report" string="Export Excel" type="object"
+                            context="{'export_type': 'excel'}" class="btn-primary"/>
+                    <button name="generate_report_pdf" string="Export PDF" type="object"
+                            context="{'export_type': 'pdf'}" class="btn-secondary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_commission_report_wizard" model="ir.actions.act_window">
+        <field name="name">Commission Report Wizard</field>
+        <field name="res_model">commission.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>
+

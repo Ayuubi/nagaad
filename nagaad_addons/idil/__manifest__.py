@@ -93,6 +93,7 @@
         # "views/email.xml",
         'views/report_account_statements.xml',
         'views/report_account_statement_summary.xml',
+        'views/report_commission.xml',
          'views/menu.xml',
     ],
 
