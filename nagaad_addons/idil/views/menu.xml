@@ -205,6 +205,11 @@
               parent="OtherReports"
               action="action_transaction_report_wizard_summary"/>
 
+    <menuitem id="menu_commission_report_wizard"
+              name="Commission Report"
+              parent="OtherReports"
+              action="action_commission_report_wizard"/>
+
     <menuitem id="Reports_bs"
               name="Account Balances"
               parent="OtherReports"
