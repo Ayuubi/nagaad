@@ -7,7 +7,6 @@
                 <group>
                     <field name="start_date"/>
                     <field name="end_date"/>
-                    <field name="cashier"/>
                 </group>
                 <footer>
                     <button name="generate_commission_report" string="Export Excel" type="object"
