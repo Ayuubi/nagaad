@@ -143,7 +143,7 @@ class CommissionReport(models.AbstractModel):
             INNER JOIN 
                 pos_order po ON tb.order_number = po.name
             INNER JOIN 
-                idil_employee ie ON ie.id = po.employee_id
+                idil_employee ie ON ie.name = po.cashier
             WHERE 
                 {where_clause}
             GROUP BY 
