@@ -21,7 +21,7 @@
               action="action_idil_employee_department"/>
 
     <menuitem id="menu_idil_employee_salary_root"
-              name="Salaries"
+              name="Payroll Management"
               parent="menu_idil_staff_management_root"/>
 
     <menuitem id="menu_idil_employee_salary"
