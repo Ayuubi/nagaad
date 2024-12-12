@@ -8,6 +8,8 @@ class IdilEmployee(models.Model):
 
     name = fields.Char(required=True)
     company_id = fields.Many2one('res.company', required=True)
+    department_id = fields.Many2one('idil.employee_department')
+
     private_phone = fields.Char(string='Private Phone')
     private_email = fields.Char(string='Private Email')
     gender = fields.Selection([
@@ -43,6 +45,55 @@ class IdilEmployee(models.Model):
                                  )
 
     commission = fields.Float(string='Commission Percentage')
+
+    # Salary and bonus information
+    salary = fields.Monetary(string='Basic Salary', currency_field='currency_id')
+    bonus = fields.Monetary(string='Bonus', currency_field='currency_id')
+    total_compensation = fields.Monetary(string='Total Compensation', compute='_compute_total_compensation',
+                                         currency_field='currency_id', store=True)
+    # Contract details
+    contract_start_date = fields.Date(string='Contract Start Date')
+    contract_end_date = fields.Date(string='Contract End Date')
+    contract_type = fields.Selection([
+        ('permanent', 'Permanent'),
+        ('temporary', 'Temporary'),
+        ('internship', 'Internship'),
+        ('freelance', 'Freelance')
+    ], string='Contract Type')
+
+    # Leaves and attendance
+    leave_balance = fields.Float(string='Leave Balance', defualt=100.0)
+    maker_checker = fields.Boolean(string='Maker & Checker', default=False)
+    salary_history_ids = fields.One2many(
+        'idil.employee.salary',
+        'employee_id',
+        string="Salary History"
+    )
+
+    advance_history_ids = fields.One2many(
+        'idil.employee.salary.advance',
+        'employee_id',
+        string="Advance History"
+    )
+    # Status field
+    status = fields.Selection([
+        ('active', 'Active'),
+        ('inactive', 'Inactive'),
+    ], string='Status', compute='_compute_status', store=True)
+
+    @api.depends('contract_end_date')
+    def _compute_status(self):
+        today = date.today()
+        for record in self:
+            if record.contract_end_date and record.contract_end_date < today:
+                record.status = 'inactive'
+            else:
+                record.status = 'active'
+
+    @api.depends('salary', 'bonus')
+    def _compute_total_compensation(self):
+        for record in self:
+            record.total_compensation = (record.salary or 0.0) + (record.bonus or 0.0)
 
     @api.onchange('currency_id')
     def _onchange_currency_id(self):
@@ -107,3 +158,11 @@ class IdilEmployee(models.Model):
 
                 })
         return res
+
+
+class IdilEmployeeDepartment(models.Model):
+    _name = 'idil.employee_department'
+    _description = 'Employee Department'
+    _order = 'name'
+
+    name = fields.Char(required=True)

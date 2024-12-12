@@ -41,3 +41,5 @@ from . import idil_hall_pricing_rule
 from . import account_statement
 from . import account_statement_summary
 from . import Report_Commission
+from . import Idil_employee_Salary
+from . import Idil_Employee_Salary_Advance

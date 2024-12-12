@@ -89,13 +89,17 @@
         'views/idil_hall_dashboard_view.xml',
         'views/balance_sheet_report.xml',
         'views/custom_pos_template.xml',
-        'views/group_creation.xml',
-        # "views/email.xml",
         'views/report_account_statements.xml',
         'views/report_account_statement_summary.xml',
         'views/report_commission.xml',
-         'views/menu.xml',
-    ],
+        'reports/salary_payment_slip_report.xml',
+        'views/Idil_employee_Salary.xml',
+        'views/idil_employee_salary_advance.xml',
+        'views/idil_employee_department.xml',
+
+        'views/menu_hr.xml',
+        'views/menu_hall.xml',
+        'views/menu.xml',
 
     'controllers': [
         'controllers/item_api_controller.py',

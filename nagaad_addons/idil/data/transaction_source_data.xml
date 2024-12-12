@@ -36,6 +36,15 @@
             <field name="description">Inventory Opening Balance</field>
         </record>
 
+        <record id="trx_source_manual" model="idil.transaction.source">
+            <field name="name">Salary Advance Expense</field>
+            <field name="description">Salary Advance Expense</field>
+        </record>
+        <record id="trx_source_manual" model="idil.transaction.source">
+            <field name="name">Salary Expense</field>
+            <field name="description">Salary Expense</field>
+        </record>
+
 
         <!-- Add more records as needed -->
     </data>

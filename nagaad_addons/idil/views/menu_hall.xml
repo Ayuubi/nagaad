@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Hall Management Menu -->
+    <menuitem id="menu_hall_management_root"
+              name="Hall Management"/>
+
+    <!-- Hall Creation Submenu -->
+    <menuitem id="menu_creation"
+              name="Creations"
+              parent="menu_hall_management_root"
+              sequence="1"/>
+
+    <menuitem id="menu_hall"
+              name="New Hall Creation"
+              parent="menu_creation"
+              action="action_hall"
+              sequence="1"/>
+
+    <!-- Hall Facility Submenu -->
+    <menuitem id="menu_hall_facility"
+              name="Creation of Facilities"
+              parent="menu_creation"
+              action="action_hall_facility"
+              sequence="2"/>
+
+    <!-- Hall Schedule Management Menu -->
+    <menuitem id="menu_hall_schedule_management_root"
+              name="Schedule Management"
+              parent="menu_hall_management_root"
+              sequence="2"/>
+
+    <menuitem id="menu_hall_booking"
+              name="Hall Bookings"
+              parent="menu_hall_schedule_management_root"
+              action="action_hall_booking"
+              sequence="1"/>
+
+    <menuitem id="menu_hall_schedule"
+              name="Schedules"
+              parent="menu_hall_schedule_management_root"
+              action="action_hall_schedule"
+              sequence="2"/>
+
+    <!-- Hall Payment Management Menu -->
+    <menuitem id="menu_hall_payment_management_root"
+              name="Payment Management"
+              parent="menu_hall_management_root"
+              sequence="3"/>
+
+    <menuitem id="menu_hall_payment"
+              name="Payments"
+              parent="menu_hall_payment_management_root"
+              action="action_hall_payment"
+              sequence="1"/>
+
+    <!-- Hall Dashboard Menu -->
+    <menuitem id="menu_hall_dashboard_root"
+              name="Hall Dashboard"
+              parent="menu_hall_management_root"
+              sequence="4"/>
+
+    <menuitem id="menu_hall_dashboard"
+              name="Dashboard"
+              parent="menu_hall_dashboard_root"
+              action="action_hall_dashboard"
+              sequence="1"/>
+</odoo>

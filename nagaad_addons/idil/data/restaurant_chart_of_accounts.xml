@@ -205,5 +205,15 @@
             <field name="FinancialReporting">PL</field>
             <field name="currency_id" ref="base.USD"/>
         </record>
+
+         <record id="account_salary_advance_expense" model="idil.chart.account">
+            <field name="code">500302</field>
+            <field name="name">Salary Expense</field>
+            <field name="subheader_id" ref="subheader_utilities"/>
+            <field name="sign">Dr</field>
+            <field name="FinancialReporting">PL</field>
+            <field name="currency_id" ref="base.USD"/>
+        </record>
+
     </data>
 </odoo>

@@ -28,6 +28,7 @@ class TransactionBooking(models.Model):
     vendor_email = fields.Char(related='vendor_id.email', string='Vendor Email', readonly=True)
 
     customer_id = fields.Many2one('idil.customer.registration', string='Customer')
+    employee_id = fields.Many2one('idil.employee', string='Employee')
 
     sales_person_id = fields.Many2one('idil.sales.sales_personnel', string='Sales Person')
     # Add a field to link to the SaleOrder. This assumes you have a unique identifier (like an ID) for SaleOrder.
@@ -56,6 +57,15 @@ class TransactionBooking(models.Model):
         string='Transaction Source',
         help="Select the transaction source."
     )
+    # Secondary Key Fields
+    employee_salary_advance_id = fields.Many2one(
+        'idil.employee.salary.advance', string='Employee Salary Advance', ondelete='cascade'
+    )
+    # Secondary Key Fields
+    employee_salary_id = fields.Many2one(
+        'idil.employee.salary', string='Employee Salary', ondelete='cascade'
+    )
+
     amount = fields.Float(string='Amount', compute='_compute_amount', store=True)
     amount_paid = fields.Float(string='Amount Paid')
     remaining_amount = fields.Float(string='Remaining Amount', store=True)
@@ -220,6 +230,15 @@ class TransactionBookingline(models.Model):
     # Secondary Key Fields
     transaction_booking_id = fields.Many2one(
         'idil.transaction_booking', string='Transaction Booking', ondelete='cascade'
+    )
+
+    # Secondary Key Fields
+    employee_salary_advance_id = fields.Many2one(
+        'idil.employee.salary.advance', string='Employee Salary Advance', ondelete='cascade'
+    )
+    # Secondary Key Fields
+    employee_salary_id = fields.Many2one(
+        'idil.employee.salary', string='Employee Salary', ondelete='cascade'
     )
 
     # order_line = fields.Char(string='Order Line')
