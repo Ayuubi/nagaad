@@ -101,10 +101,5 @@
         'views/menu_hall.xml',
         'views/menu.xml',
 
-    'controllers': [
-        'controllers/item_api_controller.py',
-        'product_api_controller.py', 
-        'order_api_controller.py'
-        'test_api_controller.py'
     ],
 }
