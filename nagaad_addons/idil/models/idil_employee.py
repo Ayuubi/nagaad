@@ -89,6 +89,8 @@ class IdilEmployee(models.Model):
         for record in self:
             if record.contract_end_date and record.contract_end_date < today:
                 record.status = 'inactive'
+            elif not record.contract_end_date and record.contract_start_date:
+                record.status = 'inactive'
             else:
                 record.status = 'active'
 
