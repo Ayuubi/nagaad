@@ -230,8 +230,8 @@ class TransactionReportWizard(models.TransientModel):
 
         # Add table header and data (if needed)
         data = [
-            ["Transaction Date", "Transaction ID", "Description", "Debit Amount", "Credit Amount",
-             "Running Balance"]
+            ["Transaction Date", "TRS NO", "Description", "Dr", "Cr",
+             "Balance"]
         ]
 
         # Query to fetch transactions
@@ -276,11 +276,11 @@ class TransactionReportWizard(models.TransientModel):
         total_debit = sum(row[4] for row in transactions if row[4])
         total_credit = sum(row[5] for row in transactions if row[5])
         data.append([
-            "", "Grand Total", "", f"{total_debit:,.2f}", f"{total_credit:,.2f}", "",
+            "", "", "Grand Total", f"{total_debit:,.2f}", f"{total_credit:,.2f}", f"{total_debit - total_credit:,.2f}",
         ])
 
         # Create and style the table
-        table = Table(data, colWidths=[90, 90, 150, 150, 100, 100, 100])
+        table = Table(data, colWidths=[90, 50, 290, 80, 80, 100, 100])
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#B6862D")),  # Header background
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Header text color
