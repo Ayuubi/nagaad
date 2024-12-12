@@ -83,16 +83,16 @@ class IdilEmployee(models.Model):
         ('inactive', 'Inactive'),
     ], string='Status', compute='_compute_status', store=True)
 
-    @api.depends('contract_end_date')
+    @api.depends('contract_start_date', 'contract_end_date')
     def _compute_status(self):
         today = date.today()
         for record in self:
             if record.contract_end_date and record.contract_end_date < today:
                 record.status = 'inactive'
-            elif not record.contract_end_date and record.contract_start_date:
-                record.status = 'inactive'
-            else:
+            elif record.contract_start_date and (not record.contract_end_date or record.contract_end_date >= today):
                 record.status = 'active'
+            else:
+                record.status = 'inactive'
 
     @api.depends('salary', 'bonus')
     def _compute_total_compensation(self):
