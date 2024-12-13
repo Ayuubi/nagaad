@@ -1,6 +1,7 @@
 import io
 import base64
 import xlsxwriter
+from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib import colors
@@ -164,13 +165,42 @@ class CommissionReport(models.AbstractModel):
                 'commission_amount': row[4],
             } for row in results
         ]
+        company = self.env.company  # Fetch active company details
 
         if export_type == "pdf":
             _logger.info("Generating PDF...")
             output = io.BytesIO()
             doc = SimpleDocTemplate(output, pagesize=landscape(letter))
             elements = []
+            # ------------------------------------------------------------------
+            styles = getSampleStyleSheet()
+            title_style = styles['Title']
+            normal_style = styles['Normal']
 
+            # Center alignment for the company information
+            centered_style = styles['Title'].clone('CenteredStyle')
+            centered_style.alignment = TA_CENTER
+            centered_style.fontSize = 14
+            centered_style.leading = 20
+
+            normal_centered_style = styles['Normal'].clone('NormalCenteredStyle')
+            normal_centered_style.alignment = TA_CENTER
+            normal_centered_style.fontSize = 10
+            normal_centered_style.leading = 12
+
+            # Header with Company Name, Address, and Logo
+            if company.logo:
+                logo = Image(io.BytesIO(base64.b64decode(company.logo)), width=60, height=60)
+                logo.hAlign = 'CENTER'  # Center-align the logo
+                elements.append(logo)
+
+            # Add company name and address
+            elements.append(Paragraph(f"<b>{company.name}</b>", centered_style))
+            elements.append(
+                Paragraph(f"{company.street}, {company.city}, {company.country_id.name}", normal_centered_style))
+            elements.append(Paragraph(f"Phone: {company.phone} | Email: {company.email}", normal_centered_style))
+            elements.append(Spacer(1, 12))
+            # -------------------------------------
             styles = getSampleStyleSheet()
             title = Paragraph("<b>Commission Report</b>", styles['Title'])
             elements.append(title)
