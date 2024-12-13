@@ -235,7 +235,6 @@ class Account(models.Model):
         # If as_of_date is not provided, use today's date
         as_of_date = self.env.context.get('as_of_date', today)
         company_id = self.env.context.get('company_id', self.env.company.id)  # Get company_id from context or default
-
         company = self.env['res.company'].browse(company_id)  # Fetch the company record
 
         result = {
@@ -297,10 +296,13 @@ class Account(models.Model):
 
         # Compute Profit/Loss for Income and Expense accounts (starting with '4' and '5')
         income_accounts = account_obj.search([('code', 'like', '4%')])  # Income accounts
+        _logger.info(f"Income Accounts: {len(income_accounts)}")
         expense_accounts = account_obj.search([('code', 'like', '5%')])  # Expense accounts
+        _logger.info(f"Expense Accounts: {len(expense_accounts)}")
 
         total_income = round(sum(
             self._compute_account_balance(account, as_of_date, company_id) for account in income_accounts), 2)
+
         total_expenses = round(sum(
             self._compute_account_balance(account, as_of_date, company_id) for account in expense_accounts), 2)
 
@@ -322,7 +324,7 @@ class Account(models.Model):
                                 'balance': result['profit_loss']
                             }
                         ],
-                        'subheader_total': result['profit_loss']
+                        'subheader_total': round(result['profit_loss'], 2)
                     }
                 ],
                 'header_total': round(result['profit_loss'], 2)
