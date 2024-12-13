@@ -135,6 +135,7 @@ class CommissionReport(models.AbstractModel):
         query = f"""
             SELECT 
                 po.cashier, 
+                count(po.id) as no_of_orders,
                 SUM(tb.amount) AS total_amount,
                 ie.commission,
                 SUM(tb.amount) * (ie.commission / 100) AS commission_amount
@@ -157,9 +158,10 @@ class CommissionReport(models.AbstractModel):
         report_data = [
             {
                 'cashier': row[0],
-                'total_amount': row[1],
-                'commission_percentage': row[2],
-                'commission_amount': row[3],
+                'no_of_orders': row[1],
+                'total_amount': row[2],
+                'commission_percentage': row[3],
+                'commission_amount': row[4],
             } for row in results
         ]
 
@@ -187,10 +189,11 @@ class CommissionReport(models.AbstractModel):
                 elements.append(cashier_info)
                 elements.append(Spacer(1, 12))
 
-            data = [['Cashier', 'Total Amount', 'Commission (%)', 'Commission Amount']]
+            data = [['Cashier', 'No of Orders', 'Total Amount', 'Commission (%)', 'Commission Amount']]
             for record in report_data:
                 data.append([
                     record['cashier'],
+                    record['no_of_orders'],
                     f"${record['total_amount']:,.2f}",
                     f"{record['commission_percentage']:.2f}%",
                     f"${record['commission_amount']:,.2f}",
@@ -198,9 +201,9 @@ class CommissionReport(models.AbstractModel):
 
             total_amount = sum(r['total_amount'] for r in report_data if 'total_amount' in r)
             total_commission = sum(r['commission_amount'] for r in report_data if 'commission_amount' in r)
-            data.append(["Total", f"${total_amount:,.2f}", "", f"${total_commission:,.2f}"])
+            data.append(["Total", '', f"${total_amount:,.2f}", "", f"${total_commission:,.2f}"])
 
-            table = Table(data, colWidths=[150, 150, 150, 150])
+            table = Table(data, colWidths=[150, 80, 150, 150, 150])
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#B6862D")),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
