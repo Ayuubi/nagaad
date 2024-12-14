@@ -387,7 +387,8 @@ class IdilEmployeeSalary(models.Model):
                 e.bonus,
                 es.deductions,
                 es.advance_deduction,
-                es.total_salary
+                es.total_salary,
+                e.staff_id
             FROM
                 idil_employee_salary es
             INNER JOIN
@@ -415,6 +416,7 @@ class IdilEmployeeSalary(models.Model):
             'deductions': record[4],
             'advance_deduction': record[5],
             'total_salary': record[6],
+            'staff_id': record[7],
         }
 
         company = self.env.company  # Fetch active company details
@@ -461,7 +463,7 @@ class IdilEmployeeSalary(models.Model):
 
                 # Employee Details Rows
                 ["Employee Name", report_data['employee_name'], "Salary Date", report_data['salary_date']],
-                ["Employee ID", "12345", "Pay Cycle", "Monthly"],
+                ["Employee ID", report_data['staff_id'], "Pay Cycle", "Monthly"],
                 ["Bank Details", "Bank XYZ", "", ""],
 
                 # Header for Earnings and Deductions

@@ -9,6 +9,7 @@ class IdilEmployee(models.Model):
     _order = 'name'
 
     name = fields.Char(required=True)
+    staff_id = fields.Char(string="Employee Id")
     company_id = fields.Many2one('res.company', required=True)
     department_id = fields.Many2one('idil.employee_department')
 

@@ -9,19 +9,19 @@
                 <tree string="Employee" decoration-danger="status == 'inactive'">
                     <field name="image_1920" widget="image" options="{'size': (20, 20)}"/> <!-- Adjust size here -->
 
-                    <field name="name"/>
-                    <field name="company_id"/>
-                    <field name="private_phone"/>
-                    <field name="private_email"/>
-                    <field name="gender"/>
-                    <field name="marital"/>
-                    <field name="employee_type"/>
-                    <field name="account_id"/>
-                    <field name="commission"/>
-                    <field name="maker_checker"/>
+                    <field name="name" optional="true"/>
+                    <field name="staff_id" optional="true"/>
+                    <field name="company_id" optional="true"/>
+                    <field name="private_phone" optional="true"/>
+                    <field name="private_email" optional="true"/>
+                    <field name="gender" optional="true"/>
+                    <field name="marital" optional="true"/>
+                    <field name="employee_type" optional="true"/>
+                    <field name="account_id" optional="true"/>
+                    <field name="commission" optional="true"/>
+                    <field name="maker_checker" optional="true"/>
 
                     <field name="status" widget="statusbar" statusbar_visible="active,inactive"/>
-
 
 
                 </tree>
@@ -101,6 +101,7 @@
                             <page string="Personal Information">
                                 <group>
                                     <group string="Company Details" col="2">
+                                        <field name="staff_id"/>
                                         <field name="company_id"/>
                                         <field name="employee_type"/>
                                         <field name="department_id"/>
