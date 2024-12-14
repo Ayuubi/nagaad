@@ -222,6 +222,120 @@ class Account(models.Model):
     #     result['total_liabilities_equity'] = result['total_liabilities'] + result['total_owners_equity']
     #
     #     return result
+    # def get_balance_sheet_data(self):
+    #     """
+    #     Dynamically fetch and calculate the balances for assets, liabilities, and equity,
+    #     using only accounts where FinancialReporting is 'BS', showing only accounts with non-zero balances.
+    #     Ensures that total liabilities + equity ± net profit/loss reflects non-zero values.
+    #     """
+    #
+    #     # Get today's date
+    #     today = fields.Date.context_today(self)
+    #
+    #     # If as_of_date is not provided, use today's date
+    #     as_of_date = self.env.context.get('as_of_date', today)
+    #     company_id = self.env.context.get('company_id', self.env.company.id)  # Get company_id from context or default
+    #     company = self.env['res.company'].browse(company_id)  # Fetch the company record
+    #
+    #     result = {
+    #         'headers': [],
+    #         'profit_loss': 0.0,
+    #         'total_liabilities': 0.0,
+    #         'total_equity': 0.0,  # Store total equity (without profit/loss adjustment)
+    #         'total_owners_equity': 0.0,  # Store total equity after adjusting with profit/loss
+    #         'total_liabilities_equity': 0.0,  # Store total of liabilities and equity adjusted by profit/loss
+    #         'as_of_date': as_of_date,  # Pass as_of_date to the template
+    #         'company': company  # Pass the company data to the template
+    #     }
+    #
+    #     # Fetching only accounts with FinancialReporting = 'BS'
+    #     account_obj = self.env['idil.chart.account']
+    #     account_header_obj = self.env['idil.chart.account.header']
+    #     headers = account_header_obj.search([])  # Get all headers
+    #
+    #     for header in headers:
+    #         header_data = {
+    #             'header_name': header.name,
+    #             'subheaders': [],
+    #             'header_total': 0.0  # To store the total for this header
+    #         }
+    #
+    #         for subheader in header.sub_header_ids:
+    #             subheader_data = {
+    #                 'sub_header_name': subheader.name,
+    #                 'accounts': [],
+    #                 'subheader_total': 0.0
+    #             }
+    #
+    #             # Fetch only accounts under this subheader and FinancialReporting = 'BS'
+    #             for account in subheader.account_ids.filtered(lambda a: a.FinancialReporting == 'BS'):
+    #                 balance = round(self._compute_account_balance(account, as_of_date, company_id), 2)
+    #
+    #                 # Only add the account if its balance is non-zero
+    #                 if balance != 0.0:
+    #                     subheader_data['accounts'].append({
+    #                         'account_name': account.name,
+    #                         'balance': round(balance, 2),
+    #                     })
+    #                     subheader_data['subheader_total'] += balance
+    #
+    #             if subheader_data[
+    #                 'accounts']:  # Only append subheader if it has relevant accounts with non-zero balance
+    #                 header_data['header_total'] += round(subheader_data['subheader_total'], 2)
+    #                 header_data['subheaders'].append(subheader_data)
+    #
+    #         # Round header total and append if it has relevant subheaders
+    #         header_data['header_total'] = round(header_data['header_total'], 2)
+    #         if header_data['subheaders']:
+    #             if header.name == 'Liabilities':
+    #                 result['total_liabilities'] += round(header_data['header_total'], 2)
+    #             elif header.name == "Owner's Equity":
+    #                 result['total_equity'] += header_data['header_total']
+    #
+    #             result['headers'].append(header_data)
+    #
+    #     # Compute Profit/Loss for Income and Expense accounts (starting with '4' and '5')
+    #     income_accounts = account_obj.search([('code', 'like', '4%')])  # Income accounts
+    #     _logger.info(f"Income Accounts: {len(income_accounts)}")
+    #     expense_accounts = account_obj.search([('code', 'like', '5%')])  # Expense accounts
+    #     _logger.info(f"Expense Accounts: {len(expense_accounts)}")
+    #
+    #     total_income = round(sum(
+    #         self._compute_account_balance(account, as_of_date, company_id) for account in income_accounts), 2)
+    #
+    #     total_expenses = round(sum(
+    #         self._compute_account_balance(account, as_of_date, company_id) for account in expense_accounts), 2)
+    #
+    #     result['profit_loss'] = round((total_income - total_expenses), 2)
+    #
+    #     # Calculate total owner's equity (equity + profit/loss)
+    #     result['total_owners_equity'] = round((result['total_equity'] + result['profit_loss']), 2)
+    #
+    #     # Add profit/loss as a separate header if equity data is missing
+    #     if not any(header['header_name'] == "Owner's Equity" for header in result['headers']):
+    #         equity_header = {
+    #             'header_name': "Owner's Equity",
+    #             'subheaders': [
+    #                 {
+    #                     'sub_header_name': 'Profit/Loss',
+    #                     'accounts': [
+    #                         {
+    #                             'account_name': 'Net Profit/Loss',
+    #                             'balance': result['profit_loss']
+    #                         }
+    #                     ],
+    #                     'subheader_total': round(result['profit_loss'], 2)
+    #                 }
+    #             ],
+    #             'header_total': round(result['profit_loss'], 2)
+    #         }
+    #         result['headers'].append(equity_header)
+    #
+    #     # Calculate total liabilities + owner's equity
+    #     result['total_liabilities_equity'] = round((result['total_liabilities'] + result['total_owners_equity']), 2)
+    #
+    #     return result
+    @api.model
     def get_balance_sheet_data(self):
         """
         Dynamically fetch and calculate the balances for assets, liabilities, and equity,
@@ -229,89 +343,95 @@ class Account(models.Model):
         Ensures that total liabilities + equity ± net profit/loss reflects non-zero values.
         """
 
+        _logger.info("Starting get_balance_sheet_data computation.")
+
         # Get today's date
         today = fields.Date.context_today(self)
+        _logger.info(f"Today's date: {today}")
 
         # If as_of_date is not provided, use today's date
         as_of_date = self.env.context.get('as_of_date', today)
         company_id = self.env.context.get('company_id', self.env.company.id)  # Get company_id from context or default
+        _logger.info(f"as_of_date: {as_of_date}, company_id: {company_id}")
+
         company = self.env['res.company'].browse(company_id)  # Fetch the company record
+        _logger.info(f"Company: {company.name}")
 
         result = {
             'headers': [],
             'profit_loss': 0.0,
             'total_liabilities': 0.0,
-            'total_equity': 0.0,  # Store total equity (without profit/loss adjustment)
-            'total_owners_equity': 0.0,  # Store total equity after adjusting with profit/loss
-            'total_liabilities_equity': 0.0,  # Store total of liabilities and equity adjusted by profit/loss
-            'as_of_date': as_of_date,  # Pass as_of_date to the template
-            'company': company  # Pass the company data to the template
+            'total_equity': 0.0,
+            'total_owners_equity': 0.0,
+            'total_liabilities_equity': 0.0,
+            'as_of_date': as_of_date,
+            'company': company
         }
 
         # Fetching only accounts with FinancialReporting = 'BS'
         account_obj = self.env['idil.chart.account']
         account_header_obj = self.env['idil.chart.account.header']
-        headers = account_header_obj.search([])  # Get all headers
+        headers = account_header_obj.search([])
+        _logger.info(f"Total headers found: {len(headers)}")
 
         for header in headers:
+            _logger.info(f"Processing header: {header.name}")
             header_data = {
                 'header_name': header.name,
                 'subheaders': [],
-                'header_total': 0.0  # To store the total for this header
+                'header_total': 0.0
             }
 
             for subheader in header.sub_header_ids:
+                _logger.info(f"Processing subheader: {subheader.name}")
                 subheader_data = {
                     'sub_header_name': subheader.name,
                     'accounts': [],
                     'subheader_total': 0.0
                 }
 
-                # Fetch only accounts under this subheader and FinancialReporting = 'BS'
                 for account in subheader.account_ids.filtered(lambda a: a.FinancialReporting == 'BS'):
                     balance = round(self._compute_account_balance(account, as_of_date, company_id), 2)
+                    _logger.info(f"Account: {account.name}, Balance: {balance}")
 
-                    # Only add the account if its balance is non-zero
                     if balance != 0.0:
                         subheader_data['accounts'].append({
                             'account_name': account.name,
-                            'balance': round(balance, 2),
+                            'balance': balance,
                         })
                         subheader_data['subheader_total'] += balance
 
-                if subheader_data[
-                    'accounts']:  # Only append subheader if it has relevant accounts with non-zero balance
-                    header_data['header_total'] += round(subheader_data['subheader_total'], 2)
+                if subheader_data['accounts']:
+                    header_data['header_total'] += subheader_data['subheader_total']
                     header_data['subheaders'].append(subheader_data)
 
-            # Round header total and append if it has relevant subheaders
             header_data['header_total'] = round(header_data['header_total'], 2)
+            _logger.info(f"Header: {header.name}, Total: {header_data['header_total']}")
+
             if header_data['subheaders']:
                 if header.name == 'Liabilities':
-                    result['total_liabilities'] += round(header_data['header_total'], 2)
+                    result['total_liabilities'] += header_data['header_total']
                 elif header.name == "Owner's Equity":
                     result['total_equity'] += header_data['header_total']
 
                 result['headers'].append(header_data)
 
-        # Compute Profit/Loss for Income and Expense accounts (starting with '4' and '5')
-        income_accounts = account_obj.search([('code', 'like', '4%')])  # Income accounts
-        _logger.info(f"Income Accounts: {len(income_accounts)}")
-        expense_accounts = account_obj.search([('code', 'like', '5%')])  # Expense accounts
-        _logger.info(f"Expense Accounts: {len(expense_accounts)}")
+        income_accounts = account_obj.search([('code', 'like', '4%')])
+        expense_accounts = account_obj.search([('code', 'like', '5%')])
+        _logger.info(f"Income Accounts: {len(income_accounts)}, Expense Accounts: {len(expense_accounts)}")
 
-        total_income = round(sum(
-            self._compute_account_balance(account, as_of_date, company_id) for account in income_accounts), 2)
+        total_income = round(
+            sum(self._compute_account_balance(account, as_of_date, company_id) for account in income_accounts), 2)
+        total_expenses = round(
+            sum(self._compute_account_balance(account, as_of_date, company_id) for account in expense_accounts), 2)
+        _logger.info(f"Total Income: {total_income}, Total Expenses: {total_expenses}")
 
-        total_expenses = round(sum(
-            self._compute_account_balance(account, as_of_date, company_id) for account in expense_accounts), 2)
+        result['profit_loss'] = total_income - total_expenses
+        _logger.info(f"Profit/Loss: {result['profit_loss']}")
 
-        result['profit_loss'] = round((total_income - total_expenses), 2)
+        result['total_owners_equity'] = result['total_equity'] + result['profit_loss']
+        _logger.info(f"Total Owner's Equity: {result['total_owners_equity']}")
 
-        # Calculate total owner's equity (equity + profit/loss)
-        result['total_owners_equity'] = round((result['total_equity'] + result['profit_loss']), 2)
-
-        # Add profit/loss as a separate header if equity data is missing
         if not any(header['header_name'] == "Owner's Equity" for header in result['headers']):
             equity_header = {
                 'header_name': "Owner's Equity",
@@ -324,15 +444,15 @@ class Account(models.Model):
                                 'balance': result['profit_loss']
                             }
                         ],
-                        'subheader_total': round(result['profit_loss'], 2)
+                        'subheader_total': result['profit_loss']
                     }
                 ],
-                'header_total': round(result['profit_loss'], 2)
+                'header_total': result['profit_loss']
             }
             result['headers'].append(equity_header)
 
-        # Calculate total liabilities + owner's equity
-        result['total_liabilities_equity'] = round((result['total_liabilities'] + result['total_owners_equity']), 2)
+        result['total_liabilities_equity'] = result['total_liabilities'] + result['total_owners_equity']
+        _logger.info(f"Total Liabilities + Owner's Equity: {result['total_liabilities_equity']}")
 
         return result
 
