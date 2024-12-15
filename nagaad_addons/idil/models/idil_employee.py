@@ -12,6 +12,8 @@ class IdilEmployee(models.Model):
     staff_id = fields.Char(string="Employee Id")
     company_id = fields.Many2one('res.company', required=True)
     department_id = fields.Many2one('idil.employee_department')
+    position_id = fields.Many2one('idil.employee_position')
+
 
     private_phone = fields.Char(string='Private Phone')
     private_email = fields.Char(string='Private Email')
@@ -168,6 +170,14 @@ class IdilEmployee(models.Model):
 class IdilEmployeeDepartment(models.Model):
     _name = 'idil.employee_department'
     _description = 'Employee Department'
+    _order = 'name'
+
+    name = fields.Char(required=True)
+
+
+class IdilEmployeePosition(models.Model):
+    _name = 'idil.employee_position'
+    _description = 'Employee Position'
     _order = 'name'
 
     name = fields.Char(required=True)

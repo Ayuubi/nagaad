@@ -20,6 +20,11 @@
               parent="menu_idil_employee_creation"
               action="action_idil_employee_department"/>
 
+    <menuitem id="menu_idil_employee_position"
+              name="Registration of New Position"
+              parent="menu_idil_employee_creation"
+              action="action_idil_employee_position"/>
+
     <menuitem id="menu_idil_employee_salary_root"
               name="Payroll Management"
               parent="menu_idil_staff_management_root"/>

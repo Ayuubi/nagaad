@@ -96,6 +96,7 @@
         'views/Idil_employee_Salary.xml',
         'views/idil_employee_salary_advance.xml',
         'views/idil_employee_department.xml',
+        'views/idil_employee_position.xml',
 
         'views/menu_hr.xml',
         'views/menu_hall.xml',
