@@ -273,4 +273,11 @@
               parent="OtherReports"
               sequence="6"
               action="action_generate_vendor_transaction"/>
+
+    <menuitem id="hrm_salary_report_menu"
+              name="HRM Salary Report"
+              parent="OtherReports"
+              action="action_hrm_salary_report"
+              sequence="10"/>
+
 </odoo>

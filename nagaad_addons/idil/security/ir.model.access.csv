@@ -57,3 +57,4 @@ idil.access_idil_employee_salary,access_idil_employee_salary,idil.model_idil_emp
 idil.access_idil_employee_salary_advance,access_idil_employee_salary_advance,idil.model_idil_employee_salary_advance,base.group_user,1,1,1,1
 idil.access_idil_employee_department,access_idil_employee_department,idil.model_idil_employee_department,base.group_user,1,1,1,1
 idil.access_idil_employee_position,access_idil_employee_position,idil.model_idil_employee_position,base.group_user,1,1,1,1
+idil.access_report_hrm_salary_report,access_report_hrm_salary_report,idil.model_report_hrm_salary_report,base.group_user,1,1,1,1

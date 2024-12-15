@@ -9,26 +9,26 @@
                 <tree string="Employee" decoration-danger="status == 'inactive'">
                     <field name="image_1920" widget="image" options="{'size': (20, 20)}"/> <!-- Adjust size here -->
 
-                    <field name="company_id"/>
-                    <field name="staff_id"/>
-                    <field name="name"/>
-                    <field name="employee_type"/>
-                    <field name="department_id"/>
-                    <field name="position_id"/>
-                    <field name="salary"/>
-                    <field name="bonus"/>
-                    <field name="total_compensation"/>
-                    <field name="contract_start_date" optional="true"/>
-                    <field name="contract_end_date" optional="true"/>
-                    <field name="contract_type" optional="true"/>
-                    <field name="account_id" optional="true"/>
-                    <field name="commission" optional="true"/>
-                    <field name="maker_checker" optional="true"/>
-                    <field name="leave_balance" optional="false"/>
-                    <field name="private_phone" optional="true"/>
-                    <field name="private_email" optional="true"/>
-                    <field name="gender" optional="true"/>
-                    <field name="marital" optional="true"/>
+                    <field name="company_id" optional="hide"/>
+                    <field name="staff_id" optional="show"/>
+                    <field name="name" optional="show"/>
+                    <field name="employee_type" optional="hide"/>
+                    <field name="department_id" optional="show"/>
+                    <field name="position_id" optional="show"/>
+                    <field name="salary" optional="show"/>
+                    <field name="bonus" optional="show"/>
+                    <field name="total_compensation" optional="show"/>
+                    <field name="contract_start_date" optional="show"/>
+                    <field name="contract_end_date" optional="show"/>
+                    <field name="contract_type" optional="hide"/>
+                    <field name="account_id" optional="hide"/>
+                    <field name="commission" optional="hide"/>
+                    <field name="maker_checker" optional="hide"/>
+                    <field name="leave_balance" optional="hide"/>
+                    <field name="private_phone" optional="hide"/>
+                    <field name="private_email" optional="hide"/>
+                    <field name="gender" optional="hide"/>
+                    <field name="marital" optional="hide"/>
                     <field name="status" widget="statusbar" statusbar_visible="active,inactive"/>
 
 

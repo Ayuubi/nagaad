@@ -43,3 +43,4 @@ from . import account_statement_summary
 from . import Report_Commission
 from . import Idil_employee_Salary
 from . import Idil_Employee_Salary_Advance
+from . import idil_employee_hrm_report
