@@ -98,6 +98,7 @@
         'views/idil_employee_department.xml',
         'views/idil_employee_position.xml',
         'views/report_hrm_salary.xml',
+        'views/report_hrm_salary_department.xml',
 
         'views/menu_hr.xml',
         'views/menu_hall.xml',

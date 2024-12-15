@@ -52,4 +52,12 @@
               action="action_hrm_salary_report"
               sequence="10"/>
 
+    <menuitem id="hrm_salary_report_department_menu"
+              name="HRM Department Salary Report"
+              parent="hrm_report_menu"
+              action="action_hrm_salary_department_report"
+              sequence="10"/>
+
+
+
 </odoo>
