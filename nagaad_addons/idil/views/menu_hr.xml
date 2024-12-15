@@ -41,4 +41,15 @@
               action="action_idil_employee_salary_advance"
               sequence="30"/>
 
+    <menuitem id="hrm_report_menu"
+              name="HRM Report"
+              parent="menu_idil_staff_management_root"
+              sequence="100"/>
+
+    <menuitem id="hrm_salary_report_menu"
+              name="HRM Salary Report"
+              parent="hrm_report_menu"
+              action="action_hrm_salary_report"
+              sequence="10"/>
+
 </odoo>

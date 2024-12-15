@@ -114,7 +114,7 @@ class HRMSalaryReportWizard(models.TransientModel):
 
             data = [
                 ['Staff Id', 'Employee Name', 'Job Position', 'Basic Salary', 'Allowances', 'Deductions',
-                 'Salary Advance', 'Net Salary']]
+                 'Advance', 'Net Salary']]
             for record in report_data:
                 data.append([
 
@@ -138,7 +138,7 @@ class HRMSalaryReportWizard(models.TransientModel):
             data.append(["Total", '', '', f"${total_basic_salary:,.2f}", f"${total_allowances:,.2f}",
                          f"${total_deductions:,.2f}", f"${advance:,.2f}", f"${total_net_salary:,.2f}"])
 
-            table = Table(data, colWidths=[50, 100, 100, 100, 100, 100, 100, 100])
+            table = Table(data, colWidths=[60, 200, 130, 70, 80, 80, 80, 80])
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#B6862D")),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
