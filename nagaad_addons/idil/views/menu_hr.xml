@@ -57,6 +57,11 @@
               action="action_hrm_salary_department_report"
               sequence="10"/>
 
+    <menuitem id="hrm_salary_report_list_menu"
+              name="Employee Payroll List with Salary Advance"
+              parent="hrm_report_menu"
+              action="action_hrm_salary_list_report"
+              sequence="10"/>
 
 
 </odoo>
