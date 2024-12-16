@@ -41,18 +41,6 @@
               action="action_hall_schedule"
               sequence="2"/>
 
-    <!-- Hall Payment Management Menu -->
-    <menuitem id="menu_hall_payment_management_root"
-              name="Payment Management"
-              parent="menu_hall_management_root"
-              sequence="3"/>
-
-    <menuitem id="menu_hall_payment"
-              name="Payments"
-              parent="menu_hall_payment_management_root"
-              action="action_hall_payment"
-              sequence="1"/>
-
     <!-- Hall Dashboard Menu -->
     <menuitem id="menu_hall_dashboard_root"
               name="Hall Dashboard"
