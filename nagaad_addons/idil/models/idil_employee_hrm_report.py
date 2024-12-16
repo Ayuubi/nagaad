@@ -60,11 +60,11 @@ class HRMSalaryReportWizard(models.TransientModel):
                 'employee_id': row[0],
                 'employee_name': row[1],
                 'job_position': row[2],
-                'basic_salary': row[3],
-                'allowances': row[4],
-                'deductions': row[5],
-                'advance': row[6],
-                'net_salary': row[7],
+                'basic_salary': row[3] if row[3] is not None else 0.00,
+                'allowances': row[4] if row[4] is not None else 0.00,
+                'deductions': row[5] if row[5] is not None else 0.00,
+                'advance': row[6] if row[6] is not None else 0.00,
+                'net_salary': row[7] if row[7] is not None else 0.00,
             } for row in results
         ]
         company = self.env.company  # Fetch active company details
