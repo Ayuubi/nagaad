@@ -141,7 +141,7 @@ class HRMSalaryListReportWizard(models.TransientModel):
                 ["Total", '', '', f"${total_basic_salary:,.2f}", f"${total_allowances:,.2f}", f"${advance:,.2f}",
                  f"${total_net_salary:,.2f}"])
 
-            table = Table(data, colWidths=[50, 250, 80, 80, 80, 80, 80])
+            table = Table(data, colWidths=[50, 200, 130, 80, 80, 80, 80])
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#B6862D")),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
