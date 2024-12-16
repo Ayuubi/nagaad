@@ -50,7 +50,7 @@ class HRMSalaryListReportWizard(models.TransientModel):
             GROUP BY   
                 ep.name, e.name, e.staff_id
             ORDER BY 
-                ep.staff_id;
+                e.staff_id;
 
                    """
 
