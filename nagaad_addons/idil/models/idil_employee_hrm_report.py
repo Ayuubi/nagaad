@@ -47,7 +47,7 @@ class HRMSalaryReportWizard(models.TransientModel):
              WHERE 
                 {where_clause}
                 ORDER BY 
-                ep.name;
+                e.staff_id;
                """
 
         _logger.info(f"Executing query: {query} with params: {params}")
