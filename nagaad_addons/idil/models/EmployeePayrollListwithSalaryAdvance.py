@@ -64,10 +64,10 @@ class HRMSalaryListReportWizard(models.TransientModel):
                 'staff_id': row[0],
                 'staff_name': row[1],
                 'job_position': row[2],
-                'basic_salary': row[3],
-                'allowances': row[4],
-                'advance': row[5],
-                'net_salary': row[6],
+                'basic_salary': row[3] if row[3] is not None else 0.00,
+                'allowances': row[4] if row[4] is not None else 0.00,
+                'advance': row[5] if row[5] is not None else 0.00,
+                'net_salary': row[6] if row[6] is not None else 0.00,
             } for row in results
         ]
         company = self.env.company  # Fetch active company details
@@ -125,6 +125,7 @@ class HRMSalaryListReportWizard(models.TransientModel):
                     record['staff_name'],
                     record['job_position'],
                     f"${record['basic_salary']:,.2f}",
+
                     f"${record['allowances']:,.2f}",
                     f"${record['advance']:,.2f}",
                     f"${record['net_salary']:,.2f}",
