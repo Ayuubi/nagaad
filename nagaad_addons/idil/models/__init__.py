@@ -35,8 +35,6 @@ from . import idil_hall_booking
 from . import HallFacility
 from . import HallSchedule
 from . import idil_hall_pricing_rule
-# from . import email
-# from . import sales_tax_report
 from . import account_statement
 from . import account_statement_summary
 from . import Report_Commission
