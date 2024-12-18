@@ -12,9 +12,8 @@ class Hall(models.Model):
     facilities = fields.Many2many('idil.hall.facility', string='Facilities')
     availability = fields.Selection([
         ('available', 'Available'),
-        ('booked', 'Booked'),
         ('maintenance', 'Maintenance')
-    ], string='Availability')
+    ], default='available', string='Availability')
 
     income_account_id = fields.Many2one(
         'idil.chart.account',
@@ -30,3 +29,15 @@ class Hall(models.Model):
         required=True,
         domain="[('code', 'like', '1')]"  # Domain to filter accounts starting with '4'
     )
+    facilities_display = fields.Char(
+        string='Facilities Display',
+        compute='_compute_facilities_display'
+    )
+
+    @api.depends('facilities')
+    def _compute_facilities_display(self):
+        for record in self:
+            if record.facilities:
+                record.facilities_display = ", ".join(record.facilities.mapped('name'))
+            else:
+                record.facilities_display = ''

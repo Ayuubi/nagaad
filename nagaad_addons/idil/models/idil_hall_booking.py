@@ -1,7 +1,19 @@
-from odoo import models, fields, api
+import base64
+import io
 from datetime import datetime
-
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from odoo import models, fields, api
 from odoo.exceptions import UserError, ValidationError
+from reportlab.platypus import Image
+from reportlab.lib.pagesizes import landscape
+from reportlab.platypus import SimpleDocTemplate
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class HallBooking(models.Model):
@@ -18,23 +30,59 @@ class HallBooking(models.Model):
     duration = fields.Float(string='Duration (Hours)', compute='_compute_duration', store=True)
     no_of_guest = fields.Float(string='Total Guests')
     price_per_guest = fields.Float(string='Price per Guest', default=0.0)
-
     total_price = fields.Float(string='Total Price', compute='_compute_total_price', store=True)
-    status = fields.Selection([
-        ('draft', 'Draft'),
-        ('booked', 'Booked'),
-        ('confirmed', 'Confirmed'),
-        ('canceled', 'Canceled')
-    ], string='Status', default='draft')
+    # Total amount paid will now be computed from the sum of payments
+    amount = fields.Float(string='Advance Amount / Down Payment', store=True, default='')
+    amount_paid = fields.Float(string='Amount Paid', default=0.0, compute='_compute_amount_paid', store=True)
+    remaining_amount = fields.Float(string='Remaining Amount', default=0.0, store=True,
+                                    compute='_compute_remaining_amount')
     # Adding payment method field
     payment_method_id = fields.Many2one('idil.payment.method', string='Payment Method', required=True)
     # Account Number Field (related to the selected Payment Method)
     account_number = fields.Char(string='Account Number', compute='_compute_account_number', store=True)
-    # Total amount paid will now be computed from the sum of payments
-    amount = fields.Float(string='Amount to Pay', store=True, default='')
-    amount_paid = fields.Float(string='Amount Paid', default=0.0, compute='_compute_amount_paid', store=True)
-    remaining_amount = fields.Float(string='Remaining Amount', default=0.0, store=True)
     payment_ids = fields.One2many('idil.hall.booking.payment', 'booking_id', string='Payments')
+    status = fields.Selection([
+        ('draft', 'Draft'),
+        ('booked', 'Booked'),
+        ('confirmed', 'Confirmed'),
+        ('due', 'Due'),
+        ('closed', 'Closed'),
+        ('canceled', 'Canceled')
+    ], string='Status', default='draft')
+    hall_event_id = fields.Many2one('idil.hall_event_type', string='Choose Event Type')
+
+    @api.model
+    def read(self, fields=None, load='_classic_read'):
+        """Override the read method to dynamically update the status field."""
+        records = super(HallBooking, self).read(fields, load)
+        current_time = datetime.now()  # Use Python's datetime module for current time
+
+        # Collect IDs of records to update
+        ids_to_update = []
+        for record in records:
+            if 'status' in record and 'end_time' in record:
+                if record['status'] not in ['closed', 'canceled'] and record.get('end_time') and record[
+                    'end_time'] < current_time:
+                    ids_to_update.append(record['id'])
+
+        # Perform a write operation for all expired bookings
+        if ids_to_update:
+            for record in records:
+                if record.get('remaining_amount', 0) == 0:  # Access remaining_amount correctly
+                    self.browse(ids_to_update).write({'status': 'closed'})
+                else:
+                    self.browse(ids_to_update).write({'status': 'due'})
+
+        return records
+
+    # Method to compute remaining amount
+    @api.depends('total_price', 'amount')
+    def _compute_remaining_amount(self):
+        for record in self:
+            if record.amount == 0:
+                record.remaining_amount = record.total_price  # If amount is zero, remaining is total price
+            else:
+                record.remaining_amount = record.total_price - record.amount  # Else, calculate as usual
 
     @api.model
     def create(self, vals):
@@ -52,18 +100,6 @@ class HallBooking(models.Model):
                     "The selected hall is currently under maintenance and will be available after {}.".format(
                         maintenance_schedule.end_time
                     )
-                )
-
-        # Check if the selected hall is already booked
-        hall = self.env['idil.hall'].browse(vals.get('hall_id'))
-        if hall.availability == 'booked':
-            # Find the last booking for this hall to get the end time
-            last_booking = self.env['idil.hall.booking'].search([('hall_id', '=', hall.id)], order='end_time desc',
-                                                                limit=1)
-            if last_booking:
-                raise ValidationError(
-                    "The selected hall is not available at the moment. "
-                    "It will become available after {}.".format(last_booking.end_time)
                 )
 
         # Check for overlapping bookings
@@ -93,26 +129,12 @@ class HallBooking(models.Model):
         # Create the booking record
         booking = super(HallBooking, self).create(vals)
 
-        if booking.remaining_amount > 0:
+        if 0 < booking.remaining_amount < booking.total_price:
             booking.status = 'booked'
-        elif booking.amount == 0:
+        elif booking.remaining_amount == booking.total_price:
             booking.status = 'draft'
-        elif booking.total_price == booking.amount:
+        elif booking.remaining_amount == 0 and booking.total_price == booking.amount_paid:
             booking.status = 'confirmed'
-
-        # Set the status and hall availability based on the amount, remaining amount, and current date
-        current_date = fields.Date.today()
-        start_date = fields.Date.to_date(booking.start_time)
-
-        if start_date == current_date:
-            if booking.remaining_amount > 0:
-                booking.status = 'booked'
-                booking.hall_id.availability = 'booked'
-            elif booking.amount == 0:
-                booking.status = 'draft'
-            elif booking.total_price == booking.amount:
-                booking.status = 'confirmed'
-                booking.hall_id.availability = 'booked'
 
         # Create a payment entry if there is an amount to pay
         if booking.amount > 0:
@@ -139,10 +161,16 @@ class HallBooking(models.Model):
         total_price = self.total_price
         amount_paid = self.amount
         remaining_amount = self.total_price - self.amount
+        # Fetch the trx source record for "Salary Advance Expense"
+        hall_booking_trx_source = self.env['idil.transaction.source'].search([
+            ('name', '=', 'hall booking')  # Assuming the type is COGS, adjust based on your setup
+        ], limit=1)
 
         # Create the main transaction record
         transaction = self.env['idil.transaction_booking'].create({
             'transaction_number': self.env['ir.sequence'].next_by_code('idil.transaction_booking'),
+            'hall_booking_id': self.id,
+            'trx_source_id': hall_booking_trx_source.id,
             'reffno': self.name,
             'customer_id': self.customer_id.id,
             'trx_date': fields.Date.today(),
@@ -153,6 +181,7 @@ class HallBooking(models.Model):
         # Create the credit line for the income (total price)
         self.env['idil.transaction_bookingline'].create({
             'transaction_booking_id': transaction.id,
+            'hall_booking_id': self.id,
             'description': 'Income for Hall Booking {}'.format(self.name),
             'account_number': self.hall_id.income_account_id.id,
             'transaction_type': 'cr',
@@ -165,6 +194,7 @@ class HallBooking(models.Model):
         if amount_paid > 0:
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction.id,
+                'hall_booking_id': self.id,
                 'description': 'Cash Payment for Hall Booking {}'.format(self.name),
                 'account_number': self.payment_method_id.account_number.id,
                 'transaction_type': 'dr',
@@ -177,6 +207,7 @@ class HallBooking(models.Model):
         if remaining_amount > 0:
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction.id,
+                'hall_booking_id': self.id,
                 'description': 'Receivable for Hall Booking {}'.format(self.name),
                 'account_number': self.hall_id.Receivable_account_id.id,
                 'transaction_type': 'dr',
@@ -222,6 +253,13 @@ class HallBooking(models.Model):
     def write(self, vals):
         """Override write method to handle changes, including updating transactions
         when the number of guests increases or decreases."""
+        if 'amount' in vals:
+            for record in self:
+                if record.amount != vals['amount']:
+                    raise ValidationError(
+                        "You cannot modify the 'Advance Amount / Down Payment' "
+                        "field after the booking has been created.")
+
         for booking in self:
             old_total_price = booking.total_price  # Store the old total price before the update
 
@@ -244,25 +282,13 @@ class HallBooking(models.Model):
                     self._adjust_transaction_lines_on_price_change(transaction, price_difference, new_total_price)
 
                 # Set the status and hall availability based on the amount, remaining amount, and current date
-                current_date = fields.Date.today()
-                start_date = fields.Date.to_date(booking.start_time)
 
-                if booking.remaining_amount > 0:
+                if 0 < booking.remaining_amount < booking.total_price:
                     booking.status = 'booked'
-                elif booking.amount == 0:
+                elif booking.remaining_amount == booking.total_price:
                     booking.status = 'draft'
-                elif booking.total_price == booking.amount:
+                elif booking.remaining_amount == 0:
                     booking.status = 'confirmed'
-
-                if start_date == current_date:
-                    if booking.remaining_amount > 0:
-                        booking.status = 'booked'
-                        booking.hall_id.availability = 'booked'
-                    elif booking.amount == 0:
-                        booking.status = 'draft'
-                    elif booking.total_price == booking.amount:
-                        booking.status = 'confirmed'
-                        booking.hall_id.availability = 'booked'
 
         return res
 
@@ -310,6 +336,7 @@ class HallBooking(models.Model):
             if remaining_amount > 0:
                 self.env['idil.transaction_bookingline'].create({
                     'transaction_booking_id': transaction.id,
+                    'hall_booking_id': self.id,
                     'description': 'Receivable for Hall Booking {}'.format(booking.name),
                     'account_number': booking.hall_id.Receivable_account_id.id,
                     'transaction_type': 'dr',
@@ -337,6 +364,251 @@ class HallBooking(models.Model):
         # Finally, call the original unlink method to delete the booking
         return super(HallBooking, self).unlink()
 
+    def generate_confirmation_slip_pdf(self):
+        """Generate the payment slip for the selected employee."""
+        for record in self:
+            if not record.name:
+                raise ValidationError("Booking must be selected to generate the payment slip.")
+            return self.generate_salary_report_pdf(booking_id=record.id)
+
+    def generate_salary_report_pdf(self, booking_id=None, export_type="pdf"):
+        """Generate and download the latest salary payment report."""
+        _logger.info("Starting salary report generation...")
+        where_clauses = []
+        params = []
+
+        if booking_id:
+            where_clauses.append("hb.id = %s")
+            params.append(booking_id)
+
+        where_clause = " AND ".join(
+            where_clauses) if where_clauses else "1=1"  # Default condition to avoid syntax errors
+
+        query = f"""
+                    SELECT  
+                        cr.name AS customer_name,
+                        cr.phone AS customer_phone,
+                        hb.name AS booking_name,
+                        hb.booking_date,
+                        hb.start_time,
+                        hb.end_time,
+                        hb.no_of_guest,
+                        hb.status,
+                        hb.amount_paid,
+                        hb.remaining_amount,
+                        hb.total_price,
+                        CASE 
+                            WHEN hb.price_per_guest = 0 THEN h.price_per_hour
+                            ELSE hb.price_per_guest
+                        END AS effective_price,
+                        h.name as hall_name,
+                        hv.name as event_type
+                    FROM 
+                        idil_hall_booking hb
+                    INNER JOIN 
+                        idil_customer_registration cr
+                    ON 
+                        hb.customer_id = cr.id
+                    INNER JOIN 
+                        idil_hall h
+                    ON 
+                        h.id = hb.hall_id
+                    inner join idil_hall_event_type hv
+                    on hv.id=hb.hall_event_id
+                    WHERE
+                         {where_clause};
+
+            """
+        _logger.info(f"Executing query: {query} with params: {params}")
+        self.env.cr.execute(query, tuple(params))
+        results = self.env.cr.fetchall()
+        _logger.info(f"Query results: {results}")
+
+        if not results:
+            raise ValidationError("No payment records found for the selected employee.")
+
+        record = results[0]
+        report_data = {
+
+            'client_name': record[0],
+            'client_phone': record[1],
+            'booking_name': record[2],
+            'booking_date': record[3],
+            'start_time': record[4],
+            'end_time': record[5],
+            'no_of_guest': record[6],
+            'status': record[7],
+            'amount_paid': record[8],
+            'remaining_amount': record[9],
+            'total_price': record[10],
+            'effective_price': record[11],
+            'hall_name': record[12],
+            'event_type': record[13],
+        }
+
+        company = self.env.company  # Fetch active company details
+
+        if export_type == "pdf":
+            _logger.info("Generating PDF...")
+            output = io.BytesIO()
+            doc = SimpleDocTemplate(output, pagesize=landscape(letter))
+            elements = []
+
+            styles = getSampleStyleSheet()
+            title_style = styles['Title']
+            normal_style = styles['Normal']
+
+            # Center alignment for the company information
+            centered_style = styles['Title'].clone('CenteredStyle')
+            centered_style.alignment = TA_CENTER
+            centered_style.fontSize = 14
+            centered_style.leading = 20
+
+            normal_centered_style = styles['Normal'].clone('NormalCenteredStyle')
+            normal_centered_style.alignment = TA_CENTER
+            normal_centered_style.fontSize = 10
+            normal_centered_style.leading = 12
+
+            # Header with Company Name, Address, and Logo
+            if company.logo:
+                logo = Image(io.BytesIO(base64.b64decode(company.logo)), width=60, height=60)
+                logo.hAlign = 'CENTER'  # Center-align the logo
+                elements.append(logo)
+
+            # Add company name and address
+            elements.append(Paragraph(f"<b>{company.name}</b>", centered_style))
+            elements.append(
+                Paragraph(f"{company.street}, {company.city}, {company.country_id.name}", normal_centered_style))
+            elements.append(Paragraph(f"Phone: {company.phone} | Email: {company.email}", normal_centered_style))
+            elements.append(Spacer(1, 12))
+
+            # Unified Table: Employee Details and Payment Section
+            payment_table_data = [
+                # Header for Payment Slip Voucher
+                ["", "Hall Booking Confirmation SLIP VOUCHER", ""],  # Title row spanning multiple columns
+                ["Client Details", "", "", ""],  # Sub-header for Employee Details
+
+                # 'client_name': record[0],'client_phone': record[1],'booking_date': record[2].strftime('%Y-%m-%d'),
+                # 'start_time': record[3],'end_time': record[4],'no_of_guest': record[5],'status': record[6],
+                # 'amount_paid': record[7],'remaining_amount': record[8],'total_price': record[9],
+                #
+                # Employee Details Rows
+                ["Client Name", report_data['client_name'], "Booking Date", report_data['booking_date']],
+                ["Client Phone", report_data['client_phone'], "Reff No", report_data['booking_name']],
+                ["Hall Name", report_data['hall_name'], "Booking Status", report_data['status']],
+
+                # Header for Earnings and Deductions
+                ["", "Payment Details", "", ""],
+
+                # Payment Details Rows
+                ["No of Guests", f"${report_data['no_of_guest']:,.2f}", "Due Amount",
+                 f"${report_data['remaining_amount']:,.2f}"],
+                ["Price per Guest", f"${report_data['effective_price']:,.2f}", "Event Type",
+                 f"{report_data['event_type']}"],
+                ["Gross Total", f"${report_data['no_of_guest'] * report_data['effective_price']:,.2f}",
+                 "Booking Start Date",
+                 f"${report_data['start_time']}"],
+                # Net Pay Row
+                ["Advance/Paid Amount",
+                 f"${(report_data['amount_paid']):,.2f}",
+                 "Booking End Date", f"${report_data['end_time']}"]
+            ]
+
+            # Define the table layout and styling
+            payment_table_layout = Table(payment_table_data, colWidths=[150, 200, 150, 200])
+            payment_table_layout.setStyle(TableStyle([
+                # Title Row Styling
+                ('SPAN', (1, 0), (2, 0)),  # Span the title row across multiple columns
+                ('ALIGN', (1, 0), (2, 0), 'CENTER'),
+                ('FONTNAME', (1, 0), (2, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (1, 0), (2, 0), 14),
+                ('TEXTCOLOR', (1, 0), (2, 0), colors.HexColor("#B6862D")),
+                ('BOTTOMPADDING', (1, 0), (2, 0), 12),
+
+                # Employee Details Header Styling
+                ('SPAN', (0, 1), (3, 1)),  # Span Employee Details header
+                ('BACKGROUND', (0, 1), (3, 1), colors.HexColor("#B6862D")),
+                ('TEXTCOLOR', (0, 1), (3, 1), colors.white),
+                ('ALIGN', (0, 1), (3, 1), 'CENTER'),
+                ('FONTNAME', (0, 1), (3, 1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 1), (3, 1), 12),
+                ('BOTTOMPADDING', (0, 1), (3, 1), 8),
+
+                # Employee Details Rows Styling
+                ('BACKGROUND', (0, 2), (-1, 4), colors.HexColor("#F0F0F0")),
+                ('ALIGN', (0, 2), (-1, 4), 'LEFT'),
+                ('FONTNAME', (0, 2), (-1, 4), 'Helvetica'),
+                ('FONTSIZE', (0, 2), (-1, 4), 10),
+                ('LEFTPADDING', (0, 2), (-1, 4), 10),
+
+                # Highlight "Due Amount" in red
+                ('TEXTCOLOR', (3, 6), (3, 6), colors.red),  # Specify the exact cell for "Due Amount"
+
+                # Earnings and Deductions Header Styling
+                ('BACKGROUND', (0, 5), (-1, 5), colors.HexColor("#B6862D")),
+                ('TEXTCOLOR', (0, 5), (-1, 5), colors.white),
+                ('ALIGN', (0, 5), (-1, 5), 'CENTER'),
+                ('FONTNAME', (0, 5), (-1, 5), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 5), (-1, 5), 12),
+                ('BOTTOMPADDING', (0, 5), (-1, 5), 8),
+
+                # Payment Details Rows Styling
+                ('ALIGN', (1, 6), (1, -1), 'RIGHT'),
+                ('ALIGN', (3, 6), (3, -1), 'RIGHT'),
+                ('FONTNAME', (0, 6), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 6), (-1, -1), 10),
+                ('GRID', (0, 2), (-1, -1), 0.5, colors.grey),
+            ]))
+            elements.extend([payment_table_layout, Spacer(1, 12)])  # Add table to the document
+
+            # Payment Signature Section
+            hr_name = self.env.user.name  # Fetch the current HR (user) name
+            client_name = report_data['client_name']  # Employee name from the report data
+
+            signature_table = [
+                [f"Prepared by (Admin): {hr_name}", "______________________", f"Paid by (Client): {client_name}",
+                 "______________________"],
+            ]
+            signature_table_layout = Table(signature_table, colWidths=[200, 150, 200, 150])
+            signature_table_layout.setStyle(TableStyle([
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ALIGN', (1, 1), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ]))
+            elements.extend([signature_table_layout, Spacer(1, 24)])
+
+            # Footer
+            current_datetime = fields.Datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            footer = Paragraph(f"<b>Generated by:</b> {self.env.user.name} | <b>Date:</b> {current_datetime}",
+                               normal_style)
+            elements.append(footer)
+
+            # Build PDF
+            try:
+                doc.build(elements)
+            except Exception as e:
+                _logger.error(f"Error building PDF: {e}")
+                raise
+
+            # Save PDF as attachment and provide download link
+            output.seek(0)
+            attachment = self.env['ir.attachment'].create({
+                'name': 'Hall Booking Slip.pdf',
+                'type': 'binary',
+                'datas': base64.b64encode(output.read()),
+                'mimetype': 'application/pdf',
+            })
+            output.close()
+            _logger.info(f"PDF successfully generated: Attachment ID {attachment.id}")
+
+            return {
+                'type': 'ir.actions.act_url',
+                'url': '/web/content/%s?download=true' % attachment.id,
+                'target': 'new',
+            }
+
+        return report_data
+
 
 class HallBookingPayment(models.Model):
     _name = 'idil.hall.booking.payment'
@@ -359,25 +631,13 @@ class HallBookingPayment(models.Model):
             booking.remaining_amount = booking.total_price - booking.amount_paid
 
             # Set the status and hall availability based on the amount, remaining amount, and current date
-            current_date = fields.Date.today()
-            start_date = fields.Date.to_date(booking.start_time)
 
-            if booking.remaining_amount > 0:
+            if 0 < booking.remaining_amount < booking.total_price:
                 booking.status = 'booked'
-            elif booking.amount == 0:
+            elif booking.remaining_amount == booking.total_price:
                 booking.status = 'draft'
-            elif booking.total_price == booking.amount:
+            elif booking.remaining_amount == 0:
                 booking.status = 'confirmed'
-
-            if start_date == current_date:
-                if booking.remaining_amount > 0:
-                    booking.status = 'booked'
-                    booking.hall_id.availability = 'booked'
-                elif booking.amount == 0:
-                    booking.status = 'draft'
-                elif booking.total_price == booking.amount:
-                    booking.status = 'confirmed'
-                    booking.hall_id.availability = 'booked'
 
             # Create the transaction booking only for the first payment
             payment._handle_transaction()
@@ -393,9 +653,16 @@ class HallBookingPayment(models.Model):
 
         if not transaction:
             # Create a new transaction booking for the first payment with the total hall amount
+            # Fetch the trx source record for "Salary Advance Expense"
+            hall_booking_trx_source = self.env['idil.transaction.source'].search([
+                ('name', '=', 'hall booking')  # Assuming the type is COGS, adjust based on your setup
+            ], limit=1)
+
             transaction = self.env['idil.transaction_booking'].create({
                 'transaction_number': self.env['ir.sequence'].next_by_code('idil.transaction_booking'),
                 'reffno': booking.name,
+                'trx_source_id': hall_booking_trx_source.id,
+                'hall_booking_id': self.booking_id.id,
                 'customer_id': booking.customer_id.id,
                 'vendor_id': 0,
                 'trx_date': fields.Date.today(),
@@ -427,6 +694,7 @@ class HallBookingPayment(models.Model):
             # If the line does not exist, create it
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction.id,
+                'hall_booking_id': self.booking_id.id,
                 'description': 'Cash Payment for Hall Booking {}'.format(booking.name),
                 'account_number': self.payment_method_id.account_number.id,
                 'transaction_type': 'dr',
@@ -448,6 +716,7 @@ class HallBookingPayment(models.Model):
             # If the income line does not exist, create it with the full income amount
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction.id,
+                'hall_booking_id': self.booking_id.id,
                 'description': 'Income for Hall Booking {}'.format(booking.name),
                 'account_number': booking.hall_id.income_account_id.id,
                 'transaction_type': 'cr',
@@ -474,6 +743,7 @@ class HallBookingPayment(models.Model):
             # If the A/R line does not exist, create it
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction.id,
+                'hall_booking_id': self.booking_id.id,
                 'description': 'Receivable for Hall Booking {}'.format(booking.name),
                 'account_number': booking.hall_id.Receivable_account_id.id,
                 'transaction_type': 'dr',
@@ -504,25 +774,13 @@ class HallBookingPayment(models.Model):
             booking.remaining_amount = booking.total_price - booking.amount_paid
 
             # Set the status and hall availability based on the amount, remaining amount, and current date
-            current_date = fields.Date.today()
-            start_date = fields.Date.to_date(booking.start_time)
 
-            if booking.remaining_amount > 0:
+            if 0 < booking.remaining_amount < booking.total_price:
                 booking.status = 'booked'
-            elif booking.amount == 0:
+            elif booking.remaining_amount == booking.total_price:
                 booking.status = 'draft'
-            elif booking.total_price == booking.amount:
+            elif booking.remaining_amount == 0:
                 booking.status = 'confirmed'
-
-            if start_date == current_date:
-                if booking.remaining_amount > 0:
-                    booking.status = 'booked'
-                    booking.hall_id.availability = 'booked'
-                elif booking.amount == 0:
-                    booking.status = 'draft'
-                elif booking.total_price == booking.amount:
-                    booking.status = 'confirmed'
-                    booking.hall_id.availability = 'booked'
 
             # Adjust transaction lines accordingly
             self._adjust_booking_lines(transaction, difference)
@@ -549,6 +807,7 @@ class HallBookingPayment(models.Model):
             # If the cash line doesn't exist (edge case), create it
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction.id,
+                'hall_booking_id': self.booking_id.id,
                 'description': 'Adjusted Cash Payment for Hall Booking {}'.format(booking.name),
                 'account_number': self.payment_method_id.account_number.id,
                 'transaction_type': 'dr',
@@ -575,6 +834,7 @@ class HallBookingPayment(models.Model):
             if receivable_amount > 0:
                 self.env['idil.transaction_bookingline'].create({
                     'transaction_booking_id': transaction.id,
+                    'hall_booking_id': self.booking_id.id,
                     'description': 'Adjusted Receivable for Hall Booking {}'.format(booking.name),
                     'account_number': booking.hall_id.Receivable_account_id.id,
                     'transaction_type': 'dr',
@@ -604,22 +864,12 @@ class HallBookingPayment(models.Model):
             current_date = fields.Date.today()
             start_date = fields.Date.to_date(booking.start_time)
 
-            if booking.remaining_amount > 0:
+            if 0 < booking.remaining_amount < booking.total_price:
                 booking.status = 'booked'
-            elif booking.amount == 0:
+            elif booking.remaining_amount == booking.total_price:
                 booking.status = 'draft'
-            elif booking.total_price == booking.amount:
+            elif booking.remaining_amount == 0:
                 booking.status = 'confirmed'
-
-            if start_date == current_date:
-                if booking.remaining_amount > 0:
-                    booking.status = 'booked'
-                    booking.hall_id.availability = 'booked'
-                elif booking.amount == 0:
-                    booking.status = 'draft'
-                elif booking.total_price == booking.amount:
-                    booking.status = 'confirmed'
-                    booking.hall_id.availability = 'booked'
 
             # Adjust the transaction lines accordingly
             self._adjust_booking_lines_on_unlink(transaction, old_amount)
@@ -665,6 +915,7 @@ class HallBookingPayment(models.Model):
             if receivable_amount > 0:
                 self.env['idil.transaction_bookingline'].create({
                     'transaction_booking_id': transaction.id,
+                    'hall_booking_id': self.booking_id.id,
                     'description': 'Receivable for Hall Booking {}'.format(booking.name),
                     'account_number': booking.hall_id.Receivable_account_id.id,
                     'transaction_type': 'dr',
@@ -717,3 +968,11 @@ class HallBookingPaymentWizard(models.TransientModel):
             'amount': self.payment_amount,
             'payment_reference': 'Additional Payment for Booking {}'.format(self.booking_id.name),
         })
+
+
+class IdilEmployeePosition(models.Model):
+    _name = 'idil.hall_event_type'
+    _description = 'Hall Event Type'
+    _order = 'name'
+
+    name = fields.Char(required=True)

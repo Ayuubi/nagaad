@@ -53,7 +53,13 @@
                 <field name="name"/>
                 <field name="location"/>
                 <field name="capacity"/>
-                <field name="price_per_hour" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="price_per_hour" widget="monetary" options="{'currency_field': 'currency_id'}" />
+
+                <field name="facilities" widget="many2many_tags" optional="show"/>
+
+
+                <field name="income_account_id" optional="show"/>
+                <field name="Receivable_account_id" optional="show"/>
                 <field name="availability"/>
             </tree>
         </field>

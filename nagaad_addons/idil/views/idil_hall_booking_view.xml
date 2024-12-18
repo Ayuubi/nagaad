@@ -10,7 +10,8 @@
                         <button name="%(action_hall_booking_payment_wizard)d" string="Add Payment" type="action"
                                 class="btn-primary"/>
 
-                        <field name="status" widget="statusbar" statusbar_visible="draft,booked,confirmed,canceled"
+                        <field name="status" widget="statusbar"
+                               statusbar_visible="draft,booked,confirmed,due,closed,canceled"
                                readonly="1"/>
                     </header>
                     <h1>
@@ -23,6 +24,8 @@
                         <group string="Customer and Booking Details" col="2">
                             <field name="customer_id" placeholder="Select Customer"/>
                             <field name="hall_id" placeholder="Select Hall"/>
+                            <field name="hall_event_id" placeholder="Select Event Type"/>
+
                             <field name="booking_date" widget="date" placeholder="Select Booking Date"/>
                             <field name="start_time" widget="datetime" placeholder="Start Time"/>
                             <field name="end_time" widget="datetime" placeholder="End Time"/>
@@ -60,6 +63,10 @@
                         <field name="duration" readonly="1" string="Duration (Hours)" class="oe_inline"/>
                         <field name="status" readonly="1" class="oe_inline"/>
                     </group>
+                    <button name="generate_confirmation_slip_pdf"
+                            string="Print Confirmation Slip"
+                            type="object"
+                            class="btn-primary"/>
                 </sheet>
             </form>
         </field>
@@ -70,19 +77,22 @@
         <field name="name">idil.hall.booking.tree</field>
         <field name="model">idil.hall.booking</field>
         <field name="arch" type="xml">
-            <tree string="Hall Bookings">
+            <tree string="Hall Bookings" decoration-danger="status == 'due'">
                 <field name="name"/>
                 <field name="customer_id"/>
                 <field name="hall_id"/>
-                <field name="booking_date"/>
-                <field name="start_time"/>
-                <field name="end_time"/>
-                <field name="duration"/>
-                <field name="no_of_guest"/>
-                <field name="total_price"/>
-                <field name="status"/>
-                <field name="amount_paid"/>
-                <field name="remaining_amount"/>
+                <field name="hall_event_id"/>
+
+                <field name="booking_date" optional="show"/>
+                <field name="start_time" optional="show"/>
+                <field name="end_time" optional="show"/>
+                <field name="duration" optional="show"/>
+                <field name="no_of_guest" optional="show"/>
+                <field name="total_price" optional="show"/>
+                <field name="amount_paid" optional="show"/>
+                <field name="remaining_amount" optional="show"/>
+                <field name="status" widget="statusbar"
+                       statusbar_visible="draft,booked,confirmed,due,closed,canceled"/>
             </tree>
         </field>
     </record>

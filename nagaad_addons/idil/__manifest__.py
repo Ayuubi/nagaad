@@ -84,7 +84,6 @@
         'views/idil_hall_facility_view.xml',
         'views/idil_hall_schedule_view.xml',
         'views/idil_hall_booking_calendar_view.xml',
-        'views/idil_hall_payment_view.xml',
         'views/idil_hall_pricing_rule_view.xml',
         'views/idil_hall_dashboard_view.xml',
         'views/balance_sheet_report.xml',
@@ -100,6 +99,7 @@
         'views/report_hrm_salary.xml',
         'views/report_hrm_salary_department.xml',
         'views/report_hrm_salary_list.xml',
+        'views/idil_hall_event_type.xml',
 
         'views/menu_hr.xml',
         'views/menu_hall.xml',

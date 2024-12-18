@@ -66,6 +66,11 @@ class TransactionBooking(models.Model):
         'idil.employee.salary', string='Employee Salary', ondelete='cascade'
     )
 
+    # Secondary Key Fields
+    hall_booking_id = fields.Many2one(
+        'idil.hall.booking', string='Hall Booking ID', ondelete='cascade'
+    )
+
     amount = fields.Float(string='Amount', compute='_compute_amount', store=True)
     amount_paid = fields.Float(string='Amount Paid')
     remaining_amount = fields.Float(string='Remaining Amount', store=True)
@@ -231,7 +236,10 @@ class TransactionBookingline(models.Model):
     transaction_booking_id = fields.Many2one(
         'idil.transaction_booking', string='Transaction Booking', ondelete='cascade'
     )
-
+    # Secondary Key Fields
+    hall_booking_id = fields.Many2one(
+        'idil.hall.booking', string='Hall Booking ID', ondelete='cascade'
+    )
     # Secondary Key Fields
     employee_salary_advance_id = fields.Many2one(
         'idil.employee.salary.advance', string='Employee Salary Advance', ondelete='cascade'
