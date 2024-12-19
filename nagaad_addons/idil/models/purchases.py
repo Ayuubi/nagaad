@@ -224,6 +224,30 @@ class PurchaseOrderLine(models.Model):
                 f"Insufficient balance in account {purchase_account_number} for this transaction. "
                 f"Account balance is {account_balance}, but the transaction amount is {self.amount}.")
 
+    # def write(self, values):
+    #     if 'quantity' in values:
+    #         # Calculate the difference between the new and old quantities
+    #         quantity_diff = values['quantity'] - self.quantity
+    #
+    #         if quantity_diff != 0:
+    #             # Update item movement entry for the quantity change
+    #             item_movement = self.env['idil.item.movement'].search([
+    #                 ('related_document', '=', f'idil.purchase_order.line,{self.id}')
+    #             ], limit=1)
+    #             if item_movement:
+    #                 item_movement.quantity += quantity_diff
+    #             else:
+    #                 # Create new item movement if it doesn't exist
+    #                 self._create_item_movement({'quantity': quantity_diff})
+    #
+    #             # Update item stock based on the quantity difference
+    #             self._update_item_stock(quantity_diff, values['cost_price'])
+    #
+    #             # Adjust stock transactions and vendor transactions
+    #             self._adjust_stock_transaction(values)
+    #             self._adjust_vendor_transaction(values)
+    #
+    #     return super(PurchaseOrderLine, self).write(values)
     def write(self, values):
         if 'quantity' in values:
             # Calculate the difference between the new and old quantities
@@ -240,8 +264,11 @@ class PurchaseOrderLine(models.Model):
                     # Create new item movement if it doesn't exist
                     self._create_item_movement({'quantity': quantity_diff})
 
+                # Safely retrieve 'cost_price' or default to the existing one
+                cost_price = values.get('cost_price', self.cost_price)
+
                 # Update item stock based on the quantity difference
-                self._update_item_stock(quantity_diff, values['cost_price'])
+                self._update_item_stock(quantity_diff, cost_price)
 
                 # Adjust stock transactions and vendor transactions
                 self._adjust_stock_transaction(values)
