@@ -76,6 +76,7 @@ class Product(models.Model):
                     'uom_id': 1,
                     'available_in_pos': product.available_in_pos,
                     'image_1920': product.image_1920,
+                    'image_url': product.image_url,  
                 })
             else:
                 odoo_product.write({
@@ -90,4 +91,6 @@ class Product(models.Model):
                     'uom_id': 1,
                     'available_in_pos': product.available_in_pos,
                     'image_1920': product.image_1920,
+                    'image_url': product.image_url,
+                    
                 })
