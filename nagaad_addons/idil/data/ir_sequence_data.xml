@@ -12,6 +12,7 @@
         <field name="code">idil.hall.booking</field>
         <field name="prefix">HB</field>
         <field name="padding">4</field>
+
         <field name="number_increment">1</field>
     </record>
 </odoo>
