@@ -1,5 +1,6 @@
 import base64
 import io
+import uuid
 from datetime import datetime
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
@@ -124,7 +125,8 @@ class HallBooking(models.Model):
             raise UserError("Please insert a valid number of guests.")
 
         if vals.get('name', 'New') == 'New':
-            vals['name'] = self.env['ir.sequence'].next_by_code('idil.hall.booking') or 'New'
+            unique_id = uuid.uuid4().hex[:6].upper()  # Short unique ID
+            vals['name'] = 'HB-' + datetime.now().strftime('%d%m%Y') + '-' + unique_id
 
         # Create the booking record
         booking = super(HallBooking, self).create(vals)
