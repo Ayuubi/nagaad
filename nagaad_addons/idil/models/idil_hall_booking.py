@@ -197,7 +197,10 @@ class HallBooking(models.Model):
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction.id,
                 'hall_booking_id': self.id,
-                'description': 'Cash Payment for Hall Booking {}'.format(self.name),
+
+                'description': 'HB -- {} -- {}, -- {} '.format(
+                    self.hall_id.name, transaction.customer_id.name, transaction.customer_id.phone
+                ),
                 'account_number': self.payment_method_id.account_number.id,
                 'transaction_type': 'dr',
                 'dr_amount': amount_paid,
@@ -697,7 +700,10 @@ class HallBookingPayment(models.Model):
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction.id,
                 'hall_booking_id': self.booking_id.id,
-                'description': 'Cash Payment for Hall Booking {}'.format(booking.name),
+
+                'description': 'HB -- {} -- {}, -- {} '.format(
+                    booking.hall_id.name, transaction.customer_id.name, transaction.customer_id.phone
+                ),
                 'account_number': self.payment_method_id.account_number.id,
                 'transaction_type': 'dr',
                 'dr_amount': paid_amount,
