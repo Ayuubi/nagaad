@@ -195,4 +195,4 @@ class IdilEmployeePosition(models.Model):
 class HrEmployeeInherit(models.Model):
     _inherit = 'hr.employee'
 
-    idil_staff_id = fields.Char(string="IDIL Staff ID")
+    idil_staff_id = fields.Integer(string="IDIL Staff ID")
