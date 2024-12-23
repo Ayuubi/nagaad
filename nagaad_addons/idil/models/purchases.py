@@ -15,7 +15,7 @@ class PurchaseOrderLine(models.Model):
     order_id = fields.Many2one('idil.purchase_order', string='Order', ondelete='cascade')
 
     item_id = fields.Many2one('idil.item', string='Item', required=True)
-    quantity = fields.Integer(string='Quantity', required=True)
+    quantity = fields.Float(string='Quantity', required=True)
     cost_price = fields.Float(string='Cost per Unit', digits=(16, 3), required=True, tracking=True)
 
     amount = fields.Float(string='Total Price', compute='_compute_total_price', store=True)
