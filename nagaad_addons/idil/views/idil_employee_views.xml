@@ -61,7 +61,7 @@
                                         <field name="position_id"/>
                                     </group>
                                     <group string="Personal Details" col="2">
-                                        <field name="private_phone"/>
+                                        <field name="private_phone" widget="phone"/>
                                         <field name="private_email"/>
                                         <field name="gender"/>
                                         <field name="marital"/>
@@ -156,6 +156,11 @@
 
                         </notebook>
                     </sheet>
+                    <div class="oe_chatter">
+                        <field name="message_follower_ids"/>
+                        <field name="message_ids"/>
+                        <field name="activity_ids"/>
+                    </div>
                 </form>
             </field>
         </record>
