@@ -39,7 +39,8 @@ class HRMSalaryListReportWizard(models.TransientModel):
                 SUM(e.salary) AS salary,
                 SUM(e.bonus) AS bonus,
                 COALESCE(SUM(es.advance_amount), 0) AS advance_salary, -- Default to 0 if no advances
-                ((SUM(e.salary) + SUM(e.bonus)) - COALESCE(SUM(es.advance_amount), 0)) AS net_salary -- Use COALESCE for net_salary calculation
+                ((SUM(e.salary) + SUM(e.bonus)) - COALESCE(SUM(es.advance_amount), 0)) AS net_salary ,
+                e.private_phone
             FROM 
                 idil_employee e
             INNER JOIN 
@@ -48,7 +49,7 @@ class HRMSalaryListReportWizard(models.TransientModel):
                 idil_employee_salary_advance es ON e.id = es.employee_id
                 AND {where_clause} -- Apply the date filter here
             GROUP BY   
-                ep.name, e.name, e.staff_id
+                ep.name, e.name, e.staff_id,e.private_phone
             ORDER BY 
                 e.staff_id;
 
@@ -68,6 +69,8 @@ class HRMSalaryListReportWizard(models.TransientModel):
                 'allowances': row[4] if row[4] is not None else 0.00,
                 'advance': row[5] if row[5] is not None else 0.00,
                 'net_salary': row[6] if row[6] is not None else 0.00,
+                'phone': row[7] if row[7] is not None else 0.00,
+
             } for row in results
         ]
         company = self.env.company  # Fetch active company details
@@ -116,13 +119,14 @@ class HRMSalaryListReportWizard(models.TransientModel):
             elements.append(Spacer(1, 12))
 
             data = [
-                ['Staff ID', 'Staff Nme', 'Department', 'Basic Salary', 'Allowances',
+                ['Staff ID', 'Staff Nme', 'Phone', 'Department', 'Basic Salary', 'Allowances',
                  'Advance', 'Net Salary']]
             for record in report_data:
                 data.append([
 
                     record['staff_id'],
                     record['staff_name'],
+                    record['phone'],
                     record['job_position'],
                     f"${record['basic_salary']:,.2f}",
 
