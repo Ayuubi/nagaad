@@ -261,14 +261,20 @@ class IdilEmployeeSalaryAdvance(models.Model):
 
         # Updated query to use record ID
         query = f"""
-            SELECT
+             SELECT
                 e.name AS employee_name,
                 esd.request_date,
-                esd.advance_amount
+                esd.advance_amount,
+                e.staff_id, 
+                private_phone,
+                ed.name as department,
+                ep.name as position
             FROM
                 idil_employee_salary_advance esd
             INNER JOIN
                 idil_employee e ON esd.employee_id = e.id
+            INNER JOIN idil_employee_department ed ON e.department_id=ed.id
+            INNER JOIN idil_employee_position ep on e.position_id =ep.id
             WHERE
                 esd.employee_id = %s AND esd.id = %s
             ORDER BY
@@ -291,6 +297,12 @@ class IdilEmployeeSalaryAdvance(models.Model):
             'employee_name': record[0],
             'request_date': record[1].strftime('%Y-%m-%d'),
             'advance_amount': record[2],
+
+            'staff_id': record[3],
+            'private_phone': record[4],
+            'department': record[5],
+            'position': record[6],
+
         }
 
         company = self.env.company  # Fetch active company details
@@ -330,12 +342,13 @@ class IdilEmployeeSalaryAdvance(models.Model):
 
                 # Payment Table
                 table_data = [
-                    ["Employee Name", report_data['employee_name']],
-                    ["Request Date", report_data['request_date']],
+                    ["Employee Name", report_data['employee_name'], "staff_id", report_data['staff_id']],
+                    ["private_phone", report_data['private_phone'], "Request Date", report_data['request_date']],
+                    ["department", report_data['department'], "position", report_data['position']],
                     ["Advance Amount", f"${report_data['advance_amount']:,.2f}"],
                 ]
 
-                table = Table(table_data, colWidths=[150, 300])
+                table = Table(table_data, colWidths=[150, 150])
                 table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#B6862D")),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
