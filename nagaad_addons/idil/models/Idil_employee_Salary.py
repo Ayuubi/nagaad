@@ -411,11 +411,11 @@ class IdilEmployeeSalary(models.Model):
         report_data = {
             'employee_name': record[0],
             'salary_date': record[1].strftime('%Y-%m-%d'),
-            'basic_salary': record[2],
-            'bonus': record[3],
-            'deductions': record[4],
-            'advance_deduction': record[5],
-            'total_salary': record[6],
+            'basic_salary': record[2] or 0,
+            'bonus': record[3] or 0,
+            'deductions': record[4] or 0,
+            'advance_deduction': record[5] or 0,
+            'total_salary': record[6] or 0,
             'staff_id': record[7],
         }
 
