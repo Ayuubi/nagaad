@@ -1,4 +1,5 @@
 <odoo>
+
     <!-- Tree view -->
     <record id="view_transaction_booking_tree" model="ir.ui.view">
         <field name="name">idil.transaction.booking.tree</field>
@@ -6,22 +7,36 @@
         <field name="arch" type="xml">
             <tree string="Transaction Booking" create="false" delete="false"
                   decoration-danger="payment_status == 'pending'">
-
+                <field name="trx_date" optional="show"/>
                 <field name="transaction_number" optional="show"/>
                 <field name="reffno" optional="show"/>
+                <field name="order_number" optional="show"/>
+                <field name="trx_source_id" optional="hide"/>
                 <field name="journal_entry_id" optional="show"/>
+
+
                 <field name="vendor_id" optional="show"/>
                 <field name="vendor_phone" optional="hide"/>
                 <field name="vendor_email" optional="hide"/>
-<!--                <field name="sales_person_id" optional="hide"/>-->
-<!--                <field name="sale_order_id" optional="hide"/>-->
-                <field name="order_number" optional="show"/>
-<!--                <field name="Sales_order_number" optional="hide"/>-->
+
+
+                <field name="customer_id" optional="show"/>
+                <field name="employee_id" optional="hide"/>
+                <field name="employee_salary_id" optional="show"/>
+                <field name="employee_salary_advance_id" optional="hide"/>
+
+
+                <field name="hall_booking_id" optional="hide"/>
+                <field name="booking_lines" optional="hide"/>
+                <field name="vendor_transactions" optional="hide"/>
+                <field name="purchase_order_id" optional="hide"/>
+
+
                 <field name="payment_method" optional="show"/>
                 <field name="pos_payment_method" optional="hide"/>
                 <field name="payment_status" optional="show"/>
-                <field name="trx_date" optional="show"/>
-                <field name="trx_source_id" optional="hide"/>
+
+
                 <field name="amount" optional="show"/>
                 <field name="amount_paid" optional="show"/>
                 <field name="remaining_amount" optional="show"/>
@@ -42,10 +57,7 @@
                 <field name="vendor_id"/>
                 <field name="vendor_phone"/>
                 <field name="vendor_email"/>
-<!--                <field name="sales_person_id"/>-->
-<!--                <field name="sale_order_id"/>-->
                 <field name="order_number"/>
-<!--                <field name="Sales_order_number"/>-->
                 <field name="payment_method"/>
                 <field name="pos_payment_method"/>
                 <field name="payment_status"/>
