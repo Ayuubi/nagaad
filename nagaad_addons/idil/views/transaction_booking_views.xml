@@ -13,10 +13,10 @@
                 <field name="vendor_id" optional="show"/>
                 <field name="vendor_phone" optional="hide"/>
                 <field name="vendor_email" optional="hide"/>
-                <field name="sales_person_id" optional="hide"/>
-                <field name="sale_order_id" optional="hide"/>
+<!--                <field name="sales_person_id" optional="hide"/>-->
+<!--                <field name="sale_order_id" optional="hide"/>-->
                 <field name="order_number" optional="show"/>
-                <field name="Sales_order_number" optional="hide"/>
+<!--                <field name="Sales_order_number" optional="hide"/>-->
                 <field name="payment_method" optional="show"/>
                 <field name="pos_payment_method" optional="hide"/>
                 <field name="payment_status" optional="show"/>
@@ -42,10 +42,10 @@
                 <field name="vendor_id"/>
                 <field name="vendor_phone"/>
                 <field name="vendor_email"/>
-                <field name="sales_person_id"/>
-                <field name="sale_order_id"/>
+<!--                <field name="sales_person_id"/>-->
+<!--                <field name="sale_order_id"/>-->
                 <field name="order_number"/>
-                <field name="Sales_order_number"/>
+<!--                <field name="Sales_order_number"/>-->
                 <field name="payment_method"/>
                 <field name="pos_payment_method"/>
                 <field name="payment_status"/>
