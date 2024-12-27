@@ -44,7 +44,7 @@ class HRMSalaryListReportWizard(models.TransientModel):
             FROM 
                 idil_employee e
             INNER JOIN 
-                idil_employee_position ep ON e.department_id = ep.id
+                idil_employee_position ep ON e.position_id = ep.id
             LEFT JOIN 
                 idil_employee_salary_advance es ON e.id = es.employee_id
                 AND {where_clause} -- Apply the date filter here
