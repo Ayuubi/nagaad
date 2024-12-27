@@ -142,7 +142,7 @@ class HRMSalaryListReportWizard(models.TransientModel):
             total_net_salary = sum(r['net_salary'] for r in report_data if 'net_salary' in r)
 
             data.append(
-                ["Total", '', '', f"${total_basic_salary:,.2f}", f"${total_allowances:,.2f}", f"${advance:,.2f}",
+                ["Total", '', '', '', f"${total_basic_salary:,.2f}", f"${total_allowances:,.2f}", f"${advance:,.2f}",
                  f"${total_net_salary:,.2f}"])
 
             table = Table(data, colWidths=[50, 200, 130, 80, 80, 80, 80])
