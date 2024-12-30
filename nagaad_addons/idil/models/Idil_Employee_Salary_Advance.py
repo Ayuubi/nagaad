@@ -101,7 +101,7 @@ class IdilEmployeeSalaryAdvance(models.Model):
                 raise ValidationError("Request date is required before requesting an advance.")
             if record.advance_amount <= 0:
                 raise ValidationError("Advance amount must be greater than zero.")
-            if record.advance_amount > record.remaining_salary:
+            if record.remaining_salary <= 0:
                 raise ValidationError(
                     "The advance amount exceeds the employee's remaining salary for the selected month."
                 )
