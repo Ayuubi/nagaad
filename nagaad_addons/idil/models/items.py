@@ -136,8 +136,8 @@ class item(models.Model):
     def create(self, vals):
         # Create item and add transaction booking only if flag allows
         new_item = super(item, self).create(vals)
-        if self.env.context.get('create_transaction_booking', True):
-            self._create_transaction_booking(new_item)
+        # if self.env.context.get('create_transaction_booking', True):
+        #     self._create_transaction_booking(new_item)
         return new_item
 
     def write(self, vals):
@@ -145,80 +145,80 @@ class item(models.Model):
         res = super(item, self).write(vals)
 
         # Ensure the context flag is set to True when write is called
-        if self.env.context.get('update_transaction_booking', True):
-            for record in self:
-                transaction_bookings = self.env['idil.transaction_booking'].search([('reffno', '=', record.name)])
-                if not transaction_bookings:
-                    self._create_transaction_booking(record)
-                else:
-                    new_amount = record.quantity * record.cost_price
-                    for booking in transaction_bookings:
-                        booking.amount = new_amount
-                        booking.amount_paid = new_amount
-                        for line in booking.booking_lines:
-                            if line.account_number.id == record.asset_account_id.id:
-                                line.dr_amount = new_amount
-                                line.cr_amount = 0
-                            elif line.account_number.account_type == 'Owners Equity':
-                                line.cr_amount = new_amount
-                                line.dr_amount = 0
+        # if self.env.context.get('update_transaction_booking', True):
+        #     for record in self:
+        #         transaction_bookings = self.env['idil.transaction_booking'].search([('reffno', '=', record.name)])
+        #         if not transaction_bookings:
+        #             self._create_transaction_booking(record)
+        #         else:
+        #             new_amount = record.quantity * record.cost_price
+        #             for booking in transaction_bookings:
+        #                 booking.amount = new_amount
+        #                 booking.amount_paid = new_amount
+        #                 for line in booking.booking_lines:
+        #                     if line.account_number.id == record.asset_account_id.id:
+        #                         line.dr_amount = new_amount
+        #                         line.cr_amount = 0
+        #                     elif line.account_number.account_type == 'Owners Equity':
+        #                         line.cr_amount = new_amount
+        #                         line.dr_amount = 0
         return res
 
-    def _create_transaction_booking(self, item):
-        """Helper method to create transaction booking."""
-        inventory_opening_balance_source = self.env['idil.transaction.source'].search(
-            [('name', '=', 'Inventory Opening Balance')], limit=1)
-        if not inventory_opening_balance_source:
-            raise ValidationError("Transaction source 'Inventory Opening Balance' not found. "
-                                  "Please configure the transaction source correctly.")
-
-        equity_account = self.env['idil.chart.account'].search(
-            [('account_type', '=', 'Owners Equity'), ('currency_id.name', '=', 'USD')], limit=1)
-        if not equity_account:
-            raise ValidationError("Equity account not found. Please configure the equity account correctly.")
-
-        # Validate currency matching between debit and credit accounts
-        if item.asset_account_id.currency_id != equity_account.currency_id:
-            raise ValidationError(
-                f"Currency mismatch between debit account '{item.asset_account_id.name}' and credit account "
-                f"'{equity_account.name}'. "
-                f"Debit Account Currency: {item.asset_account_id.currency_id.name}, "
-                f"Credit Account Currency: {equity_account.currency_id.name}."
-            )
-
-        transaction_booking = self.env['idil.transaction_booking'].create({
-            'transaction_number': self.env['ir.sequence'].next_by_code('idil.transaction_booking'),
-            'reffno': item.name,
-            'trx_date': fields.Date.today(),
-            'amount': item.quantity * item.cost_price,
-            'amount_paid': item.quantity * item.cost_price,
-            'remaining_amount': 0,
-            'payment_status': 'paid',
-            'payment_method': "other",
-            'trx_source_id': inventory_opening_balance_source.id
-        })
-
-        transaction_booking.booking_lines.create({
-            'transaction_booking_id': transaction_booking.id,
-            'description': 'Opening Balance for Item %s' % item.name,
-            'item_id': item.id,
-            'account_number': item.asset_account_id.id,
-            'transaction_type': 'dr',
-            'dr_amount': item.quantity * item.cost_price,
-            'cr_amount': 0,
-            'transaction_date': fields.Date.today()
-        })
-
-        transaction_booking.booking_lines.create({
-            'transaction_booking_id': transaction_booking.id,
-            'description': 'Opening Balance for Item %s' % item.name,
-            'item_id': item.id,
-            'account_number': equity_account.id,
-            'transaction_type': 'cr',
-            'cr_amount': item.quantity * item.cost_price,
-            'dr_amount': 0,
-            'transaction_date': fields.Date.today()
-        })
+    # def _create_transaction_booking(self, item):
+    #     """Helper method to create transaction booking."""
+    #     inventory_opening_balance_source = self.env['idil.transaction.source'].search(
+    #         [('name', '=', 'Inventory Opening Balance')], limit=1)
+    #     if not inventory_opening_balance_source:
+    #         raise ValidationError("Transaction source 'Inventory Opening Balance' not found. "
+    #                               "Please configure the transaction source correctly.")
+    #
+    #     equity_account = self.env['idil.chart.account'].search(
+    #         [('account_type', '=', 'Owners Equity'), ('currency_id.name', '=', 'USD')], limit=1)
+    #     if not equity_account:
+    #         raise ValidationError("Equity account not found. Please configure the equity account correctly.")
+    #
+    #     # Validate currency matching between debit and credit accounts
+    #     if item.asset_account_id.currency_id != equity_account.currency_id:
+    #         raise ValidationError(
+    #             f"Currency mismatch between debit account '{item.asset_account_id.name}' and credit account "
+    #             f"'{equity_account.name}'. "
+    #             f"Debit Account Currency: {item.asset_account_id.currency_id.name}, "
+    #             f"Credit Account Currency: {equity_account.currency_id.name}."
+    #         )
+    #
+    #     transaction_booking = self.env['idil.transaction_booking'].create({
+    #         'transaction_number': self.env['ir.sequence'].next_by_code('idil.transaction_booking'),
+    #         'reffno': item.name,
+    #         'trx_date': fields.Date.today(),
+    #         'amount': item.quantity * item.cost_price,
+    #         'amount_paid': item.quantity * item.cost_price,
+    #         'remaining_amount': 0,
+    #         'payment_status': 'paid',
+    #         'payment_method': "other",
+    #         'trx_source_id': inventory_opening_balance_source.id
+    #     })
+    #
+    #     transaction_booking.booking_lines.create({
+    #         'transaction_booking_id': transaction_booking.id,
+    #         'description': 'Opening Balance for Item %s' % item.name,
+    #         'item_id': item.id,
+    #         'account_number': item.asset_account_id.id,
+    #         'transaction_type': 'dr',
+    #         'dr_amount': item.quantity * item.cost_price,
+    #         'cr_amount': 0,
+    #         'transaction_date': fields.Date.today()
+    #     })
+    #
+    #     transaction_booking.booking_lines.create({
+    #         'transaction_booking_id': transaction_booking.id,
+    #         'description': 'Opening Balance for Item %s' % item.name,
+    #         'item_id': item.id,
+    #         'account_number': equity_account.id,
+    #         'transaction_type': 'cr',
+    #         'cr_amount': item.quantity * item.cost_price,
+    #         'dr_amount': 0,
+    #         'transaction_date': fields.Date.today()
+    #     })
 
 
 class ItemMovement(models.Model):

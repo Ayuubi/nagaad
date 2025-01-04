@@ -1,8 +1,8 @@
 import re
 from datetime import datetime
 import logging
-from odoo import models, fields, exceptions, api, _
 from odoo.exceptions import ValidationError
+from odoo import models, fields, api, exceptions, _
 
 _logger = logging.getLogger(__name__)
 
@@ -13,14 +13,11 @@ class PurchaseOrderLine(models.Model):
     _description = 'Purchase Order'
 
     order_id = fields.Many2one('idil.purchase_order', string='Order', ondelete='cascade')
-
     item_id = fields.Many2one('idil.item', string='Item', required=True)
     quantity = fields.Float(string='Quantity', required=True)
     cost_price = fields.Float(string='Cost per Unit', digits=(16, 3), required=True, tracking=True)
-
     amount = fields.Float(string='Total Price', compute='_compute_total_price', store=True)
     expiration_date = fields.Date(string='Expiration Date', required=True)  # Add expiration date field
-
     transaction_ids = fields.One2many('idil.transaction_bookingline', 'order_line', string='Transactions')
 
     def _create_item_movement(self, values):
@@ -49,9 +46,9 @@ class PurchaseOrderLine(models.Model):
         else:
 
             new_line = super(PurchaseOrderLine, self).create(values)
-            new_line._update_item_stock(values.get('quantity', 0), values.get('cost_price', 0))
-            new_line._create_stock_transaction(values)
-            new_line._create_item_movement(values)
+            # new_line._update_item_stock(values.get('quantity', 0), values.get('cost_price', 0))
+            # new_line._create_stock_transaction(values)
+            # new_line._create_item_movement(values)
 
             return new_line
 
@@ -93,7 +90,7 @@ class PurchaseOrderLine(models.Model):
             'transaction_type': transaction_type,
             'dr_amount': self.amount if transaction_type == 'dr' else 0,
             'cr_amount': 0 if transaction_type == 'dr' else self.amount,
-            'transaction_date': fields.Date.today(),
+            'transaction_date': self.order_id.purchase_date,
             'transaction_booking_id': transaction_id,
         }
         self.env['idil.transaction_bookingline'].create(line_values)
@@ -137,7 +134,7 @@ class PurchaseOrderLine(models.Model):
             'trx_source_id': trx_source_id,
             'purchase_order_id': self.order_id.id,
             'payment_status': "paid" if self.order_id.payment_method == 'cash' else 'pending',
-            'trx_date': fields.Date.today(),
+            'trx_date': self.order_id.purchase_date,
             'amount': total_amount,  # Use the total amount of all lines here
             # 'remaining_amount': total_amount,
             'remaining_amount': 0 if self.order_id.payment_method == 'cash' else total_amount,
@@ -224,30 +221,6 @@ class PurchaseOrderLine(models.Model):
                 f"Insufficient balance in account {purchase_account_number} for this transaction. "
                 f"Account balance is {account_balance}, but the transaction amount is {self.amount}.")
 
-    # def write(self, values):
-    #     if 'quantity' in values:
-    #         # Calculate the difference between the new and old quantities
-    #         quantity_diff = values['quantity'] - self.quantity
-    #
-    #         if quantity_diff != 0:
-    #             # Update item movement entry for the quantity change
-    #             item_movement = self.env['idil.item.movement'].search([
-    #                 ('related_document', '=', f'idil.purchase_order.line,{self.id}')
-    #             ], limit=1)
-    #             if item_movement:
-    #                 item_movement.quantity += quantity_diff
-    #             else:
-    #                 # Create new item movement if it doesn't exist
-    #                 self._create_item_movement({'quantity': quantity_diff})
-    #
-    #             # Update item stock based on the quantity difference
-    #             self._update_item_stock(quantity_diff, values['cost_price'])
-    #
-    #             # Adjust stock transactions and vendor transactions
-    #             self._adjust_stock_transaction(values)
-    #             self._adjust_vendor_transaction(values)
-    #
-    #     return super(PurchaseOrderLine, self).write(values)
     def write(self, values):
         if 'quantity' in values:
             # Calculate the difference between the new and old quantities
@@ -364,25 +337,45 @@ class PurchaseOrderLine(models.Model):
             else:
                 line.amount = 0.0
 
+    # def _update_item_stock(self, quantity, cost_price):
+    #     if self.item_id:
+    #
+    #         try:
+    #             self.item_id.cost_price = cost_price
+    #             if quantity > 0:
+    #                 # Increase quantity logic
+    #                 new_quantity = self.item_id.quantity + quantity
+    #                 self.item_id.with_context(update_transaction_booking=False).write({'quantity': new_quantity})
+    #             elif quantity < 0:
+    #                 # Decrease quantity logic
+    #                 if self.item_id.quantity >= abs(quantity):
+    #                     new_quantity = self.item_id.quantity - abs(quantity)
+    #                     self.item_id.with_context(update_transaction_booking=False).write({'quantity': new_quantity})
+    #                 else:
+    #                     raise exceptions.ValidationError(
+    #                         f"Insufficient stock for item '{self.item_id.name}'. Current stock: {self.item_id.quantity}, "
+    #                         f"Requested decrease: {abs(quantity)}"
+    #                     )
+    #         except exceptions.ValidationError as e:
+    #             raise exceptions.ValidationError(e.args[0])
+
     def _update_item_stock(self, quantity, cost_price):
         if self.item_id:
-
             try:
+                # Update cost price
                 self.item_id.cost_price = cost_price
-                if quantity > 0:
-                    # Increase quantity logic
-                    new_quantity = self.item_id.quantity + quantity
-                    self.item_id.with_context(update_transaction_booking=False).write({'quantity': new_quantity})
-                elif quantity < 0:
-                    # Decrease quantity logic
-                    if self.item_id.quantity >= abs(quantity):
-                        new_quantity = self.item_id.quantity - abs(quantity)
-                        self.item_id.with_context(update_transaction_booking=False).write({'quantity': new_quantity})
-                    else:
-                        raise exceptions.ValidationError(
-                            f"Insufficient stock for item '{self.item_id.name}'. Current stock: {self.item_id.quantity}, "
-                            f"Requested decrease: {abs(quantity)}"
-                        )
+
+                # Safely adjust stock quantity
+                new_quantity = self.item_id.quantity + quantity
+                if new_quantity < 0:
+                    raise exceptions.ValidationError(
+                        f"Insufficient stock for item '{self.item_id.name}'. "
+                        f"Current stock: {self.item_id.quantity}, "
+                        f"Requested decrease: {abs(quantity)}."
+                    )
+
+                # Update stock without triggering transaction booking
+                self.item_id.with_context(disable_transaction_booking=True).write({'quantity': new_quantity})
             except exceptions.ValidationError as e:
                 raise exceptions.ValidationError(e.args[0])
 
@@ -413,6 +406,7 @@ class PurchaseOrder(models.Model):
     reffno = fields.Char(string='Reference Number')  # Consider renaming for clarity
     vendor_id = fields.Many2one('idil.vendor.registration', string='Vendor', required=True)
     order_lines = fields.One2many('idil.purchase_order.line', 'order_id', string='Order Lines')
+    purchase_date = fields.Date(string='Date', required=True, default=fields.Date.today, tracking=True)
 
     description = fields.Text(string='Description')
     payment_method = fields.Selection(
@@ -422,6 +416,72 @@ class PurchaseOrder(models.Model):
                                      domain="[('account_type', '=', payment_method)]")
 
     amount = fields.Float(string='Total Price', compute='_compute_total_amount', store=True, readonly=True)
+    # Fields
+    status = fields.Selection(
+        [('draft', 'Draft'), ('approved', 'Approved'), ('rejected', 'Rejected')],
+        default='draft',
+        string='Status'
+    )
+
+    def action_approve_purchase_order(self):
+        for order in self:
+            # Check if the current user is the creator of the purchase order
+            if order.create_uid == self.env.user:
+                # Retrieve the employee record linked to the current user
+                employee = self.env['idil.employee'].search([('user_id', '=', self.env.user.id)], limit=1)
+
+                if not employee or not employee.maker_checker:
+                    raise exceptions.UserError(_(
+                        "Approval Denied: You created this purchase order ({creator}) "
+                        "and do not have permission to approve it. "
+                        "Only users with 'Maker & Checker' enabled can perform this action."
+                    ).format(
+                        creator=order.create_uid.name
+                    ))
+            else:
+                # If the user is not the creator, validate their maker_checker status
+                employee = self.env['idil.employee'].search([('user_id', '=', self.env.user.id)], limit=1)
+
+                if not employee or not employee.maker_checker:
+                    raise exceptions.UserError(_(
+                        "Approval Denied: You are not authorized to approve this purchase order. "
+                        "Only users with 'Maker & Checker' enabled can perform this action."
+                    ))
+
+            if order.status != 'draft':
+                raise exceptions.UserError(_("Only draft orders can be approved."))
+
+            # Process each order line
+            for line in order.order_lines:
+                # Update item stock
+                line._update_item_stock(line.quantity, line.cost_price)
+
+                # Create stock transaction
+                stock_transaction_values = {
+                    'quantity': line.quantity,
+                    'cost_price': line.cost_price,
+                    'order_id': line.order_id.id,
+                    'item_id': line.item_id.id
+                }
+                line._create_stock_transaction(stock_transaction_values)
+
+                # Create item movement
+                line._create_item_movement({
+                    'quantity': line.quantity,
+                    'cost_price': line.cost_price
+                })
+
+            # Update order status to approved
+            order.status = 'approved'
+
+            _logger.info(f"Purchase order {order.id} approved and related transactions created.")
+
+    def action_rejected_purchase_order(self):
+        for order in self:
+            if order.status != 'draft':
+                raise exceptions.UserError(_("Only draft orders can be rejected."))
+            order.status = 'rejected'
+            # Add any additional logic needed when approving the purchase order
 
     @api.onchange('payment_method', 'vendor_id')
     def _onchange_payment_method(self):
@@ -488,3 +548,11 @@ class PurchaseOrder(models.Model):
                 vendor_transactions.unlink()
 
         return super(PurchaseOrder, self).unlink()
+
+    def write(self, vals):
+        for order in self:
+            if order.status in ['approved', 'rejected']:
+                raise exceptions.UserError(_(
+                    "Modification Denied: This purchase order is {status}. Only draft orders can be modified."
+                ).format(status=order.status))
+        return super(PurchaseOrder, self).write(vals)
