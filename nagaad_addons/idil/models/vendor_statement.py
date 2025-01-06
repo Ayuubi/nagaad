@@ -1,5 +1,3 @@
-from win32con import TA_CENTER
-
 from odoo import models, fields, api
 import xlsxwriter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, KeepTogether
