@@ -101,6 +101,7 @@
         'views/report_hrm_salary_list.xml',
         'views/idil_hall_event_type.xml',
         'views/report_vendor_statement.xml',
+        'views/report_vendor_statement_with_items.xml',
 
         'views/menu_hr.xml',
         'views/menu_hall.xml',
