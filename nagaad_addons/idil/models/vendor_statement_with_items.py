@@ -211,7 +211,7 @@ class VendorTransactionReportWizard(models.TransientModel):
 
         # Fetch transactions from the database
         transaction_query = """                 
-            SELECT  tl.transaction_date, 
+                       SELECT  tl.transaction_date, 
                     tb.reffno,
                     it.name AS item_name,
                     tl.item_id,
@@ -220,21 +220,23 @@ class VendorTransactionReportWizard(models.TransientModel):
                     dr_amount,
                     cr_amount,
                     ABS(ROUND(CAST(SUM(COALESCE(dr_amount, 0) - COALESCE(cr_amount, 0)) OVER (
-                                        ORDER BY transaction_date, transaction_booking_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-                                    ) AS NUMERIC), 2)) AS running_balance
+                                    ORDER BY transaction_date, transaction_booking_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                                ) AS NUMERIC), 2)) AS running_balance
             FROM idil_transaction_bookingline tl
             INNER JOIN idil_transaction_booking tb
                 ON tl.transaction_booking_id = tb.id
             INNER JOIN idil_vendor_registration vr
                 ON tb.vendor_id = vr.id
-            INNER JOIN idil_item it
+            LEFT JOIN idil_item it
                 ON it.id = tl.item_id
-            INNER JOIN idil_purchase_order_line pl
+            LEFT JOIN idil_purchase_order_line pl
                 ON pl.id = tl.order_line
-            WHERE tb.vendor_id = %s 
+            WHERE 
+              tb.vendor_id = %s 
               AND account_display LIKE '2%%' 
               AND tl.transaction_date BETWEEN %s AND %s
-            ORDER BY tl.id
+            ORDER BY tl.id;
+
         """
         self.env.cr.execute(transaction_query, (self.vendor_id.id, self.start_date, self.end_date))
         transactions = self.env.cr.fetchall()
@@ -244,7 +246,7 @@ class VendorTransactionReportWizard(models.TransientModel):
             data.append([
                 transaction[0].strftime('%d/%m/%Y') if transaction[0] else "",  # Date
                 transaction[1] or "",  # Ref
-                transaction[2] or "",  # Item Name
+                transaction[2] or "Vendor Payment",  # Item Name
                 transaction[4] or 0,  # Quantity
                 f"${float(transaction[5]):,.2f}" if transaction[5] else "$0.00",  # Cost Price
                 f"${float(transaction[6]):,.2f}" if transaction[6] else "$0.00",  # Debit
