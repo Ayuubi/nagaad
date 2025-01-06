@@ -274,6 +274,17 @@
               sequence="6"
               action="action_generate_vendor_transaction"/>
 
+<!-- Vendor Reports Section -->
+    <menuitem id="VendorReports"
+              name="Vendor Reports"
+              parent="Reports_root"
+              sequence="2"/>
+
+  <menuitem id="menu_transaction_report_root"
+              name="Vendor Statement Report"
+              parent="VendorReports"
+              sequence="1"
+              action="action_vendor_statement_report_wizard"/>
 
 
 </odoo>
