@@ -43,3 +43,4 @@ from . import Idil_Employee_Salary_Advance
 from . import idil_employee_hrm_report
 from . import idil_employee_hrm_report_department
 from . import EmployeePayrollListwithSalaryAdvance
+from . import vendor_statement
