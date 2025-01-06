@@ -45,3 +45,4 @@ from . import idil_employee_hrm_report_department
 from . import EmployeePayrollListwithSalaryAdvance
 from . import vendor_statement
 from . import vendor_statement_with_items
+from . import vendor_balance_list_report

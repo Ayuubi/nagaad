@@ -292,4 +292,11 @@
               sequence="1"
               action="action_vendor_statement_with_items_report_wizard"/>
 
+    <menuitem id="menu_vendor_balance_list_report_root"
+              name="Vendor Balance Report --List"
+              parent="VendorReports"
+              sequence="1"
+              action="action_vendor_balance_list_report_wizard"/>
+
+
 </odoo>
