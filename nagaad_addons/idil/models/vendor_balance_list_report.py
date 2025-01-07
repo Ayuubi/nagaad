@@ -124,7 +124,7 @@ class VendorTransactionReportWizard(models.TransientModel):
             ])
 
         # Table Styling and Insertion
-        table = Table(data, colWidths=[150, 150, 80, 80, 80])
+        table = Table(data, colWidths=[200, 100, 80, 80, 80])
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#B6862D")),  # Header background color
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Header text color
