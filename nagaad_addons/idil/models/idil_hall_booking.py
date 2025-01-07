@@ -273,7 +273,13 @@ class HallBooking(models.Model):
 
             # Check if the number of guests has changed, impacting the total price
             if 'no_of_guest' in vals or 'hall_id' in vals:
-                new_total_price = booking.no_of_guest * booking.hall_id.price_per_hour
+                new_total_price = 0
+                if booking.price_per_guest == 0:
+                    new_total_price = booking.no_of_guest * booking.hall_id.price_per_hour
+                elif booking.price_per_guest > 0:
+                    new_total_price = booking.no_of_guest * booking.price_per_guest
+
+                # new_total_price = booking.no_of_guest * booking.hall_id.price_per_hour
                 price_difference = new_total_price - old_total_price
 
                 # Update the booking's total price
