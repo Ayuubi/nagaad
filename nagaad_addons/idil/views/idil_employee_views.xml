@@ -11,6 +11,8 @@
 
                     <field name="company_id" optional="hide"/>
                     <field name="staff_id" optional="show"/>
+                    <field name="user_id" optional="show"/>
+
                     <field name="name" optional="show"/>
                     <field name="employee_type" optional="hide"/>
                     <field name="department_id" optional="show"/>
@@ -100,6 +102,8 @@
                                     <group string="Authentication">
                                         <field name="pin"/>
                                         <field name="maker_checker"/>
+                                        <field name="user_id"/>
+
                                     </group>
                                     <group string="Profile Picture">
                                         <field name="image_1920" widget="image"

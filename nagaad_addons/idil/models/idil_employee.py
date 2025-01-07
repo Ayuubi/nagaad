@@ -86,6 +86,7 @@ class IdilEmployee(models.Model):
         ('active', 'Active'),
         ('inactive', 'Inactive'),
     ], string='Status', compute='_compute_status', store=True, tracking=True)
+    user_id = fields.Many2one('res.users', string='User', help='Link to the related Odoo user', tracking=True)
 
     @api.depends('contract_start_date', 'contract_end_date')
     def _compute_status(self):
