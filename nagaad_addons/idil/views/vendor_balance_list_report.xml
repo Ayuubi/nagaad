@@ -5,7 +5,7 @@
         <field name="arch" type="xml">
             <form string="Vendor balance Report List">
                 <group>
-                    <field name="vendor_id"/>
+
                     <field name="end_date"/>
 
                 </group>

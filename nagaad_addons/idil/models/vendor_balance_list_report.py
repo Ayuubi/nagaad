@@ -13,12 +13,6 @@ class VendorTransactionReportWizard(models.TransientModel):
     _name = 'idil.vendor.balance.list.report'
     _description = 'Vendor Report with Items Wizard'
 
-    vendor_id = fields.Many2one(
-        'idil.vendor.registration',
-        string="Vendor Name",
-        help="Filter transactions by Vendor Name"
-        , required=True
-    )
     end_date = fields.Date(string="As of Date", required=True)
 
     def generate_pdf_report(self):
@@ -36,7 +30,7 @@ class VendorTransactionReportWizard(models.TransientModel):
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer,
-            pagesize=letter,  # Set the page orientation to landscape
+            pagesize=letter,  # Set the page orientation to portrait
             rightMargin=30,
             leftMargin=30,
             topMargin=40,
@@ -102,33 +96,28 @@ class VendorTransactionReportWizard(models.TransientModel):
 
         # Fetch transactions from the database
         transaction_query = """                      
-                select  
-                        vr.name,
-                        vr.phone,
-                        sum(dr_amount) as dr_amount,
-                        sum(cr_amount) as cr_amount,
-                        sum(dr_amount) - sum(cr_amount) AS running_balance
-                        
-                from idil_transaction_bookingline tl
-                Inner join idil_transaction_booking tb
-                On tl.transaction_booking_id=tb.id
-                inner join idil_vendor_registration vr
-                on tb.vendor_id = vr.id 
-            WHERE 
-              tb.vendor_id = %s 
-              AND account_display LIKE '2%%' 
-              AND tl.transaction_date <= %s
-           group by vr.name,vr.phone;
-
+                SELECT  
+                    vr.name,
+                    vr.phone,
+                    SUM(dr_amount) AS dr_amount,
+                    SUM(cr_amount) AS cr_amount,
+                    SUM(dr_amount) - SUM(cr_amount) AS running_balance
+                FROM idil_transaction_bookingline tl
+                INNER JOIN idil_transaction_booking tb ON tl.transaction_booking_id = tb.id
+                INNER JOIN idil_vendor_registration vr ON tb.vendor_id = vr.id 
+                WHERE 
+                    account_display LIKE '2%%' 
+                    AND tl.transaction_date <= %s
+                GROUP BY vr.name, vr.phone;
         """
-        self.env.cr.execute(transaction_query, (self.vendor_id.id, self.end_date))
+        self.env.cr.execute(transaction_query, (self.end_date,))  # Wrap end_date in a tuple
         transactions = self.env.cr.fetchall()
 
         # Add data rows to the table
         for transaction in transactions:
             data.append([
-                transaction[0] or "",  # Ref
-                transaction[1] or "Vendor Payment",  # Item Name
+                transaction[0] or "",  # Vendor Name
+                transaction[1] or "Vendor Payment",  # Phone
                 f"${float(transaction[2]):,.2f}" if transaction[2] else "$0.00",  # Debit
                 f"${float(transaction[3]):,.2f}" if transaction[3] else "$0.00",  # Credit
                 f"${float(transaction[4]):,.2f}" if transaction[4] else "$0.00",  # Balance
