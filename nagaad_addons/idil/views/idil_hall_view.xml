@@ -30,7 +30,10 @@
                                 </group>
                                 <group>
                                     <field name="facilities" widget="many2many_tags" placeholder="Add facilities"/>
-                                    <field name="income_account_id" placeholder="Account Number"/>
+                                    <field name="income_account_id" placeholder="Income Account Number"/>
+                                    <field name="extra_income_account_id" placeholder="Extra Income Account Number"/>
+
+
                                     <field name="Receivable_account_id" placeholder="Receivable Number"/>
 
 

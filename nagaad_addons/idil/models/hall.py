@@ -18,7 +18,14 @@ class Hall(models.Model):
     income_account_id = fields.Many2one(
         'idil.chart.account',
         string='Income Account',
-        help='Account to report Sales Income',
+        help='Account to report Hall Income',
+        required=True,
+        domain="[('code', 'like', '4')]"  # Domain to filter accounts starting with '4'
+    )
+    extra_income_account_id = fields.Many2one(
+        'idil.chart.account',
+        string='Extra Income Account',
+        help='Account to report Extra Hall Income',
         required=True,
         domain="[('code', 'like', '4')]"  # Domain to filter accounts starting with '4'
     )

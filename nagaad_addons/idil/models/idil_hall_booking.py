@@ -41,6 +41,7 @@ class HallBooking(models.Model):
     payment_method_id = fields.Many2one('idil.payment.method', string='Payment Method', required=True)
     # Account Number Field (related to the selected Payment Method)
     account_number = fields.Char(string='Account Number', compute='_compute_account_number', store=True)
+    invoice_number = fields.Char(string='Invoice Number')
     payment_ids = fields.One2many('idil.hall.booking.payment', 'booking_id', string='Payments')
     status = fields.Selection([
         ('draft', 'Draft'),
@@ -51,6 +52,26 @@ class HallBooking(models.Model):
         ('canceled', 'Canceled')
     ], string='Status', default='draft')
     hall_event_id = fields.Many2one('idil.hall_event_type', string='Choose Event Type')
+    extra_service_amount = fields.Float(
+        string='Extra Service Amount',
+        store=True  # Make it dynamic, not stored in the database
+    )
+    # Existing fields...
+    extra_service_ids = fields.One2many(
+        'idil.hall.extra.service',
+        'booking_id',
+        string='Extra Services'
+    )
+
+    def action_open_extra_service_wizard(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Add Extra Service Amount',
+            'res_model': 'idil.hall.extra.service',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_booking_id': self.id},
+        }
 
     @api.model
     def read(self, fields=None, load='_classic_read'):
@@ -990,3 +1011,185 @@ class IdilEmployeePosition(models.Model):
     _order = 'name'
 
     name = fields.Char(required=True)
+
+
+class ExtraServiceWizard(models.TransientModel):
+    _name = 'idil.hall.extra.service'
+    _description = 'Extra Service Wizard'
+
+    booking_id = fields.Many2one('idil.hall.booking', string='Booking', required=True, readonly=True)
+    extra_service_amount = fields.Float(string='Extra Amount', required=True)
+    payment_method_id = fields.Many2one('idil.payment.method', string='Payment Method', required=True)
+    payment_date = fields.Date(string='Payment Date', default=fields.Date.today, required=True)
+    account_number = fields.Many2one('idil.chart.account', string='Account Number', store=True)
+    transaction_booking_id = fields.Many2one(
+        'idil.transaction_booking',
+        string='Related Transaction Booking',
+        readonly=True,
+        help="The transaction booking created for this extra service."
+    )
+    service_description = fields.Char(string='Description/Reference')
+
+    @api.onchange('payment_method_id')
+    def _onchange_payment_method_id(self):
+        """Automatically fill account_number based on the selected payment method."""
+        if self.payment_method_id:
+            self.account_number = self.payment_method_id.account_number
+
+    def action_save_extra_service_amount(self):
+        """Save extra service amount and related account number."""
+        if not self.account_number:
+            raise UserError("Account number must be selected or derived from the payment method.")
+
+        if not self.booking_id.hall_id.extra_income_account_id.id:
+            hall_name = self.booking_id.hall_id.name or "Unknown Hall"
+            raise UserError(
+                f"Invalid Operation: The extra income account for the hall '{hall_name}' is not configured.\n\n"
+                "Please navigate to the Hall Setup and assign an 'Extra Income Account'. If it does not exist, "
+                "create a new chart of account for this purpose."
+            )
+
+        # Save the extra service amount to the booking and update its total
+        self.booking_id.write({
+            'extra_service_amount': self.booking_id.extra_service_amount + self.extra_service_amount,
+        })
+        # Create a TransactionBooking record
+        transaction_booking = self.env['idil.transaction_booking'].create({
+            'hall_booking_id': self.booking_id.id,
+            'trx_date': self.payment_date,
+            'amount': self.extra_service_amount,
+            'reffno': f"ExtraService-{self.booking_id.name}",
+            'payment_method': 'bank_transfer',
+            'customer_id': self.booking_id.customer_id.id,
+        })
+
+        # Create debit line (Asset Account - Extra Service)
+        self.env['idil.transaction_bookingline'].create({
+            'transaction_booking_id': transaction_booking.id,
+            'hall_booking_id': self.booking_id.id,
+            'description': f"Asset for extra service on booking {self.booking_id.name}",
+            'account_number': self.account_number.id,
+            'transaction_type': 'dr',
+            'dr_amount': self.extra_service_amount,
+            'cr_amount': 0,
+            'transaction_date': self.payment_date,
+        })
+
+        # Create credit line (Revenue Account - Payment Method Account)
+        self.env['idil.transaction_bookingline'].create({
+            'transaction_booking_id': transaction_booking.id,
+            'hall_booking_id': self.booking_id.id,
+            'description': f"Revenue for extra service on booking {self.booking_id.name}",
+            'account_number': self.booking_id.hall_id.extra_income_account_id.id,
+            'transaction_type': 'cr',
+            'dr_amount': 0,
+            'cr_amount': self.extra_service_amount,
+            'transaction_date': self.payment_date,
+        })
+        # Link the transaction_booking to this record
+        self.transaction_booking_id = transaction_booking
+
+        _logger.info(
+            "Transaction booked for extra service: Booking ID %s, Extra Amount %s, Payment Method %s, Account Number %s",
+            self.booking_id.id, self.extra_service_amount, self.payment_method_id.name, self.account_number.name
+        )
+        # Log the action for debugging or tracking purposes
+        _logger.info(
+            "Extra service saved: Booking ID %s, Extra Amount %s, Payment Method %s, Account Number %s",
+            self.booking_id.id, self.extra_service_amount, self.payment_method_id.name, self.account_number.name
+        )
+
+        return {'type': 'ir.actions.act_window_close'}
+
+    def unlink(self):
+        """Override unlink to reduce the extra_service_amount in the booking."""
+        for record in self:
+            # Ensure the record and booking still exist before proceeding
+            if record.exists() and record.booking_id.exists():
+                # Reduce the extra_service_amount in the corresponding booking
+                record.booking_id.write({
+                    'extra_service_amount': record.booking_id.extra_service_amount - record.extra_service_amount,
+                })
+                # Delete associated transaction booking and its lines
+                if record.transaction_booking_id:
+                    record.transaction_booking_id.booking_lines.unlink()
+                    record.transaction_booking_id.unlink()
+
+                _logger.info(
+                    "Extra service deleted: Booking ID %s, Reduced Amount %s",
+                    record.booking_id.id, record.extra_service_amount
+                )
+
+        # Call the parent method to perform the actual deletion
+        return super(ExtraServiceWizard, self).unlink()
+
+    # def write(self, vals):
+    #     """Override write to adjust the booking's extra_service_amount."""
+    #     for record in self:
+    #         # Calculate the difference in extra_service_amount if updated
+    #         old_amount = record.extra_service_amount
+    #         new_amount = vals.get('extra_service_amount', old_amount)
+    #         difference = new_amount - old_amount
+    #
+    #         # Update the booking's extra_service_amount
+    #         if record.booking_id and difference != 0:
+    #             record.booking_id.sudo().write({
+    #                 'extra_service_amount': record.booking_id.extra_service_amount + difference,
+    #             })
+    #
+    #     # Call the parent method to perform the actual write operation
+    #     return super(ExtraServiceWizard, self).write(vals)
+
+    def write(self, vals):
+        """Override write to adjust the booking's extra_service_amount and its transactions."""
+        for record in self:
+            # Calculate the difference in extra_service_amount if updated
+            old_amount = record.extra_service_amount
+            new_amount = vals.get('extra_service_amount', old_amount)
+            difference = new_amount - old_amount
+
+            # Update the booking's extra_service_amount
+            if record.booking_id and difference != 0:
+                record.booking_id.sudo().write({
+                    'extra_service_amount': record.booking_id.extra_service_amount + difference,
+                })
+
+            # Adjust the transaction and its lines
+            if record.transaction_booking_id:
+                # Update the transaction's total amount
+                record.transaction_booking_id.write({
+                    'amount': record.transaction_booking_id.amount + difference,
+                })
+
+                # Update debit line (Asset Account)
+                debit_line = self.env['idil.transaction_bookingline'].search([
+                    ('transaction_booking_id', '=', record.transaction_booking_id.id),
+                    ('transaction_type', '=', 'dr'),
+                    ('account_number', '=', record.account_number.id),
+                ], limit=1)
+
+                if debit_line:
+                    debit_line.write({
+                        'dr_amount': debit_line.dr_amount + difference,
+                    })
+
+                # Update credit line (Revenue Account)
+                credit_line = self.env['idil.transaction_bookingline'].search([
+                    ('transaction_booking_id', '=', record.transaction_booking_id.id),
+                    ('transaction_type', '=', 'cr'),
+                    ('account_number', '=', record.booking_id.hall_id.extra_income_account_id.id),
+                ], limit=1)
+
+                if credit_line:
+                    credit_line.write({
+                        'cr_amount': credit_line.cr_amount + difference,
+                    })
+
+            # Log the adjustment
+            _logger.info(
+                "Extra service updated: Booking ID %s, Difference %s, New Amount %s",
+                record.booking_id.id, difference, new_amount
+            )
+
+        # Call the parent method to perform the actual write operation
+        return super(ExtraServiceWizard, self).write(vals)
