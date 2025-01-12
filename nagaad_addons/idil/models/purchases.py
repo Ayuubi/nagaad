@@ -147,15 +147,36 @@ class PurchaseOrderLine(models.Model):
             raise ValidationError(_('Transaction source "Purchase Order" not found.'))
         return trx_source.id
 
+    # def _create_vendor_transaction(self, transaction, values):
+    #     vendor_transaction_values = {
+    #         'order_number': transaction.order_number,
+    #         'transaction_number': transaction.transaction_number,
+    #         'transaction_date': transaction.trx_date,
+    #         'vendor_id': transaction.vendor_id.id,
+    #         'amount': transaction.amount,
+    #         # 'remaining_amount': transaction.amount,
+    #         # 'paid_amount': 0,
+    #         'remaining_amount': 0 if transaction.payment_method == 'cash' else transaction.amount,
+    #         'paid_amount': transaction.amount if transaction.payment_method == 'cash' else 0,
+    #         'payment_method': transaction.payment_method,
+    #         'reffno': transaction.reffno,
+    #         'transaction_booking_id': transaction.id,
+    #         'payment_status': "paid" if transaction.payment_method == 'cash' else "pending",
+    #     }
+    #     self.env['idil.vendor_transaction'].create(vendor_transaction_values)
+
     def _create_vendor_transaction(self, transaction, values):
+        # Check if a vendor transaction for the order already exists
+        existing_vendor_transaction = self.env['idil.vendor_transaction'].search([
+            ('order_number', '=', transaction.order_number),
+        ], limit=1)
+
         vendor_transaction_values = {
             'order_number': transaction.order_number,
             'transaction_number': transaction.transaction_number,
             'transaction_date': transaction.trx_date,
             'vendor_id': transaction.vendor_id.id,
             'amount': transaction.amount,
-            # 'remaining_amount': transaction.amount,
-            # 'paid_amount': 0,
             'remaining_amount': 0 if transaction.payment_method == 'cash' else transaction.amount,
             'paid_amount': transaction.amount if transaction.payment_method == 'cash' else 0,
             'payment_method': transaction.payment_method,
@@ -163,7 +184,13 @@ class PurchaseOrderLine(models.Model):
             'transaction_booking_id': transaction.id,
             'payment_status': "paid" if transaction.payment_method == 'cash' else "pending",
         }
-        self.env['idil.vendor_transaction'].create(vendor_transaction_values)
+
+        if existing_vendor_transaction:
+            # Update the existing vendor transaction
+            existing_vendor_transaction.write(vendor_transaction_values)
+        else:
+            # Create a new vendor transaction
+            self.env['idil.vendor_transaction'].create(vendor_transaction_values)
 
     def _sum_order_line_amounts(self):
         # Corrected to use the proper field name 'order_lines'
