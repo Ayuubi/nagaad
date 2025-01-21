@@ -106,6 +106,17 @@ class KitchenCookProcess(models.Model):
                     'transaction_date': fields.Date.today(),
                 })
 
+                # Check if all quantities are cooked
+                transfer_lines = process.kitchen_transfer_id.transfer_line_ids
+                all_cooked = all(
+                    any(line.item_id == transfer_line.item_id and line.cooked_qty == transfer_line.quantity
+                        for line in process.cook_line_ids)
+                    for transfer_line in transfer_lines
+                )
+
+                if all_cooked:
+                    process.kitchen_transfer_id.state = 'processed'
+
             process.state = 'processed'
 
 

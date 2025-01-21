@@ -53,6 +53,7 @@
                     <field name="kitchen_id"/>
                     <field name="subtotal"/>
                     <field name="transferred_by"/>
+                    <field name="state"/>
                 </tree>
             </field>
         </record>
@@ -62,6 +63,7 @@
             <field name="name">Kitchen Transfers</field>
             <field name="res_model">idil.kitchen.transfer</field>
             <field name="view_mode">tree,form</field>
+            <field name="domain">[('state', '=', 'draft')]</field>
         </record>
 
 
