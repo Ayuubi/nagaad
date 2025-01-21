@@ -106,6 +106,7 @@
 
         'views/menu_hr.xml',
         'views/menu_hall.xml',
+        'views/menu_store.xml',
         'views/menu.xml',
 
     ],

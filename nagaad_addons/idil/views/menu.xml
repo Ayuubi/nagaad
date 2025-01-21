@@ -161,11 +161,6 @@
               action="action_pos_session"/>
 
 
-    <!-- Kitchen Menu Item -->
-    <menuitem id="menu_kitchen_root"
-              name="Kitchens"
-              parent="menu_idil_home"
-              sequence="8"/>
 
     <menuitem id="menu_kitchen"
               parent="menu_kitchen_root"
