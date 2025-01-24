@@ -123,7 +123,7 @@
 
 
     <menuitem id="menu_vendor_transaction"
-              name="Vendor Transactions"
+              name="Vendor Payments"
               parent="menu_purchase"
               action="action_vendor_transaction"
               sequence="4"/>
