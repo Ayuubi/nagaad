@@ -1,22 +1,26 @@
 from odoo import http
 from odoo.http import request
 import logging
+import json
 
 _logger = logging.getLogger(__name__)
 
 class PosOrderController(http.Controller):
 
     @http.route('/api/pos/session', type='json', auth='public', methods=['GET'], csrf=False)
-    def get_latest_session(self):
+    def get_latest_session(self, **kwargs):
         try:
+            _logger.info("Getting latest POS session...")
             # Get the latest open session
             pos_session = request.env['pos.session'].sudo().search([
                 ('state', '=', 'opened')
             ], limit=1, order='create_date desc')
 
             if not pos_session:
+                _logger.warning("No open POS session found")
                 return {'status': 'error', 'message': 'No open POS session found'}
 
+            _logger.info("Found session with ID: %s", pos_session.id)
             return {
                 'status': 'success',
                 'session_id': pos_session.id
@@ -27,36 +31,48 @@ class PosOrderController(http.Controller):
 
     @http.route('/api/pos/order', type='json', auth='public', methods=['POST'], csrf=False)
     def create_order(self, **kwargs):
+        _logger.info("Received order request")
         data = request.httprequest.get_json()
         _logger.info("Received data from Flutter: %s", data)
 
         try:
             # Extract data from Flutter request
             params = data.get('params', {})
+            _logger.info("Extracted params: %s", params)
+            
             partner_id = params.get('partner_id')
             order_lines = params.get('order_lines', [])
             session_id = params.get('session_id')
             # Default employee_id if not provided
             employee_id = params.get('employee_id') or 1  # Using 1 as default employee ID
 
+            _logger.info("Processing order with session_id: %s, employee_id: %s", session_id, employee_id)
+            _logger.info("Order lines: %s", order_lines)
+
             # Validate mandatory fields
             if not order_lines:
+                _logger.warning("Order lines are empty")
                 return {'status': 'error', 'message': 'Order lines cannot be empty'}
 
             # Get the POS session if not provided
             if not session_id:
+                _logger.info("No session_id provided, searching for latest open session")
                 pos_session = request.env['pos.session'].sudo().search([
                     ('state', '=', 'opened')
                 ], limit=1, order='create_date desc')
                 if not pos_session:
+                    _logger.warning("No valid open POS session found")
                     return {'status': 'error', 'message': 'No valid open POS session found'}
                 session_id = pos_session.id
+                _logger.info("Found session_id: %s", session_id)
 
             # Get the POS session
             pos_session = request.env['pos.session'].sudo().browse(session_id)
             if not pos_session.exists() or pos_session.state != 'opened':
+                _logger.warning("Invalid or closed session: %s", session_id)
                 return {'status': 'error', 'message': 'No valid open POS session found'}
 
+            _logger.info("Processing order lines...")
             # Process order lines
             pos_order_lines = []
             total_price = 0.0
@@ -76,6 +92,7 @@ class PosOrderController(http.Controller):
                         ('name', '=ilike', name)
                     ], limit=1)
                     if not product:
+                        _logger.warning("Product not found: %s", name)
                         return {'status': 'error', 'message': f"Product not found: {name}"}
 
                 # Calculate line totals
@@ -120,6 +137,8 @@ class PosOrderController(http.Controller):
                 'employee_id': employee_id,
             })
 
+            _logger.info("Created POS order with ID: %s", pos_order.id)
+
             # Create payment
             payment_method = request.env['pos.payment.method'].sudo().search([], limit=1)
             if payment_method:
@@ -129,6 +148,7 @@ class PosOrderController(http.Controller):
                     'pos_order_id': pos_order.id,
                 })
 
+            _logger.info("Created payment for POS order with ID: %s", pos_order.id)
             return {
                 'status': 'success',
                 'message': 'Order created successfully',
