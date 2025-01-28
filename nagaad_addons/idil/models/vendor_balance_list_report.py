@@ -94,6 +94,11 @@ class VendorTransactionReportWizard(models.TransientModel):
             ["Vendor Name", "Phone", "Debit", "Credit", "Balance"]
         ]
 
+        # Initialize totals
+        total_debit = 0
+        total_credit = 0
+        total_balance = 0
+
         # Fetch transactions from the database
         transaction_query = """                      
                 SELECT  
@@ -116,13 +121,30 @@ class VendorTransactionReportWizard(models.TransientModel):
 
         # Add data rows to the table
         for transaction in transactions:
+            debit = float(transaction[2]) if transaction[2] else 0.0
+            credit = float(transaction[3]) if transaction[3] else 0.0
+            balance = float(transaction[4]) if transaction[4] else 0.0
+
+            total_debit += debit
+            total_credit += credit
+            total_balance += balance
+
             data.append([
                 transaction[0] or "",  # Vendor Name
                 transaction[1] or "Vendor Payment",  # Phone
-                f"${float(transaction[2]):,.2f}" if transaction[2] else "$0.00",  # Debit
-                f"${float(transaction[3]):,.2f}" if transaction[3] else "$0.00",  # Credit
-                f"${float(transaction[4]):,.2f}" if transaction[4] else "$0.00",  # Balance
+                f"${debit:,.2f}",  # Debit
+                f"${credit:,.2f}",  # Credit
+                f"${balance:,.2f}",  # Balance
             ])
+
+        # Add grand totals row
+        data.append([
+            "Grand Total",  # Vendor Name
+            "",  # Empty Phone column
+            f"${total_debit:,.2f}",  # Total Debit
+            f"${total_credit:,.2f}",  # Total Credit
+            f"${total_balance:,.2f}",  # Total Balance
+        ])
 
         # Table Styling and Insertion
         table = Table(data, colWidths=[200, 100, 80, 80, 80])
@@ -136,6 +158,9 @@ class VendorTransactionReportWizard(models.TransientModel):
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),  # Vertical alignment
             ('LEFTPADDING', (0, 0), (-1, -1), 5),  # Add padding for readability
             ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            # Highlight grand totals row
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),  # Bold font for grand totals
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor("#F0F0F0")),  # Light background for totals
         ]))
 
         # Add table to the PDF
