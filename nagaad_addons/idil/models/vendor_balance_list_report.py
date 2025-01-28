@@ -108,7 +108,8 @@ class VendorTransactionReportWizard(models.TransientModel):
                 WHERE 
                     account_display LIKE '2%%' 
                     AND tl.transaction_date <= %s
-                GROUP BY vr.name, vr.phone;
+                GROUP BY vr.name, vr.phone
+                having  (SUM(dr_amount) - SUM(cr_amount)) <>0;
         """
         self.env.cr.execute(transaction_query, (self.end_date,))  # Wrap end_date in a tuple
         transactions = self.env.cr.fetchall()
