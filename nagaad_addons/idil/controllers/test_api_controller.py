@@ -1,70 +1,109 @@
 from odoo import http
 from odoo.http import request
 import logging
+import json
 
 _logger = logging.getLogger(__name__)
 
 class PosOrderController(http.Controller):
 
+    @http.route('/api/pos/session', type='json', auth='public', methods=['GET'], csrf=False)
+    def get_latest_session(self, **kwargs):
+        try:
+            _logger.info("Getting latest POS session...")
+            # Get the latest open session
+            pos_session = request.env['pos.session'].sudo().search([
+                ('state', '=', 'opened')
+            ], limit=1, order='create_date desc')
+
+            if not pos_session:
+                _logger.warning("No open POS session found")
+                return {'status': 'error', 'message': 'No open POS session found'}
+
+            _logger.info("Found session with ID: %s", pos_session.id)
+            return {
+                'status': 'success',
+                'session_id': pos_session.id
+            }
+        except Exception as e:
+            _logger.error("Error getting latest session: %s", str(e))
+            return {'status': 'error', 'message': str(e)}
+
     @http.route('/api/pos/order', type='json', auth='public', methods=['POST'], csrf=False)
     def create_order(self, **kwargs):
+        _logger.info("Received order request")
         data = request.httprequest.get_json()
-        _logger.info("Received data: %s", data)
+        _logger.info("Received data from Flutter: %s", data)
 
         try:
-            # Extract partner_id, order_lines, session_id, and employee_id
-            partner_id = data.get('partner_id')
-            order_lines = data.get('order_lines')
-            session_id = data.get('session_id')
-            employee_id = data.get('employee_id')  # Employee ID provided by the user
+            # Extract data from Flutter request
+            params = data.get('params', {})
+            _logger.info("Extracted params: %s", params)
+            
+            partner_id = params.get('partner_id')
+            order_lines = params.get('order_lines', [])
+            session_id = params.get('session_id')
+            # Default employee_id if not provided
+            employee_id = params.get('employee_id') or 1  # Using 1 as default employee ID
+
+            _logger.info("Processing order with session_id: %s, employee_id: %s", session_id, employee_id)
+            _logger.info("Order lines: %s", order_lines)
 
             # Validate mandatory fields
             if not order_lines:
+                _logger.warning("Order lines are empty")
                 return {'status': 'error', 'message': 'Order lines cannot be empty'}
-            if not session_id:
-                return {'status': 'error', 'message': 'Session ID is required'}
-            if not employee_id:
-                return {'status': 'error', 'message': 'Employee ID is required'}
 
-            # Validate the employee_id
-            employee = request.env['hr.employee'].browse(employee_id)
-            if not employee.exists():
-                return {'status': 'error', 'message': f"Employee ID {employee_id} not found"}
+            # Get the POS session if not provided
+            if not session_id:
+                _logger.info("No session_id provided, searching for latest open session")
+                pos_session = request.env['pos.session'].sudo().search([
+                    ('state', '=', 'opened')
+                ], limit=1, order='create_date desc')
+                if not pos_session:
+                    _logger.warning("No valid open POS session found")
+                    return {'status': 'error', 'message': 'No valid open POS session found'}
+                session_id = pos_session.id
+                _logger.info("Found session_id: %s", session_id)
 
             # Get the POS session
-            pos_session = request.env['pos.session'].browse(session_id)
-            if not pos_session or pos_session.state != 'opened':
+            pos_session = request.env['pos.session'].sudo().browse(session_id)
+            if not pos_session.exists() or pos_session.state != 'opened':
+                _logger.warning("Invalid or closed session: %s", session_id)
                 return {'status': 'error', 'message': 'No valid open POS session found'}
 
-            # Validate partner (customer)
-            partner = None
-            if partner_id:
-                partner = request.env['res.partner'].browse(partner_id)
-                if not partner.exists():
-                    return {'status': 'error', 'message': f"Partner ID {partner_id} not found"}
-
+            _logger.info("Processing order lines...")
             # Process order lines
             pos_order_lines = []
             total_price = 0.0
             total_tax = 0.0
 
             for line in order_lines:
-                product = request.env['product.product'].browse(line['product_id'])
+                product_id = line.get('product_id')
+                price_unit = float(line.get('price_unit', 0.0))
+                quantity = float(line.get('qty', 1))
+                name = line.get('name', '')
+
+                # Try to find product by ID first, then by name if ID is not found
+                product = request.env['product.product'].sudo().browse(product_id)
                 if not product.exists():
-                    return {'status': 'error', 'message': f"Product ID {line['product_id']} not found"}
+                    # Search by name as fallback
+                    product = request.env['product.product'].sudo().search([
+                        ('name', '=ilike', name)
+                    ], limit=1)
+                    if not product:
+                        _logger.warning("Product not found: %s", name)
+                        return {'status': 'error', 'message': f"Product not found: {name}"}
 
                 # Calculate line totals
-                price_unit = line.get('price', 0.0)
-                quantity = line.get('quantity', 1)
                 price_subtotal = price_unit * quantity
                 taxes = product.taxes_id.compute_all(price_unit, pos_session.currency_id, quantity)
                 price_subtotal_incl = taxes['total_included']
                 tax_ids = [(6, 0, [tax.id for tax in product.taxes_id])]
 
-                # Add to order lines
                 pos_order_lines.append((0, 0, {
                     'product_id': product.id,
-                    'name': product.name,
+                    'name': name or product.name,
                     'full_product_name': product.name,
                     'price_unit': price_unit,
                     'qty': quantity,
@@ -77,70 +116,49 @@ class PosOrderController(http.Controller):
 
             # Generate pos_reference
             pos_config_name = pos_session.config_id.name or "POS"
-            sequence_id = pos_session.config_id.sequence_id.id
-            sequence_number = request.env['ir.sequence'].sudo().browse(sequence_id).next_by_id()
-            pos_reference = f"{pos_config_name}/{sequence_number}"  # Match Odoo's standard format
-
-            _logger.info("Generated pos_reference: %s", pos_reference)
+            sequence_number = request.env['ir.sequence'].sudo().next_by_id(pos_session.config_id.sequence_id.id)
+            pos_reference = f"{pos_config_name}/{sequence_number}"
 
             # Create POS order
-            pos_order_vals = {
-                'name': pos_reference,  # Order name
-                'pos_reference': pos_reference,  # Ensure this field is never null
+            pos_order = request.env['pos.order'].sudo().create({
+                'name': pos_reference,
+                'pos_reference': pos_reference,
                 'session_id': pos_session.id,
-                'partner_id': partner_id or None,
+                'partner_id': partner_id,
                 'pricelist_id': pos_session.config_id.pricelist_id.id,
                 'currency_id': pos_session.currency_id.id,
                 'amount_total': total_price,
                 'amount_tax': total_tax,
-                'amount_paid': 0.0,
+                'amount_paid': total_price,  # Mark as paid for Flutter orders
                 'amount_return': 0.0,
-                'lines': pos_order_lines or [],
-                'state': 'draft',
+                'lines': pos_order_lines,
+                'state': 'paid',  # Set as paid for Flutter orders
                 'user_id': request.env.user.id,
                 'employee_id': employee_id,
-            }
+            })
 
-            _logger.info("pos_order_vals: %s", pos_order_vals)
+            _logger.info("Created POS order with ID: %s", pos_order.id)
 
-            pos_order = request.env['pos.order'].create(pos_order_vals)
+            # Create payment
+            payment_method = request.env['pos.payment.method'].sudo().search([], limit=1)
+            if payment_method:
+                request.env['pos.payment'].sudo().create({
+                    'amount': total_price,
+                    'payment_method_id': payment_method.id,
+                    'pos_order_id': pos_order.id,
+                })
 
-            # Commit changes
-            request.env.cr.commit()
-
-            # Return success response
+            _logger.info("Created payment for POS order with ID: %s", pos_order.id)
             return {
                 'status': 'success',
-                'order': {
-                    'id': pos_order.id,
-                    'name': pos_order.name,
-                    'session_id': pos_order.session_id.id,
-                    'date_order': pos_order.date_order,
-                    'point_of_sale': pos_order.session_id.config_id.display_name,
-                    'receipt_number': pos_order.pos_reference,
-                    'customer_name': pos_order.partner_id.name if pos_order.partner_id else None,
-                    'employee': employee.name,
-                    'amount_total': pos_order.amount_total,
-                    'status': pos_order.state,
-                    'lines': [
-                        {
-                            'product_id': line.product_id.id,
-                            'product_name': line.product_id.name,
-                            'qty': line.qty,
-                            'price_unit': line.price_unit,
-                            'price_subtotal': line.price_subtotal,
-                            'price_subtotal_incl': line.price_subtotal_incl,
-                        }
-                        for line in pos_order.lines
-                    ],
+                'message': 'Order created successfully',
+                'data': {
+                    'order_id': pos_order.id,
+                    'pos_reference': pos_reference,
+                    'amount_total': total_price,
                 }
             }
 
         except Exception as e:
-            request.env.cr.rollback()
-            _logger.error("Error creating POS order: %s", str(e))
-            return {
-                'status': 'error',
-                'message': 'Failed to create POS order',
-                'details': str(e)
-            }
+            _logger.error("Error creating order: %s", str(e), exc_info=True)
+            return {'status': 'error', 'message': str(e)}
