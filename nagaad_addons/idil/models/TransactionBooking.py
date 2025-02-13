@@ -95,6 +95,11 @@ class TransactionBooking(models.Model):
 
     # Add a Many2one field to link to PurchaseOrder
     purchase_order_id = fields.Many2one('idil.purchase_order', string='Linked Purchase Order', ondelete='cascade')
+    bulk_payment_id = fields.Many2one(
+        'idil.vendor.bulk.payment',
+        string='Related Bulk Payment',
+        ondelete='cascade'
+    )
 
     @api.constrains('amount_paid')
     def _check_amount_paid(self):

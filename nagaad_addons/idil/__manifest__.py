@@ -103,6 +103,7 @@
         'views/report_vendor_statement.xml',
         'views/report_vendor_statement_with_items.xml',
         'views/vendor_balance_list_report.xml',
+        'views/vendor_paymen_bulk.xml',
 
         'views/menu_hr.xml',
         'views/menu_hall.xml',
