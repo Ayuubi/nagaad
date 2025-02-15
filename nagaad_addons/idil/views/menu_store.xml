@@ -23,4 +23,15 @@
               parent="menu_kitchen_root"
               action="action_kitchen_cook_process"
               sequence="20"/>
+      <!-- Vendor Reports Section -->
+    <menuitem id="KitchenReports"
+              name="Kitchen Reports"
+              parent="menu_kitchen_root"
+              sequence="2"/>
+
+    <menuitem id="menu_kitchen_report_root"
+              name="Kitchen Report --List"
+              parent="KitchenReports"
+              sequence="1"
+              action="action_kitchen_report_wizard"/>
 </odoo>

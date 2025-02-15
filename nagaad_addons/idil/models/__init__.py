@@ -47,3 +47,4 @@ from . import vendor_statement
 from . import vendor_statement_with_items
 from . import vendor_balance_list_report
 from . import vendor_paymen_bulk
+from . import kitchen_report
