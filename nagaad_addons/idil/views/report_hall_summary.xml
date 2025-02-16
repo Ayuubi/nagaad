@@ -15,6 +15,8 @@
 <!--                            class="btn-primary"/>-->
                     <button string="Download PDF Report" type="object" name="generate_pdf_report"
                             class="btn-secondary"/>
+                    <button string="send_pdf_report_by_email" type="object" name="Send Report By Email"
+                            class="btn-secondary"/>
 
                     <button string="Cancel" class="btn-secondary" special="cancel"/>
                 </footer>
