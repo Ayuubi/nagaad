@@ -100,47 +100,78 @@ class Kitchen_ReportWizard(models.TransientModel):
         elements.append(Spacer(1, 12))
         # Add Partner Information with Controlled Position
 
-        # Table Header and Transactions
+        # Table Header
         data = [["Kitchen Name", "Amount Transferred", "Amount Cooked", "Difference"]]
-        transaction_query = """
-                     SELECT 
-                        k.name AS kitchen_name, 
-                        COALESCE(SUM(kt.subtotal), 0) AS amount_transferred, 
-                        COALESCE(SUM(kc.subtotal), 0) AS amount_cooked, 
-                        COALESCE(SUM(kt.subtotal), 0) - COALESCE(SUM(kc.subtotal), 0) AS difference
-                    FROM public.idil_kitchen_transfer kt
-                    INNER JOIN public.idil_kitchen_cook_process kc 
-                        ON kt.id = kc.kitchen_transfer_id
-                    INNER JOIN public.idil_kitchen k 
-                        ON k.id = kt.kitchen_id
-                    WHERE kt.state = 'processed' 
-                        AND kc.state = 'processed'
-                        AND	kc.process_date BETWEEN %s AND %s
-                    GROUP BY k.name
-                    ORDER BY k.name;
 
-               """
+        # Execute Query
+        transaction_query = """
+            SELECT 
+                k.name AS kitchen_name, 
+                COALESCE(SUM(kt.subtotal), 0) AS amount_transferred, 
+                COALESCE(SUM(kc.subtotal), 0) AS amount_cooked, 
+                COALESCE(SUM(kt.subtotal), 0) - COALESCE(SUM(kc.subtotal), 0) AS difference
+            FROM public.idil_kitchen_transfer kt
+            INNER JOIN public.idil_kitchen_cook_process kc 
+                ON kt.id = kc.kitchen_transfer_id
+            INNER JOIN public.idil_kitchen k 
+                ON k.id = kt.kitchen_id
+            WHERE kt.state = 'processed' 
+                AND kc.state = 'processed'
+                AND kc.process_date BETWEEN %s AND %s
+            GROUP BY k.name
+            ORDER BY k.name;
+        """
+
         self.env.cr.execute(transaction_query, (self.start_date, self.end_date))
         transactions = self.env.cr.fetchall()
 
-        for transaction in transactions:
-            data.append([
+        # Initialize grand totals
+        total_transferred = 0
+        total_cooked = 0
+        total_difference = 0
 
-                transaction[0] or "",
-                f"${transaction[1]:,.2f}" if transaction[1] else "$0.00",
-                f"${transaction[2]:,.2f}" if transaction[2] else "$0.00",
-                f"${transaction[3]:,.2f}" if transaction[3] else "$0.00",
+        for transaction in transactions:
+            kitchen_name = transaction[0] or ""
+            amount_transferred = transaction[1] or 0
+            amount_cooked = transaction[2] or 0
+            difference = transaction[3] or 0
+
+            # Accumulate totals
+            total_transferred += amount_transferred
+            total_cooked += amount_cooked
+            total_difference += difference
+
+            # Append data row
+            data.append([
+                kitchen_name,
+                f"${amount_transferred:,.2f}",
+                f"${amount_cooked:,.2f}",
+                f"${difference:,.2f}",
             ])
+
+        # Append Grand Total row
+        data.append([
+            "Grand Total",
+            f"${total_transferred:,.2f}",
+            f"${total_cooked:,.2f}",
+            f"${total_difference:,.2f}",
+        ])
+
+        # Apply table styling and generate report as before
 
         # Table Styling and Insertion
         table = Table(data, colWidths=[200, 100, 100, 100])
         table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#B6862D")),  # Golden brown background
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#B6862D")),  # Golden brown for header
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # White text for header
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),  # Grid styling
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Center align table text
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Bold header font
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Center align text
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Bold for header
             ('FONTNAME', (0, -1), (-1, -1), 'Helvetica'),  # Regular font for data
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),  # Grand Total in bold
+            ('FONTSIZE', (0, -1), (-1, -1), 12),  # Grand Total larger font
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor("#D9D9D9")),  # Light grey for Grand Total row
+            ('TEXTCOLOR', (0, -1), (-1, -1), colors.black),  # Black text for Grand Total row
         ]))
 
         elements.append(Spacer(1, 20))
