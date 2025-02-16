@@ -57,4 +57,15 @@
               parent="menu_hall_dashboard_root"
               action="action_hall_dashboard"
               sequence="1"/>
+
+    <menuitem id="menu_hall_reports"
+              name="Hall Reports"
+              parent="menu_hall_management_root"
+              sequence="100"/>
+
+    <menuitem id="menu_summary_report"
+              name="Hall Summary Report"
+              parent="menu_hall_reports"
+              action="action_hall_summary_report_wizard"
+              sequence="1"/>
 </odoo>
