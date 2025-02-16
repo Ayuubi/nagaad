@@ -298,5 +298,12 @@
               sequence="1"
               action="action_vendor_balance_list_report_wizard"/>
 
+    <menuitem id="menu_email_reporting_root" name="Email Configuration" sequence="100"/>
 
+    <!-- Submenu: Email Recipients -->
+    <menuitem id="menu_email_recipient"
+              name="Email Recipients"
+              parent="menu_email_reporting_root"
+              action="action_email_recipient"
+              sequence="20"/>
 </odoo>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Action to open the Email Recipients model -->
+    <record id="action_email_recipient" model="ir.actions.act_window">
+        <field name="name">Email Recipients</field>
+        <field name="res_model">idil.email.recipient</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="oe_view_nocontent_create">
+                Click "Create" to add new email recipients for reports.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu: Parent Menu -->
+
+
+    <!-- Tree View -->
+    <record id="view_email_recipient_tree" model="ir.ui.view">
+        <field name="name">idil.email.recipient.tree</field>
+        <field name="model">idil.email.recipient</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="email"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_email_recipient_form" model="ir.ui.view">
+        <field name="name">idil.email.recipient.form</field>
+        <field name="model">idil.email.recipient</field>
+        <field name="arch" type="xml">
+            <form string="Email Recipient">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="email"/>
+                        <field name="active"/>
+                    </group>
+                </sheet>
+
+            </form>
+        </field>
+    </record>
+</odoo>

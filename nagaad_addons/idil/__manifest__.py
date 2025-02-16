@@ -106,6 +106,7 @@
         'views/vendor_paymen_bulk.xml',
         'views/kitchen_report.xml',
         'views/report_hall_summary.xml',
+        'views/email_recipient_view.xml',
 
         'views/menu_hr.xml',
         'views/menu_hall.xml',
