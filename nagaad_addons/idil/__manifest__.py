@@ -42,6 +42,7 @@
         'data/delete.xml',
         'data/booking_sequence.xml',
         'data/purchase_sequence.xml',
+        'data/cron_hall_summary.xml',
         'views/customer_view.xml',
         'views/vendor_view.xml',
         'views/custypes_view.xml',

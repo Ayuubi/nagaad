@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="cron_send_hall_summary_report" model="ir.cron">
+        <field name="name">Send Hall Summary Report</field>
+        <field name="model_id" ref="model_idil_hall_summary_report"/>
+        <field name="state">code</field>
+        <field name="code">model.send_pdf_report_by_email_cron()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">minutes</field>
+        <field name="numbercall">-1</field>
+        <field name="active">True</field>
+    </record>
+</odoo>
