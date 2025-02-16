@@ -401,22 +401,18 @@ class Kitchen_ReportWizard(models.TransientModel):
         }
 
     def send_pdf_report_by_email_cron(self):
-        """Generate and send the hall summary report via email"""
+        """Generate and send the hall summary report via cron job"""
 
-        company = self.env.company  # Get the active company
+        company = self.env.company
         company_name = company.name or "Your Company"
 
         # ✅ Handle missing dates for cron jobs
-        start_date = self.start_date or fields.Date.today() - timedelta(days=7)
-        end_date = self.end_date or fields.Date.today()
+        start_date = fields.Date.today() - timedelta(days=7)
+        end_date = fields.Date.today()
 
-        if isinstance(start_date, bool) or isinstance(end_date, bool):
-            start_date = fields.Date.today() - timedelta(days=7)
-            end_date = fields.Date.today()
+        _logger.info(f"Sending Hall Summary Report for {start_date} to {end_date}")  # Debugging line
 
-        _logger.info(f"Sending Hall Summary Report for {start_date} to {end_date}")
-
-        # Create PDF document in landscape format
+        # Create PDF document
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer,
@@ -435,7 +431,7 @@ class Kitchen_ReportWizard(models.TransientModel):
             parent=styles['Title'],
             fontSize=18,
             textColor=colors.HexColor("#B6862D"),
-            alignment=1  # Center aligned
+            alignment=1
         )
 
         # Add company details
@@ -474,14 +470,23 @@ class Kitchen_ReportWizard(models.TransientModel):
         transactions = self.env.cr.fetchall()
 
         for transaction in transactions:
+            # ✅ Ensure all numeric values are not None, otherwise replace with 0.0
+            hall_name = transaction[0] or "N/A"
+            no_of_guests = transaction[1] or 0
+            avg_cost = transaction[2] or 0.0
+            total_amount = transaction[3] or 0.0
+            paid_amount = transaction[4] or 0.0
+            due_amount = transaction[5] or 0.0
+            service_amount = transaction[6] or 0.0  # ✅ Fix: Replace None with 0.0
+
             data.append([
-                transaction[0] or "",
-                f"{transaction[1]:,}",
-                f"${transaction[2]:,.2f}",
-                f"${transaction[3]:,.2f}",
-                f"${transaction[4]:,.2f}",
-                f"${transaction[5]:,.2f}",
-                f"${transaction[6]:,.2f}",
+                hall_name,
+                f"{no_of_guests:,}",
+                f"${avg_cost:,.2f}",
+                f"${total_amount:,.2f}",
+                f"${paid_amount:,.2f}",
+                f"${due_amount:,.2f}",
+                f"${service_amount:,.2f}",
             ])
 
         # Apply table styling
