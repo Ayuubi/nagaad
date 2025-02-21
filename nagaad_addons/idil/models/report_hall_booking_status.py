@@ -477,10 +477,10 @@ class HallBookingStatusReport(models.TransientModel):
 
         for recipient in recipients:
             mail_values = {
-                'subject': 'Hall Summary Report',
+                'subject': 'Hall Booking Status Dashboard',
                 'body_html': f'''
                     <p>Dear {recipient.name},</p>
-                    <p>Please find attached the Hall Summary Report.</p>
+                    <p>Please find attached the Hall Booking Status Dashboard.</p>
                     <p>Best regards,<br/>{company_name}</p>
                 ''',
                 'email_to': recipient.email,
