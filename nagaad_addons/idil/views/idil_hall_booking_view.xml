@@ -142,7 +142,7 @@
                     <field name="payment_method_id"/>
                     <field name="account_number"/>
 
-                    <field name="payment_date" readonly="1"/>
+                    <field name="payment_date"/>
                     <field name="service_description"/>
 
                 </group>
