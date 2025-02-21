@@ -16,9 +16,6 @@ class HallBookingStatusReport(models.TransientModel):
     _name = 'idil.hall.booking.status.report'
     _description = 'Hall Booking Status Report Wizard'
 
-    date_start = fields.Date(string="Start Date", required=True)
-    date_end = fields.Date(string="End Date", required=True)
-
     def generate_pdf_report(self):
         """Generate a PDF Report for Hall Booking Status"""
 
