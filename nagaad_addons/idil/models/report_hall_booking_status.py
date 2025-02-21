@@ -105,7 +105,7 @@ class HallBookingStatusReport(models.TransientModel):
             INNER JOIN public.idil_hall h ON h.id = hb.hall_id
             WHERE hb.status IN ('booked', 'confirmed', 'draft')
             GROUP BY hb.start_time
-            ORDER BY hb.start_time DESC;
+            ORDER BY hb.start_time asc;
         """
 
         self.env.cr.execute(transaction_query)
@@ -245,7 +245,7 @@ class HallBookingStatusReport(models.TransientModel):
                     INNER JOIN public.idil_hall h ON h.id = hb.hall_id
                     WHERE hb.status IN ('booked', 'confirmed', 'draft')
                     GROUP BY hb.start_time
-                    ORDER BY hb.start_time DESC;
+                    ORDER BY hb.start_time asc;
                 """
 
         self.env.cr.execute(transaction_query)
@@ -417,7 +417,7 @@ class HallBookingStatusReport(models.TransientModel):
                             INNER JOIN public.idil_hall h ON h.id = hb.hall_id
                             WHERE hb.status IN ('booked', 'confirmed', 'draft')
                             GROUP BY hb.start_time
-                            ORDER BY hb.start_time DESC;
+                            ORDER BY hb.start_time asc;
                         """
 
         self.env.cr.execute(transaction_query)
