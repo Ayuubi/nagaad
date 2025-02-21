@@ -50,3 +50,4 @@ from . import vendor_paymen_bulk
 from . import kitchen_report
 from . import report_hall_summary
 from . import idil_email_recipient
+from . import report_hall_booking_status

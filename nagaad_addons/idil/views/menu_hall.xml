@@ -68,4 +68,10 @@
               parent="menu_hall_reports"
               action="action_hall_summary_report_wizard"
               sequence="1"/>
+
+    <menuitem id="menu_hall_booking_status"
+              name="Hall Booking Status Report"
+              parent="menu_hall_reports"
+              action="action_hall_booking_status_report_wizard"
+              sequence="1"/>
 </odoo>

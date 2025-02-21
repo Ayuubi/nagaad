@@ -108,6 +108,7 @@
         'views/kitchen_report.xml',
         'views/report_hall_summary.xml',
         'views/email_recipient_view.xml',
+        'views/report_hall_booking_status.xml',
 
         'views/menu_hr.xml',
         'views/menu_hall.xml',
