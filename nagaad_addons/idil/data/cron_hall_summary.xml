@@ -16,8 +16,8 @@
         <field name="model_id" ref="model_idil_hall_booking_status_report"/>
         <field name="state">code</field>
         <field name="code">model.send_hall_booking_status_by_email_cron()</field>
-        <field name="interval_number">1</field>
-        <field name="interval_type">minutes</field>
+        <field name="interval_number">8</field>
+        <field name="interval_type">hour</field>
         <field name="numbercall">-1</field>
         <field name="active">True</field>
     </record>
