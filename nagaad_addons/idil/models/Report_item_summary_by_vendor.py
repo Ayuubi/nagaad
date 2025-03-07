@@ -89,7 +89,7 @@ class ItemSummaryReportWizard(models.TransientModel):
             WHERE tb.vendor_id = %s 
             AND tl.transaction_date BETWEEN %s AND %s
             GROUP BY it.name, tl.item_id, tb.vendor_id
-            ORDER BY total_quantity DESC
+            ORDER BY total_quantity,avg_cost_price DESC
         """
         self.env.cr.execute(transaction_query, (self.vendor_id.id, self.start_date, self.end_date))
         transactions = self.env.cr.fetchall()
@@ -99,7 +99,7 @@ class ItemSummaryReportWizard(models.TransientModel):
         grand_total_balance = 0
 
         # Table Header
-        data = [["Vendor ID", "Item Name", "Quantity", "Cost Price", "Balance"]]
+        data = [["Vendor ID", "Item Name", "Quantity", " AVG (Cost Price)", "Balance"]]
 
         # Add transaction data
         for transaction in transactions:
