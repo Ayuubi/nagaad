@@ -292,6 +292,12 @@
               sequence="1"
               action="action_vendor_statement_with_items_report_wizard"/>
 
+    <menuitem id="menu_item_summary_with_vendor"
+              name="Item Summary Report -- With Vendor"
+              parent="VendorReports"
+              sequence="1"
+              action="action_item_summary_with_vendor_report_wizard"/>
+
     <menuitem id="menu_vendor_balance_list_report_root"
               name="Vendor Balance Report --List"
               parent="VendorReports"
