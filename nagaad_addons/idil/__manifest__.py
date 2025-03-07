@@ -109,6 +109,8 @@
         'views/report_hall_summary.xml',
         'views/email_recipient_view.xml',
         'views/report_hall_booking_status.xml',
+        # 'views/bulk_sms_wizard.xml',
+        'views/report_item_summary_by_vendor.xml',
 
         'views/menu_hr.xml',
         'views/menu_hall.xml',
