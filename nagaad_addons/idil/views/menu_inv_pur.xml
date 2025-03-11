@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <menuitem id="menu_inv_purchase_root"
+              name="Inventory &amp; Purchase Management"/>
+
+    <menuitem id="menu_idil_Items"
+              name="Items"
+              parent="menu_inv_purchase_root"
+              sequence="1"/>
+
+    <menuitem id="menu_idil_Items_registration"
+              name="Item Registration"
+              parent="menu_idil_Items"
+              action="action_idil_item"
+              sequence="2"/>
+
+    <menuitem id="menu_idil_unit_measure"
+              name="Unit Measurement"
+              parent="menu_idil_Items"
+              action="action_unit_measure"
+              sequence="3"/>
+
+    <menuitem id="menu_idil_item_category"
+              name="Unit Category"
+              parent="menu_idil_Items"
+              action="action_item_category"
+              sequence="4"/>
+
+
+    <menuitem id="menu_idil_vendors"
+              name="Vendors"
+              parent="menu_inv_purchase_root"
+              sequence="2"/>
+
+    <menuitem id="menu_idil_vendors_registration"
+              name="Vendor Registration"
+              parent="menu_idil_vendors"
+              action="action_idil_vendor"
+              sequence="1"/>
+
+    <menuitem id="menu_purchase"
+              name="Purchases"
+              parent="menu_inv_purchase_root"
+              sequence="3"/>
+
+    <menuitem id="menu_purchase_orders"
+              name="Purchase Orders"
+              parent="menu_purchase"
+              sequence="1"
+              action="action_purchase_order"/>
+
+    <menuitem id="menu_idil_view_purchase_order"
+              name="View Purchase Oder"
+              action="action_view_purchase_order"
+              sequence="2"
+              parent="menu_purchase"/>
+
+
+    <!--    <menuitem id="menu_vendor_transaction"-->
+    <!--              name="Vendor Payments"-->
+    <!--              parent="menu_purchase"-->
+    <!--              action="action_vendor_transaction"-->
+    <!--              sequence="4"/>-->
+
+    <menuitem id="menu_vendor_payment_wizard"
+              name="Vendor Bulk Payment"
+              parent="menu_purchase"
+              action="action_vendor_bulk_payment"
+              sequence="3"/>
+
+    <menuitem id="menu_reports_for_vendors"
+              name="Reports"
+              parent="menu_inv_purchase_root"
+              sequence="3"/>
+
+    <menuitem id="Reports_vendor"
+              name="Vendor Balances"
+              parent="menu_reports_for_vendors"
+              sequence="1"
+              action="action_generate_vendor_balances"/>
+    <menuitem id="menu_vendor_transaction_report"
+              name="Vendor Transaction Report"
+              parent="menu_reports_for_vendors"
+              sequence="2"
+              action="action_generate_vendor_transaction"/>
+    <menuitem id="menu_vendor_statement_report_root"
+              name="Vendor Statement Report"
+              parent="menu_reports_for_vendors"
+              sequence="3"
+              action="action_vendor_statement_report_wizard"/>
+    <menuitem id="menu_vendor_statement_with_itmes_report_root"
+              name="Vendor Statement Report -- With Items"
+              parent="menu_reports_for_vendors"
+              sequence="4"
+              action="action_vendor_statement_with_items_report_wizard"/>
+    <menuitem id="menu_item_summary_with_vendor"
+              name="Item Summary Report -- With Vendor"
+              parent="menu_reports_for_vendors"
+              sequence="5"
+              action="action_item_summary_with_vendor_report_wizard"/>
+    <menuitem id="menu_vendor_balance_list_report_root"
+              name="Vendor Balance Report --List"
+              parent="menu_reports_for_vendors"
+              sequence="6"
+              action="action_vendor_balance_list_report_wizard"/>
+
+</odoo>
