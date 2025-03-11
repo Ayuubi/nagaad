@@ -16,7 +16,7 @@
         'point_of_sale.assets': [
             'idil/static/src/js/pos_customer_modification.js',
             'idil/static/src/js/pos_user_modification.js',  # Reference your JS file here
-            'idil/static/src/js/pos_order_restrictions.js',
+            # 'idil/static/src/js/pos_order_restrictions.js',
         ],
         'web.assets_backend': [
             'idil/static/src/css/kanban.css',
@@ -115,6 +115,7 @@
         'views/menu_hr.xml',
         'views/menu_hall.xml',
         'views/menu_store.xml',
+        'views/menu_inv_pur.xml',
         'views/menu.xml',
 
     ],
