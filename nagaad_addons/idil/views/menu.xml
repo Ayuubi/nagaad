@@ -179,6 +179,13 @@
               sequence="4"
               action="action_generate_account_balances"/>
 
+    <menuitem id="Reports_bs"
+              name="Daily Cost Profit Report"
+              parent="OtherReports"
+              sequence="5"
+              action="action_daily_cost_profit_report_wizard"/>
+
+
 
     <menuitem id="menu_email_reporting_root" name="Email Configuration" sequence="100"/>
 
