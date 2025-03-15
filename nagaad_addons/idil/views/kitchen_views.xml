@@ -21,6 +21,7 @@
                             </group>
                             <group>
                                 <field name="notes"/>
+                                <field name="is_event"/>
                             </group>
                         </sheet>
                         <notebook>

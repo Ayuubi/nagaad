@@ -17,3 +17,4 @@ class Kitchen(models.Model):
         string='Inventory Account Number',
         domain="[('account_type', '=', 'kitchen')]"  # Assuming 'kitchen' is a valid account_type value
     )
+    is_event = fields.Boolean(string="Is Event?", help="Check this if the kitchen is associated with an event.")
