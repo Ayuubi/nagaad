@@ -95,39 +95,50 @@ class VendorTransactionReportWizard(models.TransientModel):
             ["Event Date", "Kitchen Entries", "Revenue", "Cost", "Profit"]
         ]
 
+        # Initialize grand totals
+        total_kitchen_entries = 0
+        total_revenue = 0.0
+        total_cost = 0.0
+        total_profit = 0.0
+
         # Fetch transactions from the database
         transaction_query = """                      
-                WITH hall_booking_aggregated AS (
-                    SELECT DATE(hb.start_time) AS Event_Date, 
-                           SUM(hb.total_price) AS Total_Price,
-                           SUM(COALESCE(hb.extra_service_amount, 0)) AS Extra_Service_Amount
-                    FROM idil_hall_booking hb
-                    INNER JOIN idil_customer_registration c ON c.id = hb.customer_id
-                    WHERE EXTRACT(MONTH FROM hb.start_time) = %s
-                      AND EXTRACT(YEAR FROM hb.start_time) = %s
-                    GROUP BY DATE(hb.start_time)
-                )
-                SELECT hba.Event_Date, 
-                       COUNT(kcp.id) AS Kitchen_Entries,  -- Count kitchen records
-                       hba.Total_Price + hba.Extra_Service_Amount AS Revenue,
-                       SUM(kcp.subtotal) AS Cost,
-                       (hba.Total_Price + hba.Extra_Service_Amount) - SUM(kcp.subtotal) AS Profit
-                FROM hall_booking_aggregated hba
-                LEFT JOIN idil_kitchen_cook_process kcp
-                    ON hba.Event_Date = DATE(kcp.process_date)
-                INNER JOIN public.idil_kitchen_transfer kt
-                    ON kt.id = kcp.kitchen_transfer_id
-                INNER JOIN public.idil_kitchen k
-                    ON k.id = kt.kitchen_id
-                WHERE k.is_event = TRUE
-                GROUP BY hba.Event_Date, hba.Total_Price, hba.Extra_Service_Amount
-                ORDER BY hba.Event_Date;
-        """
+                    WITH hall_booking_aggregated AS (
+                        SELECT DATE(hb.start_time) AS Event_Date, 
+                               SUM(hb.total_price) AS Total_Price,
+                               SUM(COALESCE(hb.extra_service_amount, 0)) AS Extra_Service_Amount
+                        FROM idil_hall_booking hb
+                        INNER JOIN idil_customer_registration c ON c.id = hb.customer_id
+                        WHERE EXTRACT(MONTH FROM hb.start_time) = %s
+                          AND EXTRACT(YEAR FROM hb.start_time) = %s
+                        GROUP BY DATE(hb.start_time)
+                    )
+                    SELECT hba.Event_Date, 
+                           COUNT(kcp.id) AS Kitchen_Entries,  -- Count kitchen records
+                           hba.Total_Price + hba.Extra_Service_Amount AS Revenue,
+                           SUM(kcp.subtotal) AS Cost,
+                           (hba.Total_Price + hba.Extra_Service_Amount) - SUM(kcp.subtotal) AS Profit
+                    FROM hall_booking_aggregated hba
+                    LEFT JOIN idil_kitchen_cook_process kcp
+                        ON hba.Event_Date = DATE(kcp.process_date)
+                    INNER JOIN public.idil_kitchen_transfer kt
+                        ON kt.id = kcp.kitchen_transfer_id
+                    INNER JOIN public.idil_kitchen k
+                        ON k.id = kt.kitchen_id
+                    WHERE k.is_event = TRUE
+                    GROUP BY hba.Event_Date, hba.Total_Price, hba.Extra_Service_Amount
+                    ORDER BY hba.Event_Date;
+            """
         self.env.cr.execute(transaction_query, (self.month, self.year))
         transactions = self.env.cr.fetchall()
 
         # Add data rows to the table
         for transaction in transactions:
+            total_kitchen_entries += transaction[1]
+            total_revenue += transaction[2]
+            total_cost += transaction[3]
+            total_profit += transaction[4]
+
             data.append([
                 transaction[0] or "",  # Event Date
                 transaction[1] or 0,  # Kitchen Entries
@@ -136,6 +147,15 @@ class VendorTransactionReportWizard(models.TransientModel):
                 f"${transaction[4]:,.2f}"  # Profit
             ])
 
+        # Add grand totals row
+        data.append([
+            "Grand Total",  # Label
+            total_kitchen_entries,  # Total Kitchen Entries
+            f"${total_revenue:,.2f}",  # Total Revenue
+            f"${total_cost:,.2f}",  # Total Cost
+            f"${total_profit:,.2f}"  # Total Profit
+        ])
+
         # Table Styling and Insertion
         table = Table(data, colWidths=[100, 100, 100, 100, 100])
         table.setStyle(TableStyle([
@@ -143,8 +163,8 @@ class VendorTransactionReportWizard(models.TransientModel):
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Header text color
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),  # Grid styling
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Center-align all cells
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Bold header font
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),  # Vertical alignment
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),  # Bold font for grand totals
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor("#F0F0F0")),  # Light background for totals
         ]))
 
         # Add table to the PDF
