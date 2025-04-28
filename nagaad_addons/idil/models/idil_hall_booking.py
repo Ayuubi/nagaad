@@ -83,7 +83,7 @@ class HallBooking(models.Model):
         ids_to_update = []
         for record in records:
             if 'status' in record and 'end_time' in record:
-                if record['status'] not in ['closed', 'canceled'] and record.get('end_time') and record[
+                if record['status'] not in ['canceled'] and record.get('end_time') and record[
                     'end_time'] < current_time:
                     ids_to_update.append(record['id'])
 
