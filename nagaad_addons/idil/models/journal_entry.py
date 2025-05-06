@@ -82,7 +82,7 @@ class JournalEntry(models.Model):
                             _('Insufficient funds in account ( %s ) for credit amount %s. '
                               'The current account balance is %s.') % (account.name, line.credit, current_balance))
                 elif account.sign == 'Cr':
-                    if line.debit and current_balance < line.debit:
+                    if line.debit and current_balance < line.debit and not account.code.startswith('2'):
                         raise ValidationError(
                             _('Insufficient funds in account ( %s ) for debit amount %s. '
                               'The current account balance is %s.') % (account.name, line.debit, current_balance))
