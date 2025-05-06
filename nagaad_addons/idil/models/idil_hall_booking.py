@@ -1013,7 +1013,7 @@ class IdilEmployeePosition(models.Model):
     name = fields.Char(required=True)
 
 
-class ExtraServiceWizard(models.TransientModel):
+class ExtraServiceWizard(models.Model):
     _name = 'idil.hall.extra.service'
     _description = 'Extra Service Wizard'
 
