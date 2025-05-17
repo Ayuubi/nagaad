@@ -41,7 +41,7 @@
                                 <field name="order_number"/>
                                 <field name="reffno"/>
                                 <field name="amount" sum="Total"/>
-                                <field name="remaining_amount"/>
+                                <field name="remaining_amount" sum="Total"/>
                                 <field name="payment_status"/>
                             </tree>
                         </field>
