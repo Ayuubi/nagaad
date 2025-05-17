@@ -24,62 +24,17 @@
 
 
 
+<!--    <menuitem id="Manufacturing"-->
+<!--              name="Menu Creation"-->
+<!--              parent="menu_idil_home"-->
+<!--              sequence="6"/>-->
 
-    <menuitem id="menu_idil_accounting"
-              name="Accounting"
-              parent="menu_idil_home"
-              sequence="4"/>
-
-
-    <menuitem id="menu_idil_chart_account_tree"
-              name="Chart of Accounts"
-              parent="menu_idil_accounting"
-              action="action_idil_chart_account"
-              sequence="1"/>
-
-    <menuitem id="menu_idil_journal_entry"
-              name="360 -- All Transactions"
-              parent="menu_idil_accounting"
-              action="action_transaction_booking"
-
-              sequence="2"/>
-
-    <menuitem id="menu_journal_entry"
-              name="Journal Entries"
-              parent="menu_idil_accounting"
-              action="action_journal_entry"/>
-
-    <!-- Menu Item for Currency Exchange -->
-    <menuitem id="menu_currency_exchange"
-              name="Currency Exchange"
-              parent="menu_idil_accounting"
-              action="action_currency_exchange"/>
-
-    <menuitem id="menu_idil_trx_source"
-              name="Transaction Sources"
-              parent="menu_idil_accounting"
-              action="action_trx_source"
-              sequence="3"/>
-
-    <menuitem id="menu_payment_method"
-              name="Payment Methods"
-              parent="menu_idil_accounting"
-              action="action_payment_method" sequence="4"/>
-
-
-
-
-    <menuitem id="Manufacturing"
-              name="Menu Creation"
-              parent="menu_idil_home"
-              sequence="6"/>
-
-    <menuitem id="Manufacturing_products"
-              name="Create New Menu"
-              parent="Manufacturing"
-              sequence="1"
-              action="action_view_product"/>
-    <!-- Menu Item for BOM Creation -->
+<!--    <menuitem id="Manufacturing_products"-->
+<!--              name="Create New Menu"-->
+<!--              parent="Manufacturing"-->
+<!--              sequence="1"-->
+<!--              action="action_view_product"/>-->
+<!--    &lt;!&ndash; Menu Item for BOM Creation &ndash;&gt;-->
 
 
     <menuitem id="model_a_menu"
@@ -89,16 +44,16 @@
               sequence="1000"/>
 
     <!-- Add the custom menu item -->
-    <menuitem id="menu_custom_pos"
-              name="Custom POS"
-              parent="menu_idil_home"
-              action="action_pos_config"
-              sequence="1020"/>
+<!--    <menuitem id="menu_custom_pos"-->
+<!--              name="Custom POS"-->
+<!--              parent="menu_idil_home"-->
+<!--              action="action_pos_config"-->
+<!--              sequence="1020"/>-->
 
-    <menuitem id="menu_pos_session"
-              name="POS Sessions"
-              parent="menu_idil_home"
-              action="action_pos_session"/>
+<!--    <menuitem id="menu_pos_session"-->
+<!--              name="POS Sessions"-->
+<!--              parent="menu_idil_home"-->
+<!--              action="action_pos_session"/>-->
 
 
     <!-- Root Menu for Reporting -->

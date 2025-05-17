@@ -117,6 +117,7 @@
         'views/menu_hall.xml',
         'views/menu_store.xml',
         'views/menu_inv_pur.xml',
+        'views/menu_accounting.xml',
         'views/menu.xml',
 
     ],
