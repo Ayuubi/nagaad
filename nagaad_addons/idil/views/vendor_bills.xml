@@ -12,7 +12,7 @@
                 <field name="transaction_number"/>
                 <field name="order_number"/>
                 <field name="vendor_id"/>
-                <field name="amount"/>
+                <field name="amount" sum="Total"/>
                 <field name="payment_status"/>
 
             </tree>
