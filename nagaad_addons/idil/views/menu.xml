@@ -56,6 +56,19 @@
 <!--              action="action_pos_session"/>-->
 
 
+    <menuitem id="Manufacturing"
+              name="Menu Creation"
+              parent="menu_idil_home"
+              sequence="6"/>
+
+    <menuitem id="Manufacturing_products"
+              name="Create New Menu"
+              parent="Manufacturing"
+              sequence="1"
+              action="action_view_product"/>
+    <!-- Menu Item for BOM Creation -->
+
+
     <!-- Root Menu for Reporting -->
     <menuitem id="Reports_root"
               name="Reporting Module"
