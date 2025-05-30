@@ -103,5 +103,10 @@
               parent="menu_reports_for_vendors"
               sequence="6"
               action="action_vendor_balance_list_report_wizard"/>
+    <menuitem id="menu_vendor_summary_report_root"
+              name="Vendor Summary Report"
+              parent="menu_reports_for_vendors"
+              sequence="7"
+              action="action_vendor_summary_report_wizard"/>
 
 </odoo>
