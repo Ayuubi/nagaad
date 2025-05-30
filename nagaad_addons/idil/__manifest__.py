@@ -113,6 +113,7 @@
         'views/report_item_summary_by_vendor.xml',
         'views/report_daily_event_cost_profit.xml',
         'views/report_vendor_summary.xml',
+        'views/report_stock_summary.xml',
 
 
         'views/menu_hr.xml',
