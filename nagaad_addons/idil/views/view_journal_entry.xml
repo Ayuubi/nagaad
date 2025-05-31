@@ -12,6 +12,8 @@
                         <group>
                             <field name="date"/>
                             <field name="currency_id"/>
+                            <field name="bank_reff"/>
+
                         </group>
                         <notebook>
                             <page string="Journal Lines">

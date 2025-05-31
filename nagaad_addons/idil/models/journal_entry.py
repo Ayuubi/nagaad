@@ -16,6 +16,10 @@ class JournalEntry(models.Model):
     total_debit = fields.Monetary(string='Total Debit', compute='_compute_totals', store=True)
     total_credit = fields.Monetary(string='Total Credit', compute='_compute_totals', store=True)
 
+    bank_reff = fields.Char(
+        string='Bank Reference', required=True, tracking=True
+    )
+
     @api.model
     def default_get(self, fields_list):
         res = super(JournalEntry, self).default_get(fields_list)
