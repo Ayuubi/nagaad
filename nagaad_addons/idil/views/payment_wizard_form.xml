@@ -9,6 +9,7 @@
                     <field name="payment_method_id" required="1"/>
                     <field name="payment_date" required="1"/>
                     <field name="payment_amount" required="1"/>
+                     <field name="bank_reff"/>
                 </group>
                 <footer>
                     <button string="Add Payment" type="object" name="action_add_payment" class="btn-primary"/>

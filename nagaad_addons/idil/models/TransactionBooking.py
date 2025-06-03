@@ -101,6 +101,10 @@ class TransactionBooking(models.Model):
         ondelete='cascade'
     )
 
+    bank_reff = fields.Char(
+        string='Bank Reference', required=True, tracking=True
+    )
+
     @api.constrains('amount_paid')
     def _check_amount_paid(self):
         if self.env.context.get('skip_validations'):
@@ -277,7 +281,14 @@ class TransactionBookingline(models.Model):
                                   readonly=True)
 
     commission_payment_id = fields.Many2one('idil.commission.payment', string='Commission Payment', ondelete='cascade')
-
+    hall_booking_payment_id = fields.Many2one(
+        'idil.hall.booking.payment',
+        string='Hall Booking Payment',
+        ondelete='cascade'
+    )
+    bank_reff = fields.Char(
+        string='Bank Reference', required=True, tracking=True
+    )
     company_id = fields.Many2one('res.company', string='Company', required=True, default=lambda self: self.env.company)
 
     @api.depends('account_number')

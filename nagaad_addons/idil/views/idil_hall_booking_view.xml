@@ -28,6 +28,8 @@
                         <group string="Customer and Booking Details" col="2">
 
                             <field name="invoice_number" placeholder="Insert Invoice Number"/>
+                            <field name="bank_reff" placeholder="Bank Reference Number"/>
+
                             <field name="customer_id" placeholder="Select Customer"/>
                             <field name="hall_id" placeholder="Select Hall"/>
                             <field name="hall_event_id" placeholder="Select Event Type"/>
@@ -68,6 +70,7 @@
                             <tree editable="bottom" string="Extra Services">
                                 <field name="payment_date" string="Extra Payment Date"/>
                                 <field name="payment_method_id"/>
+                                <field name="bank_reff"/>
                                 <field name="account_number"/>
                                 <field name="extra_service_amount" string="Extra Paid Amount"/>
                                 <field name="service_description"/>
@@ -104,6 +107,7 @@
         <field name="arch" type="xml">
             <tree string="Hall Bookings" decoration-danger="status == 'due'">
                 <field name="invoice_number"/>
+                <field name="bank_reff"/>
                 <field name="name"/>
                 <field name="customer_id"/>
                 <field name="hall_id"/>
@@ -141,6 +145,7 @@
                     <field name="extra_service_amount"/>
                     <field name="payment_method_id"/>
                     <field name="account_number"/>
+                    <field name="bank_reff"/>
 
                     <field name="payment_date"/>
                     <field name="service_description"/>

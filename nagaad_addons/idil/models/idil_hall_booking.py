@@ -42,6 +42,10 @@ class HallBooking(models.Model):
     # Account Number Field (related to the selected Payment Method)
     account_number = fields.Char(string='Account Number', compute='_compute_account_number', store=True)
     invoice_number = fields.Char(string='Invoice Number')
+
+    bank_reff = fields.Char(
+        string='Bank Reference', required=True, tracking=True
+    )
     payment_ids = fields.One2many('idil.hall.booking.payment', 'booking_id', string='Payments')
     status = fields.Selection([
         ('draft', 'Draft'),
@@ -164,6 +168,7 @@ class HallBooking(models.Model):
             if booking.amount <= booking.total_price:
                 self.env['idil.hall.booking.payment'].create({
                     'booking_id': booking.id,
+                    'bank_reff': booking.bank_reff,
                     'payment_date': fields.Date.today(),
                     'amount': booking.amount,
                     'payment_method_id': booking.payment_method_id.id,
@@ -193,6 +198,7 @@ class HallBooking(models.Model):
         transaction = self.env['idil.transaction_booking'].create({
             'transaction_number': self.env['ir.sequence'].next_by_code('idil.transaction_booking'),
             'hall_booking_id': self.id,
+            'bank_reff': self.bank_reff,
             'trx_source_id': hall_booking_trx_source.id,
             'reffno': self.name,
             'customer_id': self.customer_id.id,
@@ -205,6 +211,7 @@ class HallBooking(models.Model):
         self.env['idil.transaction_bookingline'].create({
             'transaction_booking_id': transaction.id,
             'hall_booking_id': self.id,
+            'bank_reff': self.bank_reff,
             'description': 'Income for Hall Booking {}'.format(self.name),
             'account_number': self.hall_id.income_account_id.id,
             'transaction_type': 'cr',
@@ -218,6 +225,7 @@ class HallBooking(models.Model):
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction.id,
                 'hall_booking_id': self.id,
+                'bank_reff': self.bank_reff,
 
                 'description': 'HB -- {} -- {}, -- {} '.format(
                     self.hall_id.name, transaction.customer_id.name, transaction.customer_id.phone
@@ -234,6 +242,7 @@ class HallBooking(models.Model):
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction.id,
                 'hall_booking_id': self.id,
+                'bank_reff': self.bank_reff,
                 'description': 'Receivable for Hall Booking {}'.format(self.name),
                 'account_number': self.hall_id.Receivable_account_id.id,
                 'transaction_type': 'dr',
@@ -369,6 +378,7 @@ class HallBooking(models.Model):
                 self.env['idil.transaction_bookingline'].create({
                     'transaction_booking_id': transaction.id,
                     'hall_booking_id': self.id,
+                    'bank_reff': self.bank_reff,
                     'description': 'Receivable for Hall Booking {}'.format(booking.name),
                     'account_number': booking.hall_id.Receivable_account_id.id,
                     'transaction_type': 'dr',
@@ -693,6 +703,7 @@ class HallBookingPayment(models.Model):
             transaction = self.env['idil.transaction_booking'].create({
                 'transaction_number': self.env['ir.sequence'].next_by_code('idil.transaction_booking'),
                 'reffno': booking.name,
+                'bank_reff': booking.bank_reff,
                 'trx_source_id': hall_booking_trx_source.id,
                 'hall_booking_id': self.booking_id.id,
                 'customer_id': booking.customer_id.id,
@@ -727,6 +738,7 @@ class HallBookingPayment(models.Model):
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction.id,
                 'hall_booking_id': self.booking_id.id,
+                'bank_reff': booking.bank_reff,
 
                 'description': 'HB -- {} -- {}, -- {} '.format(
                     booking.hall_id.name, transaction.customer_id.name, transaction.customer_id.phone
@@ -751,6 +763,7 @@ class HallBookingPayment(models.Model):
             # If the income line does not exist, create it with the full income amount
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction.id,
+                'bank_reff': booking.bank_reff,
                 'hall_booking_id': self.booking_id.id,
                 'description': 'Income for Hall Booking {}'.format(booking.name),
                 'account_number': booking.hall_id.income_account_id.id,
@@ -778,6 +791,7 @@ class HallBookingPayment(models.Model):
             # If the A/R line does not exist, create it
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction.id,
+                'bank_reff': booking.bank_reff,
                 'hall_booking_id': self.booking_id.id,
                 'description': 'Receivable for Hall Booking {}'.format(booking.name),
                 'account_number': booking.hall_id.Receivable_account_id.id,
@@ -970,6 +984,9 @@ class HallBookingPaymentWizard(models.TransientModel):
     payment_method_id = fields.Many2one('idil.payment.method', string='Payment Method', required=True)
     payment_date = fields.Date(string='Payment Date', default=fields.Date.today, required=True)
     payment_amount = fields.Float(string='Payment Amount', required=True)
+    bank_reff = fields.Char(
+        string='Bank Reference', required=True, tracking=True
+    )
 
     @api.model
     def default_get(self, fields):
@@ -1029,6 +1046,9 @@ class ExtraServiceWizard(models.Model):
         help="The transaction booking created for this extra service."
     )
     service_description = fields.Char(string='Description/Reference')
+    bank_reff = fields.Char(
+        string='Bank Reference', required=True, tracking=True
+    )
 
     @api.onchange('payment_method_id')
     def _onchange_payment_method_id(self):
@@ -1057,6 +1077,7 @@ class ExtraServiceWizard(models.Model):
         transaction_booking = self.env['idil.transaction_booking'].create({
             'hall_booking_id': self.booking_id.id,
             'trx_date': self.payment_date,
+            'bank_reff': self.bank_reff,
             'amount': self.extra_service_amount,
             'reffno': f"ExtraService-{self.booking_id.name}",
             'payment_method': 'bank_transfer',
@@ -1067,6 +1088,7 @@ class ExtraServiceWizard(models.Model):
         self.env['idil.transaction_bookingline'].create({
             'transaction_booking_id': transaction_booking.id,
             'hall_booking_id': self.booking_id.id,
+            'bank_reff': self.bank_reff,
             'description': f"Asset for extra service on booking {self.booking_id.name}",
             'account_number': self.account_number.id,
             'transaction_type': 'dr',
@@ -1079,6 +1101,7 @@ class ExtraServiceWizard(models.Model):
         self.env['idil.transaction_bookingline'].create({
             'transaction_booking_id': transaction_booking.id,
             'hall_booking_id': self.booking_id.id,
+            'bank_reff': self.bank_reff,
             'description': f"Revenue for extra service on booking {self.booking_id.name}",
             'account_number': self.booking_id.hall_id.extra_income_account_id.id,
             'transaction_type': 'cr',
@@ -1171,6 +1194,7 @@ class ExtraServiceWizard(models.Model):
                 if debit_line:
                     debit_line.write({
                         'dr_amount': debit_line.dr_amount + difference,
+                        'bank_reff': self.bank_reff,
                     })
 
                 # Update credit line (Revenue Account)
@@ -1183,6 +1207,7 @@ class ExtraServiceWizard(models.Model):
                 if credit_line:
                     credit_line.write({
                         'cr_amount': credit_line.cr_amount + difference,
+                        'bank_reff': self.bank_reff,
                     })
 
             # Log the adjustment
