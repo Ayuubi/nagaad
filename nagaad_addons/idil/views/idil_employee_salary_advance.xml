@@ -26,6 +26,7 @@
                                 <group>
                                     <field name="request_date"/>
                                     <field name="account_id"/>
+                                    <field name="bank_reff"/>
                                     <field name="currency_id"/>
                                     <field name="employee_salary"/>
                                 </group>

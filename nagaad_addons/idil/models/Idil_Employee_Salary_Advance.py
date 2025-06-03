@@ -52,6 +52,9 @@ class IdilEmployeeSalaryAdvance(models.Model):
         compute='_compute_remaining_salary',
         store=True, tracking=True
     )
+    bank_reff = fields.Char(
+        string='Bank Reference', required=True, tracking=True
+    )
 
     @api.depends('employee_id')
     def _compute_employee_salary(self):
@@ -149,6 +152,7 @@ class IdilEmployeeSalaryAdvance(models.Model):
             transaction_booking = self.env['idil.transaction_booking'].create({
                 'transaction_number': self.env['ir.sequence'].next_by_code('idil.transaction_booking') or '/',
                 'reffno': record.id,  # Reference to salary advance request
+                'bank_reff': record.bank_reff,
                 'employee_salary_advance_id': record.id,
                 'employee_id': record.employee_id.id,
                 'payment_method': 'cash',
@@ -164,6 +168,7 @@ class IdilEmployeeSalaryAdvance(models.Model):
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction_booking.id,
                 'employee_salary_advance_id': record.id,
+                'bank_reff': record.bank_reff,
                 'description': 'Salary Advance Approved',
                 'account_number': salary_advance_expense_account.id,
                 'transaction_type': 'dr',
@@ -175,6 +180,7 @@ class IdilEmployeeSalaryAdvance(models.Model):
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction_booking.id,
                 'employee_salary_advance_id': record.id,
+                'bank_reff': record.bank_reff,
                 'description': 'Salary Advance Paid',
                 'account_number': record.account_id.id,
                 'transaction_type': 'cr',
@@ -221,6 +227,7 @@ class IdilEmployeeSalaryAdvance(models.Model):
                     'amount': record.advance_amount,
                     'amount_paid': record.advance_amount,
                     'remaining_amount': 0,
+                    'bank_reff': record.bank_reff,
                 })
 
         for record in self:
@@ -235,11 +242,13 @@ class IdilEmployeeSalaryAdvance(models.Model):
                     line.write({
                         'dr_amount': record.advance_amount,
                         'transaction_date': record.request_date,
+                        'bank_reff': record.bank_reff,
                     })
                 elif line.transaction_type == 'cr':
                     line.write({
                         'cr_amount': record.advance_amount,
                         'transaction_date': record.request_date,
+                        'bank_reff': record.bank_reff,
                     })
 
         return result

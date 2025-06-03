@@ -107,6 +107,7 @@ class JournalEntry(models.Model):
                 'transaction_number': self.env['ir.sequence'].next_by_code('idil.transaction_booking.sequence') or _(
                     'New'),
                 'reffno': entry.name,
+                'bank_reff': entry.bank_reff,
                 'trx_date': entry.date,
                 'amount': entry.total_debit,  # Assuming total_debit equals the total amount of the transaction
                 'debit_total': entry.total_debit,
@@ -114,7 +115,6 @@ class JournalEntry(models.Model):
                 'payment_method': "other",
                 'payment_status': "paid",
                 'trx_source_id': trx_source_id,
-
                 'journal_entry_id': entry.id,  # Link to the journal entry
             }
             main_booking = self.env['idil.transaction_booking'].create(booking_vals)
@@ -124,6 +124,7 @@ class JournalEntry(models.Model):
                 if line.debit:
                     self.env['idil.transaction_bookingline'].create({
                         'transaction_booking_id': main_booking.id,
+                        'bank_reff' : entry.bank_reff,
                         'description': line.description,
                         'account_number': line.account_id.id,
                         'transaction_type': 'dr',
@@ -134,6 +135,7 @@ class JournalEntry(models.Model):
                 if line.credit:
                     self.env['idil.transaction_bookingline'].create({
                         'transaction_booking_id': main_booking.id,
+                        'bank_reff': entry.bank_reff,
                         'description': line.description,
                         'account_number': line.account_id.id,
                         'transaction_type': 'cr',
@@ -151,6 +153,7 @@ class JournalEntry(models.Model):
                 'transaction_number': self.env['ir.sequence'].next_by_code('idil.transaction_booking.sequence') or _(
                     'New'),
                 'reffno': entry.name,
+                'bank_reff': entry.bank_reff,
                 'trx_date': entry.date,
                 'amount': entry.total_debit,  # Assuming total_debit equals the total amount of the transaction
                 'debit_total': entry.total_debit,
@@ -164,6 +167,7 @@ class JournalEntry(models.Model):
                 if line.debit:
                     self.env['idil.transaction_bookingline'].create({
                         'transaction_booking_id': main_booking.id,
+                        'bank_reff': entry.bank_reff,
                         'description': line.description,
                         'account_number': line.account_id.id,
                         'transaction_type': 'dr',
@@ -174,6 +178,7 @@ class JournalEntry(models.Model):
                 if line.credit:
                     self.env['idil.transaction_bookingline'].create({
                         'transaction_booking_id': main_booking.id,
+                        'bank_reff': entry.bank_reff,
                         'description': line.description,
                         'account_number': line.account_id.id,
                         'transaction_type': 'cr',

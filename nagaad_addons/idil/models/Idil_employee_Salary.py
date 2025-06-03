@@ -1,7 +1,7 @@
 import base64
 import calendar
 import io
-from datetime import datetime
+from datetime import datetime, date
 
 from dateutil.relativedelta import relativedelta
 from reportlab.lib import colors
@@ -15,6 +15,7 @@ from reportlab.platypus import Image
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.platypus import SimpleDocTemplate
 import logging
+from io import BytesIO
 
 _logger = logging.getLogger(__name__)
 
@@ -48,6 +49,9 @@ class IdilEmployeeSalary(models.Model):
         'idil.employee.salary.advance',
         string='Advances This Month',
         compute='_compute_advances_this_month'
+    )
+    bank_reff = fields.Char(
+        string='Bank Reference', required=True, tracking=True
     )
 
     @api.depends('salary_date', 'employee_id')
@@ -181,6 +185,7 @@ class IdilEmployeeSalary(models.Model):
         transaction_booking = self.env['idil.transaction_booking'].create({
             'transaction_number': self.env['ir.sequence'].next_by_code('idil.transaction_booking') or '/',
             'reffno': record.id,
+            'bank_reff': record.bank_reff,
             'employee_salary_id': record.id,
             'employee_id': record.employee_id.id,
             'trx_source_id': salary_expense_trx_source.id,
@@ -196,6 +201,7 @@ class IdilEmployeeSalary(models.Model):
         self.env['idil.transaction_bookingline'].create({
             'transaction_booking_id': transaction_booking.id,
             'employee_salary_id': record.id,
+            'bank_reff': record.bank_reff,
             'description': 'Salary Payment of - ' + record.salary_date.strftime(
                 '%Y-%m') + ' for - ' + record.employee_id.name,
             'account_number': salary_expense_account.id,  # Debit salary expense account
@@ -208,6 +214,7 @@ class IdilEmployeeSalary(models.Model):
         self.env['idil.transaction_bookingline'].create({
             'transaction_booking_id': transaction_booking.id,
             'employee_salary_id': record.id,
+            'bank_reff': record.bank_reff,
             'description': 'Salary Payment of - ' + record.salary_date.strftime(
                 '%Y-%m') + ' for - ' + record.employee_id.name,
             'account_number': credit_account.id,  # Credit the advance account
@@ -276,6 +283,7 @@ class IdilEmployeeSalary(models.Model):
                 transaction_booking.write({
                     'trx_date': record.salary_date,
                     'amount': record.total_salary,
+                    'bank_reff': record.bank_reff,
                     'amount_paid': record.total_salary,
                     'remaining_amount': 0,
                 })
@@ -290,11 +298,13 @@ class IdilEmployeeSalary(models.Model):
                     line.write({
                         'dr_amount': record.total_salary,
                         'transaction_date': record.salary_date,
+                        'bank_reff': record.bank_reff,
                     })
                 elif line.transaction_type == 'cr':
                     line.write({
                         'cr_amount': record.total_salary,
                         'transaction_date': record.salary_date,
+                        'bank_reff': record.bank_reff,
                     })
 
         return result
@@ -346,18 +356,21 @@ class IdilEmployeeSalary(models.Model):
 
     @api.constrains('employee_id', 'salary_date')
     def _check_duplicate_salary(self):
-        for record in self:
-            # Get the month and year of the salary_date
-            salary_month = record.salary_date.strftime('%Y-%m')
-            # Check if a record exists for the same employee and month
-            duplicate = self.search([
-                ('employee_id', '=', record.employee_id.id),
-                ('salary_date', '>=', f'{salary_month}-01'),
-                ('salary_date', '<=', f'{salary_month}-31'),
-                ('id', '!=', record.id)  # Exclude the current record
-            ])
-            if duplicate:
-                raise ValidationError(f"A salary record for {record.employee_id.name} already exists for this month.")
+        for rec in self:
+            if rec.salary_date and rec.employee_id:
+                year = rec.salary_date.year
+                month = rec.salary_date.month
+                last_day = calendar.monthrange(year, month)[1]
+                safe_end_date = date(year, month, last_day)
+
+                duplicate = self.search([
+                    ('employee_id', '=', rec.employee_id.id),
+                    ('salary_date', '>=', date(year, month, 1)),
+                    ('salary_date', '<=', safe_end_date),
+                    ('id', '!=', rec.id),
+                ])
+                if duplicate:
+                    raise ValidationError(f"A salary record for {rec.employee_id.name} already exists for this month.")
 
     def action_generate_salary_report_pdf(self):
         """Generate the payment slip for the selected employee."""
@@ -573,3 +586,244 @@ class IdilEmployeeSalary(models.Model):
             }
 
         return report_data
+
+    def generate_balance_sheet_report_pdf(self, export_type="pdf"):
+        """Generate and download the balance sheet report using the provided query."""
+        _logger.info("Starting balance sheet report generation...")
+
+        # Use the provided query to fetch balance sheet data
+        query = """
+        SELECT 
+            ac.code, 
+            ac.name,
+            SUM(bl.dr_amount - bl.cr_amount) AS balance
+        FROM 
+            idil_chart_account ac
+        JOIN 
+            idil_transaction_bookingline bl
+            ON ac.id = bl.account_number
+        WHERE 
+            ac."FinancialReporting" = 'BS'
+            AND ac.header_name = 'Assets'
+            AND bl.transaction_date <= '2024-12-14'
+        GROUP BY 
+            ac.code, ac.name
+        UNION ALL
+        SELECT
+            'TOTAL' AS code,
+            'Total Assets' AS name,
+            SUM(bl.dr_amount - bl.cr_amount) AS balance
+        FROM 
+            idil_chart_account ac
+        JOIN 
+            idil_transaction_bookingline bl
+            ON ac.id = bl.account_number
+        WHERE 
+            ac."FinancialReporting" = 'BS'
+            AND ac.header_name = 'Assets'
+            AND bl.transaction_date <= '2024-12-14'
+        UNION ALL
+        SELECT 
+            ac.code, 
+            ac.name,
+            SUM(bl.dr_amount - bl.cr_amount) AS balance
+        FROM 
+            idil_chart_account ac
+        JOIN 
+            idil_transaction_bookingline bl
+            ON ac.id = bl.account_number
+        WHERE 
+            ac."FinancialReporting" = 'BS'
+            AND ac.header_name = 'Liabilities'
+            AND bl.transaction_date <= '2024-12-14'
+        GROUP BY 
+            ac.code, ac.name
+        UNION ALL
+        SELECT
+            'TOTAL' AS code,
+            'Total Liabilities' AS name,
+            SUM(bl.dr_amount - bl.cr_amount) AS balance
+        FROM 
+            idil_chart_account ac
+        JOIN 
+            idil_transaction_bookingline bl
+            ON ac.id = bl.account_number
+        WHERE 
+            ac."FinancialReporting" = 'BS'
+            AND ac.header_name = 'Liabilities'
+            AND bl.transaction_date <= '2024-12-14'
+        UNION ALL
+        SELECT 
+            ac.code, 
+            ac.name,
+            SUM(bl.dr_amount - bl.cr_amount) AS balance
+        FROM 
+            idil_chart_account ac
+        JOIN 
+            idil_transaction_bookingline bl
+            ON ac.id = bl.account_number
+        WHERE 
+            ac."FinancialReporting" = 'BS'
+            AND ac.header_name = 'Owner''s Equity'
+            AND bl.transaction_date <= '2024-12-14'
+        GROUP BY 
+            ac.code, ac.name
+        UNION ALL
+        SELECT
+            'TOTAL' AS code,
+            'Total Equity' AS name,
+            SUM(bl.dr_amount - bl.cr_amount) AS balance
+        FROM 
+            idil_chart_account ac
+        JOIN 
+            idil_transaction_bookingline bl
+            ON ac.id = bl.account_number
+        WHERE 
+            ac."FinancialReporting" = 'BS'
+            AND ac.header_name = 'Owner''s Equity'
+            AND bl.transaction_date <= '2024-12-14'
+        UNION ALL
+        SELECT 
+            ac.code, 
+            ac.name,
+            SUM(bl.dr_amount - bl.cr_amount) AS balance
+        FROM 
+            idil_chart_account ac
+        JOIN 
+            idil_transaction_bookingline bl
+            ON ac.id = bl.account_number
+        WHERE 
+            ac."FinancialReporting" = 'PL'
+            AND bl.transaction_date <= '2024-12-14'
+        GROUP BY 
+            ac.code, ac.name
+        UNION ALL
+        SELECT
+            'TOTAL' AS code,
+            'Total Profit/Loss' AS name,
+            SUM(bl.dr_amount - bl.cr_amount) AS balance
+        FROM 
+            idil_chart_account ac
+        JOIN 
+            idil_transaction_bookingline bl
+            ON ac.id = bl.account_number
+        WHERE 
+            ac."FinancialReporting" = 'PL'
+            AND bl.transaction_date <= '2024-12-14';
+        """
+
+        _logger.info(f"Executing query: {query}")
+        self.env.cr.execute(query)
+        results = self.env.cr.fetchall()
+        _logger.info(f"Query results: {results}")
+
+        if not results:
+            raise ValidationError("No financial records found for the balance sheet.")
+
+        # Prepare data for the report
+        report_data = {
+            'assets': [],
+            'liabilities': [],
+            'equity': [],
+            'profit_loss': []
+        }
+
+        # Classify results into appropriate categories
+        for record in results:
+            code, name, balance = record
+
+            if name == 'Total Assets' or name.startswith('Asset'):
+                report_data['assets'].append((name, balance))
+            elif name == 'Total Liabilities' or name.startswith('Liability'):
+                report_data['liabilities'].append((name, balance))
+            elif name == 'Total Equity' or name.startswith('Owner'):
+                report_data['equity'].append((name, balance))
+            elif name == 'Total Profit/Loss' or name.startswith('Profit/Loss'):
+                report_data['profit_loss'].append((name, balance))
+
+        company = self.env.company  # Fetch active company details
+
+        if export_type == "pdf":
+            _logger.info("Generating PDF...")
+            output = BytesIO()
+            doc = SimpleDocTemplate(output, pagesize=landscape(letter))
+            elements = []
+
+            styles = getSampleStyleSheet()
+            title_style = styles['Title']
+            normal_style = styles['Normal']
+
+            # Center alignment for the company information
+            centered_style = styles['Title'].clone('CenteredStyle')
+            centered_style.alignment = TA_CENTER
+            centered_style.fontSize = 14
+            centered_style.leading = 20
+
+            normal_centered_style = styles['Normal'].clone('NormalCenteredStyle')
+            normal_centered_style.alignment = TA_CENTER
+            normal_centered_style.fontSize = 10
+            normal_centered_style.leading = 12
+
+            # Header with Company Name, Address, and Logo
+            if company.logo:
+                logo = Image(io.BytesIO(base64.b64decode(company.logo)), width=60, height=60)
+                logo.hAlign = 'CENTER'  # Center-align the logo
+                elements.append(logo)
+
+            # Add company name and address
+            elements.append(Paragraph(f"<b>{company.name}</b>", centered_style))
+            elements.append(
+                Paragraph(f"{company.street}, {company.city}, {company.country_id.name}", normal_centered_style))
+            elements.append(Paragraph(f"Phone: {company.phone} | Email: {company.email}", normal_centered_style))
+            elements.append(Spacer(1, 12))
+
+            # Balance Sheet Table
+            balance_sheet_table_data = [
+                ["", "Balance Sheet", ""],  # Title row spanning multiple columns
+                ["Assets", "", "", ""],  # Sub-header for Assets
+            ]
+
+            # Assets Rows
+            for asset in report_data['assets']:
+                balance_sheet_table_data.append([asset[0], f"${asset[1]:,.2f}", "", ""])
+
+            balance_sheet_table_data.append(["Liabilities", "", "", ""])  # Sub-header for Liabilities
+
+            # Liabilities Rows
+            for liability in report_data['liabilities']:
+                balance_sheet_table_data.append([liability[0], f"${liability[1]:,.2f}", "", ""])
+
+            balance_sheet_table_data.append(["Equity", "", "", ""])  # Sub-header for Equity
+
+            # Equity Rows
+            for equity in report_data['equity']:
+                balance_sheet_table_data.append([equity[0], f"${equity[1]:,.2f}", "", ""])
+
+            balance_sheet_table_data.append(["Profit/Loss", "", "", ""])  # Sub-header for Profit/Loss
+
+            # Profit/Loss Rows
+            for profit_loss in report_data['profit_loss']:
+                balance_sheet_table_data.append([profit_loss[0], f"${profit_loss[1]:,.2f}", "", ""])
+
+            # Define the table layout and styling
+            balance_sheet_table_layout = Table(balance_sheet_table_data, colWidths=[250, 150, 150, 150])
+            balance_sheet_table_layout.setStyle(TableStyle([
+                # Title Row Styling
+                ('SPAN', (1, 0), (2, 0)),  # Span the title row across multiple columns
+                ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ]))
+
+            elements.append(balance_sheet_table_layout)  # Add table to the document
+            doc.build(elements)
+
+            # Get PDF data
+            pdf_data = output.getvalue()
+            output.close()
+            _logger.info(f"Document is being built with {len(elements)} elements.")
+            _logger.info("PDF generation complete, preparing response...")
+            return pdf_data

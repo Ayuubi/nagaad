@@ -42,6 +42,8 @@
                                 </group>
                             </group>
                             <group>
+
+                                 <field name="bank_reff"/>
                                 <field name="account_id"/>
                             </group>
                             <group string="Salary Components">
