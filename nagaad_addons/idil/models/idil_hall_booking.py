@@ -856,6 +856,8 @@ class HallBookingPayment(models.Model):
             # If the cash line doesn't exist (edge case), create it
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction.id,
+                'bank_reff': booking.bank_reff,
+                'hall_booking_payment_id': payment_id,
                 'hall_booking_id': self.booking_id.id,
                 'description': 'Adjusted Cash Payment for Hall Booking {}'.format(booking.name),
                 'account_number': self.payment_method_id.account_number.id,
@@ -872,25 +874,27 @@ class HallBookingPayment(models.Model):
             ('transaction_type', '=', 'dr')
         ], limit=1)
 
-        if receivable_line:
-            # Update receivables: decrease or increase based on payment adjustment
-            receivable_line.write({
-                'dr_amount': receivable_line.dr_amount - difference
-            })
-        else:
-            # If no receivable line exists, create one for the remaining amount
-            receivable_amount = max(0, booking.remaining_amount)
-            if receivable_amount > 0:
-                self.env['idil.transaction_bookingline'].create({
-                    'transaction_booking_id': transaction.id,
-                    'hall_booking_id': self.booking_id.id,
-                    'description': 'Adjusted Receivable for Hall Booking {}'.format(booking.name),
-                    'account_number': booking.hall_id.Receivable_account_id.id,
-                    'transaction_type': 'dr',
-                    'cr_amount': 0,
-                    'dr_amount': receivable_amount,
-                    'transaction_date': fields.Date.today(),
+            if receivable_line:
+                # Update receivables: decrease or increase based on payment adjustment
+                receivable_line.write({
+                    'dr_amount': receivable_line.dr_amount - difference
                 })
+            else:
+                # If no receivable line exists, create one for the remaining amount
+                receivable_amount = max(0, booking.remaining_amount)
+                if receivable_amount > 0:
+                    self.env['idil.transaction_bookingline'].create({
+                        'transaction_booking_id': transaction.id,
+                        'bank_reff': booking.bank_reff,
+                        'hall_booking_payment_id': payment_id,
+                        'hall_booking_id': self.booking_id.id,
+                        'description': 'Adjusted Receivable for Hall Booking {}'.format(booking.name),
+                        'account_number': booking.hall_id.Receivable_account_id.id,
+                        'transaction_type': 'dr',
+                        'cr_amount': 0,
+                        'dr_amount': receivable_amount,
+                        'transaction_date': fields.Date.today(),
+                    })
 
         # The income line remains unchanged as it reflects the total booking price.
 
