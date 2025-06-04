@@ -303,13 +303,7 @@ class HallBooking(models.Model):
 
             # Check if the number of guests has changed, impacting the total price
             if 'no_of_guest' in vals or 'hall_id' in vals:
-                new_total_price = 0
-                if booking.price_per_guest == 0:
-                    new_total_price = booking.no_of_guest * booking.hall_id.price_per_hour
-                elif booking.price_per_guest > 0:
-                    new_total_price = booking.no_of_guest * booking.price_per_guest
-
-                # new_total_price = booking.no_of_guest * booking.hall_id.price_per_hour
+                new_total_price = booking.no_of_guest * booking.hall_id.price_per_hour
                 price_difference = new_total_price - old_total_price
 
                 # Update the booking's total price
@@ -661,6 +655,10 @@ class HallBookingPayment(models.Model):
     amount = fields.Float(string='Payment Amount', required=True)
     payment_method_id = fields.Many2one('idil.payment.method', string='Payment Method', required=True)
     payment_reference = fields.Char(string='Payment Reference')
+    bank_reff = fields.Char(
+        string='Bank Reference', required=True, tracking=True
+    )
+
 
     @api.model
     def create(self, vals):
@@ -703,7 +701,7 @@ class HallBookingPayment(models.Model):
             transaction = self.env['idil.transaction_booking'].create({
                 'transaction_number': self.env['ir.sequence'].next_by_code('idil.transaction_booking'),
                 'reffno': booking.name,
-                'bank_reff': booking.bank_reff,
+                'bank_reff': self.bank_reff,
                 'trx_source_id': hall_booking_trx_source.id,
                 'hall_booking_id': self.booking_id.id,
                 'customer_id': booking.customer_id.id,
@@ -731,14 +729,15 @@ class HallBookingPayment(models.Model):
         if debit_line:
             # If the line exists, update the cash amount
             debit_line.write({
-                'dr_amount': debit_line.dr_amount + paid_amount
+                'dr_amount': debit_line.dr_amount + paid_amount,
+                'bank_reff': self.bank_reff,
             })
         else:
             # If the line does not exist, create it
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction.id,
                 'hall_booking_id': self.booking_id.id,
-                'bank_reff': booking.bank_reff,
+                'bank_reff': self.bank_reff,
 
                 'description': 'HB -- {} -- {}, -- {} '.format(
                     booking.hall_id.name, transaction.customer_id.name, transaction.customer_id.phone
@@ -763,7 +762,7 @@ class HallBookingPayment(models.Model):
             # If the income line does not exist, create it with the full income amount
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction.id,
-                'bank_reff': booking.bank_reff,
+                'bank_reff': self.bank_reff,
                 'hall_booking_id': self.booking_id.id,
                 'description': 'Income for Hall Booking {}'.format(booking.name),
                 'account_number': booking.hall_id.income_account_id.id,
@@ -785,13 +784,14 @@ class HallBookingPayment(models.Model):
         if receivable_line:
             # If the A/R line exists, reduce the receivable amount
             receivable_line.write({
-                'dr_amount': receivable_line.dr_amount - paid_amount
+                'dr_amount': receivable_line.dr_amount - paid_amount,
+                'bank_reff': self.bank_reff,
             })
         else:
             # If the A/R line does not exist, create it
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction.id,
-                'bank_reff': booking.bank_reff,
+                'bank_reff': self.bank_reff,
                 'hall_booking_id': self.booking_id.id,
                 'description': 'Receivable for Hall Booking {}'.format(booking.name),
                 'account_number': booking.hall_id.Receivable_account_id.id,
@@ -832,11 +832,11 @@ class HallBookingPayment(models.Model):
                 booking.status = 'confirmed'
 
             # Adjust transaction lines accordingly
-            self._adjust_booking_lines(transaction, difference)
+            self._adjust_booking_lines(transaction, difference, self.id)
 
             return res
 
-    def _adjust_booking_lines(self, transaction, difference):
+    def _adjust_booking_lines(self, transaction, difference, payment_id):
         """Adjust booking lines based on the payment difference."""
         booking = self.booking_id
 
@@ -844,19 +844,21 @@ class HallBookingPayment(models.Model):
         cash_line = self.env['idil.transaction_bookingline'].search([
             ('transaction_booking_id', '=', transaction.id),
             ('account_number', '=', self.payment_method_id.account_number.id),
-            ('transaction_type', '=', 'dr')
+            ('transaction_type', '=', 'dr'),
+            ('hall_booking_payment_id', '=', payment_id)
         ], limit=1)
 
         if cash_line:
             # If the cash line exists, update the cash amount
             cash_line.write({
-                'dr_amount': cash_line.dr_amount + difference
+                'dr_amount': cash_line.dr_amount + difference,
+                'bank_reff': self.bank_reff
             })
         else:
             # If the cash line doesn't exist (edge case), create it
             self.env['idil.transaction_bookingline'].create({
                 'transaction_booking_id': transaction.id,
-                'bank_reff': booking.bank_reff,
+                'bank_reff': self.bank_reff,
                 'hall_booking_payment_id': payment_id,
                 'hall_booking_id': self.booking_id.id,
                 'description': 'Adjusted Cash Payment for Hall Booking {}'.format(booking.name),
@@ -867,17 +869,19 @@ class HallBookingPayment(models.Model):
                 'transaction_date': fields.Date.today(),
             })
 
-        # Adjust Receivables (Debit) Line
-        receivable_line = self.env['idil.transaction_bookingline'].search([
-            ('transaction_booking_id', '=', transaction.id),
-            ('account_number', '=', booking.hall_id.Receivable_account_id.id),
-            ('transaction_type', '=', 'dr')
-        ], limit=1)
+            # Adjust Receivables (Debit) Line
+            receivable_line = self.env['idil.transaction_bookingline'].search([
+                ('transaction_booking_id', '=', transaction.id),
+                ('account_number', '=', booking.hall_id.Receivable_account_id.id),
+                ('transaction_type', '=', 'dr'),
+                ('hall_booking_payment_id', '=', payment_id)
+            ], limit=1)
 
             if receivable_line:
                 # Update receivables: decrease or increase based on payment adjustment
                 receivable_line.write({
-                    'dr_amount': receivable_line.dr_amount - difference
+                    'dr_amount': receivable_line.dr_amount - difference,
+                    'bank_reff': self.bank_reff
                 })
             else:
                 # If no receivable line exists, create one for the remaining amount
@@ -885,7 +889,7 @@ class HallBookingPayment(models.Model):
                 if receivable_amount > 0:
                     self.env['idil.transaction_bookingline'].create({
                         'transaction_booking_id': transaction.id,
-                        'bank_reff': booking.bank_reff,
+                        'bank_reff': self.bank_reff,
                         'hall_booking_payment_id': payment_id,
                         'hall_booking_id': self.booking_id.id,
                         'description': 'Adjusted Receivable for Hall Booking {}'.format(booking.name),
@@ -896,88 +900,88 @@ class HallBookingPayment(models.Model):
                         'transaction_date': fields.Date.today(),
                     })
 
-        # The income line remains unchanged as it reflects the total booking price.
+            # The income line remains unchanged as it reflects the total booking price.
 
-    def unlink(self):
-        """Override unlink method to adjust the amount paid and remaining amount when a payment is deleted."""
-        for payment in self:
-            booking = payment.booking_id
-            transaction = self.env['idil.transaction_booking'].search([('reffno', '=', booking.name)], limit=1)
+        def unlink(self):
+            """Override unlink method to adjust the amount paid and remaining amount when a payment is deleted."""
+            for payment in self:
+                booking = payment.booking_id
+                transaction = self.env['idil.transaction_booking'].search([('reffno', '=', booking.name)], limit=1)
 
-            if not transaction:
-                raise UserError('Transaction not found for this booking.')
+                if not transaction:
+                    raise UserError('Transaction not found for this booking.')
 
-            old_amount = payment.amount  # Store the payment amount to be deleted
+                old_amount = payment.amount  # Store the payment amount to be deleted
 
-            # Adjust the booking's amount paid and remaining amount
-            booking.amount_paid -= old_amount
-            booking.remaining_amount = booking.total_price - booking.amount_paid
+                # Adjust the booking's amount paid and remaining amount
+                booking.amount_paid -= old_amount
+                booking.remaining_amount = booking.total_price - booking.amount_paid
 
-            # Set the status and hall availability based on the amount, remaining amount, and current date
-            current_date = fields.Date.today()
-            start_date = fields.Date.to_date(booking.start_time)
+                # Set the status and hall availability based on the amount, remaining amount, and current date
+                current_date = fields.Date.today()
+                start_date = fields.Date.to_date(booking.start_time)
 
-            if 0 < booking.remaining_amount < booking.total_price:
-                booking.status = 'booked'
-            elif booking.remaining_amount == booking.total_price:
-                booking.status = 'draft'
-            elif booking.remaining_amount == 0:
-                booking.status = 'confirmed'
+                if 0 < booking.remaining_amount < booking.total_price:
+                    booking.status = 'booked'
+                elif booking.remaining_amount == booking.total_price:
+                    booking.status = 'draft'
+                elif booking.remaining_amount == 0:
+                    booking.status = 'confirmed'
 
-            # Adjust the transaction lines accordingly
-            self._adjust_booking_lines_on_unlink(transaction, old_amount)
+                # Adjust the transaction lines accordingly
+                self._adjust_booking_lines_on_unlink(transaction, old_amount)
 
-        # Call the original unlink method to delete the record
-        return super(HallBookingPayment, self).unlink()
+            # Call the original unlink method to delete the record
+            return super(HallBookingPayment, self).unlink()
 
-    def _adjust_booking_lines_on_unlink(self, transaction, deleted_amount):
-        """Adjust booking lines based on the deleted payment amount."""
-        booking = self.booking_id
+        def _adjust_booking_lines_on_unlink(self, transaction, deleted_amount):
+            """Adjust booking lines based on the deleted payment amount."""
+            booking = self.booking_id
 
-        # Adjust Cash (Debit) Line
-        cash_line = self.env['idil.transaction_bookingline'].search([
-            ('transaction_booking_id', '=', transaction.id),
-            ('account_number', '=', self.payment_method_id.account_number.id),
-            ('transaction_type', '=', 'dr')
-        ], limit=1)
+            # Adjust Cash (Debit) Line
+            cash_line = self.env['idil.transaction_bookingline'].search([
+                ('transaction_booking_id', '=', transaction.id),
+                ('account_number', '=', self.payment_method_id.account_number.id),
+                ('transaction_type', '=', 'dr')
+            ], limit=1)
 
-        if cash_line:
-            # Reduce the cash amount by the deleted amount
-            if cash_line.dr_amount >= deleted_amount:
-                cash_line.write({
-                    'dr_amount': cash_line.dr_amount - deleted_amount
+            if cash_line:
+                # Reduce the cash amount by the deleted amount
+                if cash_line.dr_amount >= deleted_amount:
+                    cash_line.write({
+                        'dr_amount': cash_line.dr_amount - deleted_amount
+                    })
+                else:
+                    raise UserError("Cash debit amount cannot go negative.")
+
+            # Adjust Receivables (Debit) Line
+            receivable_line = self.env['idil.transaction_bookingline'].search([
+                ('transaction_booking_id', '=', transaction.id),
+                ('account_number', '=', booking.hall_id.Receivable_account_id.id),
+                ('transaction_type', '=', 'dr')
+            ], limit=1)
+
+            if receivable_line:
+                # Increase receivables by the deleted amount
+                receivable_line.write({
+                    'dr_amount': receivable_line.dr_amount + deleted_amount
                 })
             else:
-                raise UserError("Cash debit amount cannot go negative.")
+                # If no receivable line exists, create one for the remaining amount
+                receivable_amount = booking.remaining_amount
+                if receivable_amount > 0:
+                    self.env['idil.transaction_bookingline'].create({
+                        'transaction_booking_id': transaction.id,
+                        'hall_booking_id': self.booking_id.id,
+                        'description': 'Receivable for Hall Booking {}'.format(booking.name),
+                        'account_number': booking.hall_id.Receivable_account_id.id,
+                        'transaction_type': 'dr',
+                        'cr_amount': 0,
+                        'dr_amount': receivable_amount,
+                        'transaction_date': fields.Date.today(),
+                    })
 
-        # Adjust Receivables (Debit) Line
-        receivable_line = self.env['idil.transaction_bookingline'].search([
-            ('transaction_booking_id', '=', transaction.id),
-            ('account_number', '=', booking.hall_id.Receivable_account_id.id),
-            ('transaction_type', '=', 'dr')
-        ], limit=1)
-
-        if receivable_line:
-            # Increase receivables by the deleted amount
-            receivable_line.write({
-                'dr_amount': receivable_line.dr_amount + deleted_amount
-            })
-        else:
-            # If no receivable line exists, create one for the remaining amount
-            receivable_amount = booking.remaining_amount
-            if receivable_amount > 0:
-                self.env['idil.transaction_bookingline'].create({
-                    'transaction_booking_id': transaction.id,
-                    'hall_booking_id': self.booking_id.id,
-                    'description': 'Receivable for Hall Booking {}'.format(booking.name),
-                    'account_number': booking.hall_id.Receivable_account_id.id,
-                    'transaction_type': 'dr',
-                    'cr_amount': 0,
-                    'dr_amount': receivable_amount,
-                    'transaction_date': fields.Date.today(),
-                })
-
-        # The income line remains unchanged since it reflects the total booking price.
+            # The income line remains unchanged since it reflects the total booking price.
 
 
 class HallBookingPaymentWizard(models.TransientModel):
@@ -1149,23 +1153,6 @@ class ExtraServiceWizard(models.Model):
 
         # Call the parent method to perform the actual deletion
         return super(ExtraServiceWizard, self).unlink()
-
-    # def write(self, vals):
-    #     """Override write to adjust the booking's extra_service_amount."""
-    #     for record in self:
-    #         # Calculate the difference in extra_service_amount if updated
-    #         old_amount = record.extra_service_amount
-    #         new_amount = vals.get('extra_service_amount', old_amount)
-    #         difference = new_amount - old_amount
-    #
-    #         # Update the booking's extra_service_amount
-    #         if record.booking_id and difference != 0:
-    #             record.booking_id.sudo().write({
-    #                 'extra_service_amount': record.booking_id.extra_service_amount + difference,
-    #             })
-    #
-    #     # Call the parent method to perform the actual write operation
-    #     return super(ExtraServiceWizard, self).write(vals)
 
     def write(self, vals):
         """Override write to adjust the booking's extra_service_amount and its transactions."""
