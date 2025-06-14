@@ -25,6 +25,12 @@ class HallBooking(models.Model):
 
     customer_id = fields.Many2one('idil.customer.registration', string='Customer', required=True)
     hall_id = fields.Many2one('idil.hall', string='Hall', required=True)
+    facility_ids = fields.Many2many(
+        'idil.hall.facility',
+        'booking_id',
+        'facility_id',
+        string='Facilities'
+    )
     booking_date = fields.Date(string='Booking Date', default=fields.Date.today, required=True)
     start_time = fields.Datetime(string='Start Time', required=True)
     end_time = fields.Datetime(string='End Time', required=True)

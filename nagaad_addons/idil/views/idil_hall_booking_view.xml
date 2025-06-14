@@ -49,6 +49,9 @@
                             <field name="amount_paid" readonly="1" class="oe_inline"/>
                             <field name="remaining_amount" readonly="1" class="oe_inline"/>
                         </group>
+                        <group>
+                            <field name="facility_ids" widget="many2many_tags" placeholder="Select Facilities"/>
+                        </group>
                     </group>
 
 
