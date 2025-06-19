@@ -238,7 +238,7 @@ class TransactionReportWizard(models.TransientModel):
         transaction_query = """
             SELECT
                 transaction_date,
-                transaction_booking_id,
+                bank_reff,
                 description,
                 account_display,
                 dr_amount,
