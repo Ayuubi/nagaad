@@ -51,7 +51,7 @@ class TransactionReportWizard(models.TransientModel):
                 transaction_date,
                 (SELECT code FROM idil_chart_account WHERE id = account_number) AS account_number,
                 transaction_booking_id,
-                description,
+                COALESCE(description, '') || ' Bank Reff: ' || COALESCE(bank_reff, '') as description,
                 account_display,
                 dr_amount,
                 cr_amount,
