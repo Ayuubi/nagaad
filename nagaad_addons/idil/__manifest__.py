@@ -7,7 +7,7 @@
     'depends': ['mail', 'point_of_sale', 'base', 'web'],
     'application': True,
     'sequence': -100,
-    'author': 'ustad Test',
+    'author': 'MDC',
 
     'assets': {
         'web.assets_common': [
