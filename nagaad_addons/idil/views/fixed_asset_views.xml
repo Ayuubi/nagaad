@@ -1,0 +1,129 @@
+<odoo>
+<!-- Tree View for Assets -->
+    <record id="view_fixed_asset_tree" model="ir.ui.view">
+        <field name="name">idil.fixed.asset.tree</field>
+        <field name="model">idil.fixed.asset</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="category_id"/>
+                <field name="model"/>
+                <field name="serial_number"/>
+                <field name="purchase_value"/>
+                <field name="state"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Form View for Assets -->
+<!--    <record id="view_fixed_asset_form" model="ir.ui.view">-->
+<!--        <field name="name">idil.fixed.asset.form</field>-->
+<!--        <field name="model">idil.fixed.asset</field>-->
+<!--        <field name="arch" type="xml">-->
+<!--            <form string="Fixed Asset">-->
+<!--                <sheet>-->
+<!--                    <group>-->
+<!--                        <field name="name"/>-->
+<!--                        <field name="asset_code"/>-->
+<!--                        <field name="category_id"/>-->
+<!--                        <field name="depreciation_method" readonly="1"/>-->
+<!--                        <field name="model"/>-->
+<!--                        <field name="serial_number"/>-->
+<!--                        <field name="invoice_reference"/>-->
+<!--                        <field name="supplier_id"/>-->
+<!--                        <field name="purchase_value"/>-->
+<!--                        <field name="acquisition_date"/>-->
+<!--                        <field name="depreciation_start_date"/>-->
+<!--                    </group>-->
+<!--                    <group>-->
+<!--                        <field name="useful_life"/>-->
+<!--                        <field name="salvage_value"/>-->
+<!--                        <field name="fixed_asset_account_id"/>-->
+<!--                        <field name="accumulated_depreciation_account_id"/>-->
+<!--                        <field name="depreciation_expense_account_id"/>-->
+<!--                        <field name="state"/>-->
+<!--                    </group>-->
+<!--                </sheet>-->
+
+<!--            </form>-->
+<!--        </field>-->
+<!--    </record>-->
+
+     <!-- Form View for Fixed Asset -->
+    <record id="view_fixed_asset_form" model="ir.ui.view">
+        <field name="name">idil.fixed.asset.form</field>
+        <field name="model">idil.fixed.asset</field>
+        <field name="arch" type="xml">
+            <form string="Fixed Asset">
+                <sheet>
+                    <group class="oe_title">
+                        <field name="name"/>
+                        <field name="asset_code"/>
+                    </group>
+
+                    <notebook>
+
+                        <!-- Asset Details -->
+                        <page string="Asset Information">
+                            <group>
+                                <separator string="General Details" colspan="2"/>
+                                <group>
+                                    <field name="category_id"/>
+                                    <field name="depreciation_method" readonly="1"/>
+                                    <field name="model"/>
+                                    <field name="serial_number"/>
+                                </group>
+                                <group>
+                                    <field name="invoice_reference"/>
+                                    <field name="supplier_id"/>
+                                    <field name="acquisition_date"/>
+                                    <field name="purchase_value"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <!-- Depreciation Setup -->
+                        <page string="Depreciation Setup">
+                            <group>
+                                <separator string="Depreciation Parameters" colspan="2"/>
+                                <group>
+                                    <field name="depreciation_start_date"/>
+                                    <field name="useful_life"/>
+                                    <field name="salvage_value"/>
+                                </group>
+                                <group>
+                                    <field name="fixed_asset_account_id"/>
+                                    <field name="accumulated_depreciation_account_id"/>
+                                    <field name="depreciation_expense_account_id"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <!-- Status Info -->
+                        <page string="Status">
+                            <group>
+                                <separator string="Asset State" colspan="2"/>
+                                <field name="state" readonly="1"/>
+                            </group>
+                        </page>
+
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+
+    <!-- Action for Asset List -->
+    <record id="action_fixed_asset" model="ir.actions.act_window">
+        <field name="name">Fixed Assets</field>
+        <field name="res_model">idil.fixed.asset</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p>Register and manage your company’s fixed assets here.</p>
+        </field>
+    </record>
+
+
+
+</odoo>

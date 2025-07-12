@@ -49,6 +49,7 @@ from . import vendor_balance_list_report
 from . import report_stock_summary
 from . import report_vendor_summary
 from . import vendor_paymen_bulk
+from . import fixed_asset
 from . import kitchen_report
 from . import report_hall_summary
 from . import idil_email_recipient

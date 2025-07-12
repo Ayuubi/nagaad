@@ -114,13 +114,15 @@
         'views/report_daily_event_cost_profit.xml',
         'views/report_vendor_summary.xml',
         'views/report_stock_summary.xml',
-
+        'views/fixed_asset_views.xml',
+        'views/fixed_asset_category.xml',
 
         'views/menu_hr.xml',
         'views/menu_hall.xml',
         'views/menu_store.xml',
         'views/menu_inv_pur.xml',
         'views/menu_accounting.xml',
+        'views/menu_asset.xml',
         'views/menu.xml',
 
     ],
