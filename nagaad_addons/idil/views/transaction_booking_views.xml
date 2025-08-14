@@ -6,41 +6,32 @@
         <field name="model">idil.transaction_booking</field>
         <field name="arch" type="xml">
             <tree string="Transaction Booking" create="false" delete="false"
-                  decoration-danger="payment_status == 'pending'">
-                <field name="trx_date" optional="show"/>
-                <field name="transaction_number" optional="show"/>
-                <field name="reffno" optional="show"/>
-                <field name="order_number" optional="show"/>
-                <field name="trx_source_id" optional="hide"/>
-                <field name="journal_entry_id" optional="show"/>
-
-
-                <field name="vendor_id" optional="show"/>
-                <field name="vendor_phone" optional="hide"/>
-                <field name="vendor_email" optional="hide"/>
-
-
-                <field name="customer_id" optional="show"/>
-                <field name="employee_id" optional="hide"/>
-                <field name="employee_salary_id" optional="show"/>
-                <field name="employee_salary_advance_id" optional="hide"/>
-
-
-                <field name="hall_booking_id" optional="hide"/>
-                <field name="booking_lines" optional="hide"/>
-                <field name="vendor_transactions" optional="hide"/>
-                <field name="purchase_order_id" optional="hide"/>
-
-
-                <field name="payment_method" optional="show"/>
-                <field name="pos_payment_method" optional="hide"/>
-                <field name="payment_status" optional="show"/>
-
-
-                <field name="amount" optional="show"/>
-                <field name="amount_paid" optional="show"/>
-                <field name="remaining_amount" optional="show"/>
-                <field name="cash_account_id" optional="hide"/>
+                  decoration-danger="payment_status == 'pending'" decoration-success="payment_status == 'paid'"
+                  decoration-warning="payment_status == 'partial'">
+                <field name="trx_date" optional="show" string="Transaction Date"/>
+                <field name="transaction_number" optional="show" string="Transaction No." widget="char"/>
+                <field name="reffno" optional="show" string="Reference No."/>
+                <field name="order_number" optional="show" string="Order No."/>
+                <field name="trx_source_id" optional="hide" string="Source"/>
+                <field name="journal_entry_id" optional="show" string="Journal Entry"/>
+                <field name="vendor_id" optional="show" string="Vendor" widget="many2one"/>
+                <field name="vendor_phone" optional="hide" string="Vendor Phone"/>
+                <field name="vendor_email" optional="hide" string="Vendor Email"/>
+                <field name="customer_id" optional="show" string="Customer" widget="many2one"/>
+                <field name="employee_id" optional="hide" string="Employee"/>
+                <field name="employee_salary_id" optional="show" string="Salary ID"/>
+                <field name="employee_salary_advance_id" optional="hide" string="Advance Salary ID"/>
+                <field name="hall_booking_id" optional="hide" string="Hall Booking"/>
+                <field name="booking_lines" optional="hide" string="Booking Lines"/>
+                <field name="vendor_transactions" optional="hide" string="Vendor Transactions"/>
+                <field name="purchase_order_id" optional="hide" string="Purchase Order"/>
+                <field name="payment_method" optional="show" string="Payment Method"/>
+                <field name="pos_payment_method" optional="hide" string="POS Payment Method"/>
+                <field name="payment_status" optional="show" string="Payment Status" widget="statusbar"/>
+                <field name="amount" optional="show" string="Total Amount" widget="monetary"/>
+                <field name="amount_paid" optional="show" string="Amount Paid" widget="monetary"/>
+                <field name="remaining_amount" optional="show" string="Remaining Amount" widget="monetary"/>
+                <field name="cash_account_id" optional="hide" string="Cash Account"/>
             </tree>
         </field>
     </record>
@@ -51,35 +42,34 @@
         <field name="model">idil.transaction_booking</field>
         <field name="arch" type="xml">
             <search string="Transaction Booking Search">
-                <field name="transaction_number"/>
-                <field name="reffno"/>
-                <field name="journal_entry_id"/>
-                <field name="vendor_id"/>
-                <field name="vendor_phone"/>
-                <field name="vendor_email"/>
-                <field name="order_number"/>
-                <field name="payment_method"/>
-                <field name="pos_payment_method"/>
-                <field name="payment_status"/>
-                <field name="trx_date"/>
-                <field name="trx_source_id"/>
-                <field name="amount"/>
-                <field name="amount_paid"/>
-                <field name="remaining_amount"/>
-                <field name="debit_total"/>
-                <field name="credit_total"/>
-                <field name="cash_account_id"/>
+                <field name="transaction_number" string="Transaction No."/>
+                <field name="reffno" string="Reference No."/>
+                <field name="journal_entry_id" string="Journal Entry"/>
+                <field name="vendor_id" string="Vendor"/>
+                <field name="vendor_phone" string="Vendor Phone"/>
+                <field name="vendor_email" string="Vendor Email"/>
+                <field name="order_number" string="Order No."/>
+                <field name="payment_method" string="Payment Method"/>
+                <field name="pos_payment_method" string="POS Payment Method"/>
+                <field name="payment_status" string="Payment Status"/>
+                <field name="trx_date" string="Transaction Date"/>
+                <field name="trx_source_id" string="Source"/>
+                <field name="amount" string="Total Amount"/>
+                <field name="amount_paid" string="Amount Paid"/>
+                <field name="remaining_amount" string="Remaining Amount"/>
+                <field name="debit_total" string="Total Debit"/>
+                <field name="credit_total" string="Total Credit"/>
+                <field name="cash_account_id" string="Cash Account"/>
                 <group expand="0" string="Group By">
                     <filter name="group_by_vendor" string="Vendor" domain="[]" context="{'group_by': 'vendor_id'}"/>
-                    <filter name="group_by_sales_person" string="Sales Person" domain="[]"
-                            context="{'group_by': 'sales_person_id'}"/>
                     <filter name="group_by_payment_status" string="Payment Status" domain="[]"
                             context="{'group_by': 'payment_status'}"/>
+                    <filter name="group_by_transaction_date" string="Transaction Date" domain="[]"
+                            context="{'group_by': 'trx_date'}"/>
                 </group>
             </search>
         </field>
     </record>
-
 
     <!-- Action for idil.transaction_booking model -->
     <record id="action_transaction_booking" model="ir.actions.act_window">
@@ -90,4 +80,5 @@
         <field name="search_view_id" ref="view_transaction_booking_search"/>
         <field name="context">{}</field>
     </record>
+
 </odoo>

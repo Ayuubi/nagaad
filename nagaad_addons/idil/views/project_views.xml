@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_project_tree" model="ir.ui.view">
+        <field name="name">idil.project.tree</field>
+        <field name="model">idil.project</field>
+        <field name="arch" type="xml">
+            <tree string="Projects">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="client_id"/>
+                <field name="category"/>
+                <field name="start_date"/>
+                <field name="end_date"/>
+                <field name="status"/>
+            </tree>
+        </field>
+    </record>
+
+
+    <!-- Form View -->
+    <record id="view_project_form" model="ir.ui.view">
+        <field name="name">idil.project.form</field>
+        <field name="model">idil.project</field>
+        <field name="arch" type="xml">
+            <form string="Project">
+                <header>
+                    <field name="status" widget="statusbar"
+                           statusbar_visible="draft,planned,in_progress,completed,cancelled"/>
+                </header>
+
+                <sheet>
+                    <!-- Title Section -->
+                    <div class="oe_title">
+                        <h1>
+                            <label for="name" string="Project Name"/>
+                            <field name="name"/>
+                        </h1>
+                        <div class="oe_row">
+                            <label for="name" string="Project Code"/>
+                            <field name="code" class="oe_inline"/>
+                        </div>
+                    </div>
+
+                    <notebook>
+                        <!-- Overview Tab -->
+                        <page string="🗂 Overview">
+                            <group string="Client &amp; Ownership">
+
+                                <field name="client_id"/>
+                                <field name="project_manager_id"/>
+                            </group>
+                            <group string="Timeline">
+                                <field name="start_date"/>
+                                <field name="end_date"/>
+                            </group>
+                            <group string="Project Info">
+                                <field name="category"/>
+                                <field name="location"/>
+                            </group>
+                        </page>
+
+                        <!-- Financials Tab -->
+                        <page string="💰 Financials">
+                            <group string="Budget &amp; Profit">
+                                <group>
+                                    <field name="project_amount" widget="monetary"/>
+                                    <field name="total_cost" widget="monetary"/>
+                                    <field name="estimated_profit" widget="monetary"/>
+                                </group>
+                                <group>
+                                    <field name="currency_id"/>
+
+                                    <field name="profit_account_id"/>
+                                    <field name="cost_account_id"/>
+                                </group>
+
+                            </group>
+                        </page>
+
+                        <!-- Documents Tab -->
+                        <page string="📎 Documents">
+                            <group>
+                                <field name="charter_file" filename="charter_filename"/>
+                            </group>
+                        </page>
+
+                        <!-- Description Tab -->
+                        <page string="📝 Notes">
+                            <group>
+                                <field name="description"/>
+                            </group>
+                        </page>
+                        <!-- Payments Tab -->
+                        <page string="💵 Payments">
+                            <group>
+                                <field name="payment_ids" widget="one2many_list"
+                                       context="{'default_project_id': active_id}">
+                                    <tree delete="false">
+                                        <field name="name"/>
+                                        <field name="payment_date"/>
+                                        <field name="amount"/>
+                                        <field name="state"/>
+                                    </tree>
+                                </field>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                    <field name="activity_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_project_list" model="ir.actions.act_window">
+        <field name="name">Projects</field>
+        <field name="res_model">idil.project</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Get started by creating your first project.
+            </p>
+        </field>
+    </record>
+
+
+    <!-- Menu -->
+
+</odoo>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <menuitem id="menu_project_root" name="Projects Management" sequence="20"/>
+    <menuitem id="menu_project_management"
+              name="Project Management"
+              parent="menu_project_root"
+              action="action_project_list"
+              sequence="1"/>
+
+    <menuitem id="menu_idil_project_task"
+              name="Tasks"
+              parent="menu_project_root"
+              action="action_idil_project_task"
+              sequence="2"/>
+
+    <menuitem id="menu_idil_project_resource"
+              name="Resources"
+              parent="menu_project_root"
+              sequence="3"
+              action="action_idil_project_resource"/>
+
+    <menuitem id="menu_idil_project_procurement"
+              name="Procurement"
+              parent="menu_project_root"
+              sequence="4"
+              action="action_idil_project_procurement"/>
+
+    <menuitem id="menu_idil_project_schedule"
+                  name="Scheduling"
+                  parent="menu_project_root"
+                  sequence="5"
+                  action="action_idil_project_schedule" />
+       <!-- Menu -->
+        <menuitem id="menu_idil_project_payment"
+                  name="Payments"
+                  parent="menu_project_root"
+                  sequence="6"
+                  action="action_idil_project_payment" />
+</odoo>

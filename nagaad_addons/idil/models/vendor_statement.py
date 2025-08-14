@@ -206,20 +206,6 @@ class VendorTransactionReportWizard(models.TransientModel):
 
         # Table Header and Transactions
         data = [["Date", "Ref", "Debit", "Credit", "Balance"]]
-        # transaction_query = """
-        #     SELECT
-        #         tl.transaction_date,
-        #         tb.reffno,
-        #         dr_amount,
-        #         cr_amount,
-        #         abs(ROUND(CAST(SUM(COALESCE(dr_amount, 0) - COALESCE(cr_amount, 0)) OVER (
-        #             ORDER BY transaction_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-        #         ) AS NUMERIC), 2)) AS running_balance
-        #     FROM idil_transaction_bookingline tl
-        #     INNER JOIN idil_transaction_booking tb ON tl.transaction_booking_id = tb.id
-        #     WHERE tb.vendor_id = %s and account_display  like '2%%' AND tl.transaction_date BETWEEN %s AND %s
-        #     ORDER BY tl.transaction_date
-        # """
         transaction_query = """
                      WITH transaction_totals AS (
                         SELECT 

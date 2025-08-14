@@ -57,3 +57,16 @@ from . import report_hall_booking_status
 # from . import BulkSMSWizard
 from . import Report_item_summary_by_vendor
 from . import report_daily_event_cost_profit
+from . import idil_project
+from . import idil_project_task
+from . import idil_project_resource
+from . import idil_project_procurement
+from . import idil_project_schedule
+from . import idil_project_payment
+from . import customer_opening_balance
+from . import customer_sales
+from . import report_customer_sales
+from . import CustomerSaleReturn
+from . import sales_receipt_bulk_payment
+from . import sales_receipt
+from . import customerplaceorder

@@ -11,8 +11,8 @@
 
                 </group>
                 <footer>
-<!--                    <button string="Download Excel Report" type="object" name="generate_excel_report"-->
-<!--                            class="btn-primary"/>-->
+                    <!--                    <button string="Download Excel Report" type="object" name="generate_excel_report"-->
+                    <!--                            class="btn-primary"/>-->
                     <button string="Download PDF Report" type="object" name="generate_pdf_report"
                             class="btn-secondary"/>
                     <button string="Send Report By Email" type="object" name="send_pdf_report_by_email"

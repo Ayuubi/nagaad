@@ -1,0 +1,85 @@
+<odoo>
+    <data>
+
+        <!-- Action -->
+        <record id="action_idil_project_payment" model="ir.actions.act_window">
+            <field name="name">Project Payments</field>
+            <field name="res_model">idil.project.payment</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <!-- Tree View -->
+        <record id="view_idil_project_payment_tree" model="ir.ui.view">
+            <field name="name">idil.project.payment.tree</field>
+            <field name="model">idil.project.payment</field>
+            <field name="arch" type="xml">
+                <tree>
+                    <field name="name"/>
+                    <field name="project_id"/>
+                    <field name="payment_date"/>
+                    <field name="amount"/>
+                    <field name="state"/>
+                </tree>
+            </field>
+        </record>
+
+        <!-- Form View -->
+        <record id="view_idil_project_payment_form" model="ir.ui.view">
+            <field name="name">idil.project.payment.form</field>
+            <field name="model">idil.project.payment</field>
+            <field name="arch" type="xml">
+                <form string="Project Payment">
+                    <sheet>
+                        <header>
+                            <button name="action_confirm_payment" type="object" string=" 💰 Confirm"
+                                    class="btn-primary o_form_button_submit"/>
+                            <field name="state" widget="statusbar"/>
+                        </header>
+                        <h1>
+                            <field name="name" placeholder="Project Payment Reference" readonly="1"/>
+
+                        </h1>
+                        <!-- Tabs for Organization -->
+                        <group>
+
+                            <field name="project_id"/>
+                        </group>
+                        <group>
+                            <field name="payment_date"/>
+                            <field name="amount" widget="monetary"/>
+                            <field name="payment_method_id"/>
+                            <field name="account_number"/>
+                        </group>
+                        <notebook>
+                            <!-- Main Information Tab -->
+                            <page string="Main Information &amp; Project Accounts">
+                                <group>
+                                    <group>
+                                        <field name="project_code" readonly="1"/>
+                                        <field name="project_id" readonly="1"/>
+                                        <field name="project_amount" readonly="1" widget="monetary"/>
+                                        <field name="project_total_cost" readonly="1" widget="monetary"/>
+                                        <field name="project_estimated_profit" readonly="1" widget="monetary"/>
+                                    </group>
+                                    <group>
+                                        <field name="project_cash_account_id" readonly="1"/>
+                                        <field name="project_profit_account_id" readonly="1"/>
+                                    </group>
+                                </group>
+                            </page>
+                        </notebook>
+                        <!-- Notes Tab -->
+                        <group>
+                            <field name="notes"/>
+                        </group>
+                    </sheet>
+                    <div class="oe_chatter">
+                        <field name="message_follower_ids"/>
+                        <field name="message_ids"/>
+                        <field name="activity_ids"/>
+                    </div>
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>

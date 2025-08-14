@@ -1,0 +1,74 @@
+<odoo>
+    <data>
+
+        <!-- Action -->
+        <record id="action_idil_project_schedule" model="ir.actions.act_window">
+            <field name="name">Project Schedule</field>
+            <field name="res_model">idil.project.schedule</field>
+            <field name="view_mode">tree,form,gantt</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Schedule and track project activities here.
+                </p>
+            </field>
+        </record>
+
+        <!-- Menu Item -->
+
+
+        <!-- Tree View -->
+        <record id="view_idil_project_schedule_tree" model="ir.ui.view">
+            <field name="name">idil.project.schedule.tree</field>
+            <field name="model">idil.project.schedule</field>
+            <field name="arch" type="xml">
+                <tree string="Project Schedules">
+                    <field name="project_id"/>
+                    <field name="activity_name"/>
+                    <field name="start_date"/>
+                    <field name="end_date"/>
+                    <field name="responsible_id"/>
+                </tree>
+            </field>
+        </record>
+
+        <!-- Form View -->
+        <record id="view_idil_project_schedule_form" model="ir.ui.view">
+            <field name="name">idil.project.schedule.form</field>
+            <field name="model">idil.project.schedule</field>
+            <field name="arch" type="xml">
+                <form string="Project Schedule">
+                    <sheet>
+                        <h1>
+                            <field name="activity_name"/>
+                        </h1>
+                        <group>
+                            <group>
+                                <field name="project_id"/>
+                                <field name="responsible_id"/>
+                            </group>
+                            <group>
+                                <field name="start_date"/>
+                                <field name="end_date"/>
+                            </group>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Gantt View -->
+        <record id="view_idil_project_schedule_gantt" model="ir.ui.view">
+            <field name="name">idil.project.schedule.gantt</field>
+            <field name="model">idil.project.schedule</field>
+            <field name="arch" type="xml">
+                <gantt string="Project Schedule"
+                       date_start="start_date"
+                       date_stop="end_date"
+                       default_group_by="project_id">
+                    <field name="activity_name"/>
+                </gantt>
+            </field>
+        </record>
+
+    </data>
+</odoo>
