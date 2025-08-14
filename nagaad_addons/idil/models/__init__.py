@@ -69,4 +69,3 @@ from . import report_customer_sales
 from . import CustomerSaleReturn
 from . import sales_receipt_bulk_payment
 from . import sales_receipt
-from . import customerplaceorder
