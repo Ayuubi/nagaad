@@ -78,26 +78,31 @@
               parent="menu_reports_for_vendors"
               sequence="1"
               action="action_generate_vendor_balances"/>
+
     <menuitem id="menu_vendor_transaction_report"
               name="Vendor Transaction Report"
               parent="menu_reports_for_vendors"
               sequence="2"
               action="action_generate_vendor_transaction"/>
+
     <menuitem id="menu_vendor_statement_report_root"
               name="Vendor Statement Report"
               parent="menu_reports_for_vendors"
               sequence="3"
               action="action_vendor_statement_report_wizard"/>
+
     <menuitem id="menu_vendor_statement_with_itmes_report_root"
               name="Vendor Statement Report -- With Items"
               parent="menu_reports_for_vendors"
               sequence="4"
               action="action_vendor_statement_with_items_report_wizard"/>
+
     <menuitem id="menu_item_summary_with_vendor"
               name="Item Summary Report -- With Vendor"
               parent="menu_reports_for_vendors"
               sequence="5"
               action="action_item_summary_with_vendor_report_wizard"/>
+
     <menuitem id="menu_vendor_balance_list_report_root"
               name="Vendor Balance Report --List"
               parent="menu_reports_for_vendors"

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <menuitem id="menu_sales_receipt_root"
+              name="Sales &amp; Receipt Management"/>
+
+
+
+
+    <menuitem id="menu_customer_opening_balance"
+              name="Customer Opening Balance"
+              parent="menu_sales_receipt_root"
+              action="action_customer_opening_balance"
+
+              sequence="1"/>
+
+   <menuitem id="menu_customer_place_order"
+             name="Customer Place Orders"
+             parent="menu_sales_receipt_root"
+             action="action_customer_place_order"
+             sequence="1"/>
+
+    <menuitem id="menu_idil_customer_sales_order"
+              name="Sales Order"
+              parent="menu_sales_receipt_root"
+              action="action_customer_idsale_order"
+              sequence="2"/>
+
+    <menuitem id="menu_idil_customer_sales_receipt"
+              name="Sales Receipt"
+              parent="menu_sales_receipt_root"
+              action="action_sales_receipt"
+              sequence="3"/>
+
+    <menuitem id="menu_idil_sales_bulk_receipt"
+              name="Bulk Sales Receipt"
+              parent="menu_sales_receipt_root"
+              action="action_idil_receipt_bulk_payment"
+              sequence="4"/>
+
+    <menuitem id="menu_idil_customer_sales_return"
+              name="Sales Return"
+              parent="menu_sales_receipt_root"
+              action="action_customer_sale_return"
+              sequence="5"/>
+
+
+    <menuitem id="menu_idil_customer_report"
+              name="Report"
+              parent="menu_sales_receipt_root"
+              action="action_customer_sales_report_wizard"
+
+              sequence="6"/>
+</odoo>

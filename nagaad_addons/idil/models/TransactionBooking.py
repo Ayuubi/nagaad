@@ -1,13 +1,11 @@
 import base64
 import io
 from datetime import datetime, date
-
 import xlsxwriter
-
+from xlrd.xlsx import ET
 from odoo import models, fields, api, exceptions, _
 from odoo.exceptions import UserError, ValidationError
 from datetime import date
-
 import re
 import logging
 
@@ -22,29 +20,23 @@ class TransactionBooking(models.Model):
     transaction_number = fields.Integer(string='Transaction Number')
     reffno = fields.Char(string='Reference Number')  # Consider renaming for clarity
     journal_entry_id = fields.Many2one('idil.journal.entry', string='Journal Entry')
-
     vendor_id = fields.Many2one('idil.vendor.registration', string='Vendor')
     vendor_phone = fields.Char(related='vendor_id.phone', string='Vendor Phone', readonly=True)
     vendor_email = fields.Char(related='vendor_id.email', string='Vendor Email', readonly=True)
-
     customer_id = fields.Many2one('idil.customer.registration', string='Customer')
     employee_id = fields.Many2one('idil.employee', string='Employee')
-
     sales_person_id = fields.Many2one('idil.sales.sales_personnel', string='Sales Person')
     # Add a field to link to the SaleOrder. This assumes you have a unique identifier (like an ID) for SaleOrder.
     sale_order_id = fields.Many2one('idil.sale.order', string='Linked Sale Order', ondelete='cascade')
-
     order_number = fields.Char(string='Order Number')
     Sales_order_number = fields.Char(string='Sales Order Number')
-
     payment_method = fields.Selection(
         [('cash', 'Cash'), ('ap', 'A/P'), ('bank_transfer', 'Bank Transfer'), ('other', 'Other'),
+         ('opening_balance', 'opening_balance'),
          ('internal', 'Internal')],
         string='Payment Method'
     )
-
     pos_payment_method = fields.Many2one('pos.payment.method', string='POS Payment Method')
-
     payment_status = fields.Selection(
         [('pending', 'Pending'), ('paid', 'Paid'), ('partial_paid', 'Partial Paid')],
         string='Payment Status',
@@ -65,23 +57,18 @@ class TransactionBooking(models.Model):
     employee_salary_id = fields.Many2one(
         'idil.employee.salary', string='Employee Salary', ondelete='cascade'
     )
-
     # Secondary Key Fields
     hall_booking_id = fields.Many2one(
         'idil.hall.booking', string='Hall Booking ID', ondelete='cascade'
     )
-
     amount = fields.Float(string='Amount', compute='_compute_amount', store=True)
     amount_paid = fields.Float(string='Amount Paid')
     remaining_amount = fields.Float(string='Remaining Amount', store=True)
-
     debit_total = fields.Float(string='Total Debit', compute='_compute_debit_credit_total', store=True)
     credit_total = fields.Float(string='Total Credit', compute='_compute_debit_credit_total', store=True)
-
     booking_lines = fields.One2many(
         'idil.transaction_bookingline', 'transaction_booking_id', string='Transaction Lines'
     )
-
     # Add a Many2one field to select a cash account
     cash_account_id = fields.Many2one(
         'idil.chart.account',
@@ -92,7 +79,6 @@ class TransactionBooking(models.Model):
     vendor_transactions = fields.One2many(
         'idil.vendor_transaction', 'transaction_booking_id', string='Vendor Transactions', ondelete='cascade'
     )
-
     # Add a Many2one field to link to PurchaseOrder
     purchase_order_id = fields.Many2one('idil.purchase_order', string='Linked Purchase Order', ondelete='cascade')
     bulk_payment_id = fields.Many2one(
@@ -103,6 +89,16 @@ class TransactionBooking(models.Model):
 
     bank_reff = fields.Char(
         string='Bank Reference', required=True, tracking=True
+    )
+    sales_payment_id = fields.Many2one(
+        "idil.sales.payment",
+        string="Sales Payment",
+        ondelete="cascade"
+    )
+    customer_opening_balance_id = fields.Many2one(
+        "idil.customer.opening.balance.line",
+        string="Opening Balance",
+        ondelete="cascade",
     )
 
     @api.constrains('amount_paid')
@@ -289,6 +285,17 @@ class TransactionBookingline(models.Model):
     bank_reff = fields.Char(
         string='Bank Reference', required=True, tracking=True
     )
+    sales_payment_id = fields.Many2one(
+        "idil.sales.payment",
+        string="Sales Payment",
+        ondelete="cascade"
+    )
+    customer_opening_balance_id = fields.Many2one(
+        "idil.customer.opening.balance.line",
+        string="Opening Balance",
+        ondelete="cascade",
+    )
+
     company_id = fields.Many2one('res.company', string='Company', required=True, default=lambda self: self.env.company)
 
     @api.depends('account_number')

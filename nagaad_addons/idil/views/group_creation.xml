@@ -89,10 +89,14 @@
             <field name="name">Reports Access</field>
             <field name="sequence">150</field>
         </record>
- <!-- Custom Category: Reports Access -->
+        <!-- Custom Category: Reports Access -->
         <record id="nagaad_module_category_financial_reports_access" model="ir.module.category">
             <field name="name">Financial Reports Access</field>
             <field name="sequence">150</field>
+        </record>
+        <record id="nagaad_module_category_allow_delete_access" model="ir.module.category">
+            <field name="name">Allow Delete Access</field>
+            <field name="sequence">160</field>
         </record>
         <!-- Define the New Groups under these categories -->
 
@@ -186,11 +190,15 @@
             <field name="category_id" ref="nagaad_module_category_reports_access"/>
         </record>
 
-          <!-- Financial Reports Access Group -->
+        <!-- Financial Reports Access Group -->
         <record id="nagaad_group_financial_reports_access" model="res.groups">
             <field name="name">Financial Reports Access</field>
             <field name="category_id" ref="nagaad_module_category_financial_reports_access"/>
         </record>
-
+        <!-- Allow Delation of Records  -->
+        <record id="nagaad_group_allow_delete_access" model="res.groups">
+            <field name="name">Allow Delete Access</field>
+            <field name="category_id" ref="nagaad_module_category_allow_delete_access"/>
+        </record>
     </data>
 </odoo>
