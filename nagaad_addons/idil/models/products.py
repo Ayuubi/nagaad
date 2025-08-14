@@ -20,6 +20,8 @@ class Product(models.Model):
              'A service is a non-material product you provide.')
 
     sale_price = fields.Float(string='Sales Price', required=True)
+    stock_quantity = fields.Float(string="Available Stock")
+
     uom_id = fields.Many2one('idil.unit.measure', string='Unit of Measure')
     income_account_id = fields.Many2one(
         'idil.chart.account',
