@@ -17,12 +17,12 @@ class Customer(models.Model):
     ], string='Gender', tracking=True)
     status = fields.Boolean(string='Status', tracking=True)
     active = fields.Boolean(string="Archive", default=True, tracking=True)
-    currency_id = fields.Many2one(
-        "res.currency",
-        string="Currency",
-        required=True,
-        default=lambda self: self.env.company.currency_id,
-    )
+    # currency_id = fields.Many2one(
+    #     "res.currency",
+    #     string="Currency",
+    #     required=True,
+    #     default=lambda self: self.env.company.currency_id,
+    # )
     account_receivable_id = fields.Many2one(
         "idil.chart.account",
         string="Sales Receivable Account",
