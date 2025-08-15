@@ -1,7 +1,5 @@
-from odoo import models, fields, api, exceptions
-from datetime import datetime
-from datetime import date
-import re
+# -*- coding: utf-8 -*-
+from odoo import models, fields, api
 from odoo.exceptions import ValidationError, UserError
 import logging
 
@@ -14,6 +12,7 @@ class CustomerSaleReturn(models.Model):
     _order = "id desc"
 
     name = fields.Char(string="Return Reference", default="New", readonly=True)
+
     customer_id = fields.Many2one(
         "idil.customer.registration", string="Customer", required=True
     )
@@ -34,16 +33,15 @@ class CustomerSaleReturn(models.Model):
     )
 
     return_lines = fields.One2many(
-        "idil.customer.sale.return.line", "return_id", string="Return Lines"
+        "idil.customer.sale.return.line", "return_id", string="Return Lines", copy=True
     )
+
     # Currency fields
     currency_id = fields.Many2one(
         "res.currency",
         string="Currency",
         required=True,
-        default=lambda self: self.env["res.currency"].search(
-            [("name", "=", "SL")], limit=1
-        ),
+        default=lambda self: self.env["res.currency"].search([("name", "=", "SL")], limit=1),
         readonly=True,
     )
     rate = fields.Float(
@@ -59,6 +57,7 @@ class CustomerSaleReturn(models.Model):
         readonly=True,
     )
 
+    # ----- COMPUTES -----
     @api.depends("return_lines.total_amount")
     def _compute_total_return(self):
         for rec in self:
@@ -80,149 +79,141 @@ class CustomerSaleReturn(models.Model):
             else:
                 order.rate = 0.0
 
+    # ----- DEFAULTING / CREATE -----
     @api.model
     def create(self, vals):
         if vals.get("name", "New") == "New":
-            vals["name"] = (
-                self.env["ir.sequence"].next_by_code("idil.customer.sale.return")
-                or "New"
-            )
+            vals["name"] = self.env["ir.sequence"].next_by_code("idil.customer.sale.return") or "New"
         return super().create(vals)
 
+    # ----- ONCHANGE -----
     @api.onchange("sale_order_id")
     def _onchange_sale_order_id(self):
-        if self.sale_order_id:
-            self.return_lines = [(5, 0, 0)]  # Clear lines
-            lines = []
-            for order_line in self.sale_order_id.order_lines:
-                # Fetch previously confirmed return qty for this line
-                prev_return_lines = self.env["idil.customer.sale.return.line"].search(
-                    [
-                        ("sale_order_line_id", "=", order_line.id),
-                        ("return_id.state", "=", "confirmed"),
-                        # Ensure we only consider confirmed returns
-                    ]
-                )
-                total_prev_returned = sum(r.return_quantity for r in prev_return_lines)
-                returnable_qty = max(order_line.quantity - total_prev_returned, 0.0)
+        """Prefill lines from the selected sale order; returnable qty is computed anyway."""
+        if not self.sale_order_id:
+            self.return_lines = [(5, 0, 0)]
+            return
 
-                lines.append(
-                    (
-                        0,
-                        0,
-                        {
-                            "sale_order_line_id": order_line.id,
-                            "product_id": order_line.product_id.id,
-                            "original_quantity": order_line.quantity,
-                            "price_unit": order_line.price_unit,
-                            "returnable_quantity": returnable_qty,
-                        },
-                    )
-                )
-            self.return_lines = lines
+        self.return_lines = [(5, 0, 0)]  # Clear lines
+        lines = []
+        for so_line in self.sale_order_id.order_lines:
+            # Previously confirmed returns for this SO line
+            prev_return_lines = self.env["idil.customer.sale.return.line"].search(
+                [
+                    ("sale_order_line_id", "=", so_line.id),
+                    ("return_id.state", "=", "confirmed"),
+                ]
+            )
+            total_prev_returned = sum(r.return_quantity for r in prev_return_lines)
+            returnable_qty = max((so_line.quantity or 0.0) - total_prev_returned, 0.0)
 
+            lines.append(
+                (
+                    0,
+                    0,
+                    {
+                        "sale_order_line_id": so_line.id,
+                        "product_id": so_line.product_id.id,
+                        "original_quantity": so_line.quantity,
+                        "price_unit": so_line.price_unit,
+                        # This is computed, but we also seed a value for the UI
+                        "returnable_quantity": returnable_qty,
+                    },
+                )
+            )
+        self.return_lines = lines
+
+    # ----- PROCESS -----
     def action_process(self):
         for rec in self:
-            # ✅ New Validation: Prevent processing sale orders from opening balance
-            if rec.sale_order_id and rec.sale_order_id.customer_opening_balance_id:
-                raise ValidationError(
-                    "You cannot process a return for an opening balance sale order."
-                )
-            # Ensure the return is in draft state before processing
+            # No returns for opening balance sale orders
+            if rec.sale_order_id and getattr(rec.sale_order_id, "customer_opening_balance_id", False):
+                raise ValidationError("You cannot process a return for an opening balance sale order.")
+
             if rec.state != "draft":
                 raise ValidationError("Only draft returns can be processed.")
 
-            trx_source = self.env["idil.transaction.source"].search(
-                [("name", "=", "Sale Return")], limit=1
-            )
+            trx_source = self.env["idil.transaction.source"].search([("name", "=", "Sale Return")], limit=1)
             if not trx_source:
                 raise ValidationError("Transaction source 'Sale Return' not found.")
-            total_return_amount = 0
 
             for line in rec.return_lines:
                 if line.return_quantity <= 0:
+                    # Skip blank lines
                     continue
+
                 if line.return_quantity > line.original_quantity:
                     raise ValidationError(
                         f"Return quantity for '{line.product_id.name}' exceeds the original sold quantity."
                     )
 
-                # 1. Stock update
+                # 1) Stock update
                 product = line.product_id
+                # Custom field in your system:
                 product.stock_quantity += line.return_quantity
 
-                # 2. Stock movement (in)
+                # 2) Stock movement (in)
                 self.env["idil.product.movement"].create(
                     {
                         "product_id": product.id,
                         "movement_type": "in",
                         "quantity": line.return_quantity,
                         "date": fields.Datetime.now(),
-                        "source_document": "Customer Sale Return: " + rec.name,
+                        "source_document": f"Customer Sale Return: {rec.name}",
                         "customer_id": rec.customer_id.id,
                     }
                 )
 
-                # 3. Reverse accounting
+                # 3) Reverse accounting (create a reversed booking per line)
                 original_line = line.sale_order_line_id
                 original_booking = self.env["idil.transaction_booking"].search(
                     [("cusotmer_sale_order_id", "=", rec.sale_order_id.id)], limit=1
                 )
-
                 if not original_booking:
                     raise ValidationError("Original transaction not found.")
-                # total_return_amount += reverse_amount  # Accumulate return total
-                total_return_amount = original_line.price_unit * line.return_quantity
 
-                bom_currency = (
-                    product.bom_id.currency_id
-                    if product.bom_id
-                    else product.currency_id
-                )
+                # Line amount to reverse
+                line_amount = (original_line.price_unit or 0.0) * (line.return_quantity or 0.0)
 
-                amount_in_bom_currency = product.cost * line.return_quantity
-
+                # Cost in BOM currency or product currency
+                bom_currency = product.bom_id.currency_id if product.bom_id else product.currency_id
+                amount_in_bom_currency = (product.cost or 0.0) * (line.return_quantity or 0.0)
                 if bom_currency.name == "USD":
-                    product_cost_amount = amount_in_bom_currency * self.rate
+                    product_cost_amount = amount_in_bom_currency * (rec.rate or 0.0)
                 else:
                     product_cost_amount = amount_in_bom_currency
 
-                # Create new reversed booking
                 reversed_booking = self.env["idil.transaction_booking"].create(
                     {
-                        "transaction_number": self.env[
-                            "idil.transaction_booking"
-                        ]._get_next_transaction_number(),
+                        "transaction_number": self.env["idil.transaction_booking"]._get_next_transaction_number(),
                         "trx_source_id": trx_source.id,
                         "customer_id": rec.customer_id.id,
                         "reffno": rec.name,
                         "trx_date": rec.return_date,
-                        "amount": total_return_amount,
-                        "amount_paid": 0,
-                        "remaining_amount": 0,
+                        "amount": line_amount,
+                        "amount_paid": 0.0,
+                        "remaining_amount": 0.0,
                         "payment_status": "paid",
                         "customer_sales_return_id": line.id,
                     }
                 )
-                # Create transaction booking lines for the reversed booking
-                # Credit entry Expanses inventory of COGS account for the product
+
+                # COGS reversal (credit COGS)
                 self.env["idil.transaction_bookingline"].create(
                     {
                         "transaction_booking_id": reversed_booking.id,
                         "description": f"Reversal of -- COGS for - {product.name}",
                         "product_id": product.id,
                         "account_number": product.account_cogs_id.id,
-                        # Use the COGS Account_number
                         "transaction_type": "cr",
-                        "dr_amount": 0,
+                        "dr_amount": 0.0,
                         "cr_amount": product_cost_amount,
                         "transaction_date": rec.return_date,
                         "company_id": self.env.company.id,
                         "customer_sales_return_id": line.id,
-                        # Include other necessary fields
                     }
                 )
-                # Credit entry asset inventory account of the product
+                # Inventory asset back (debit asset)
                 self.env["idil.transaction_bookingline"].create(
                     {
                         "transaction_booking_id": reversed_booking.id,
@@ -231,32 +222,28 @@ class CustomerSaleReturn(models.Model):
                         "account_number": product.asset_account_id.id,
                         "transaction_type": "dr",
                         "dr_amount": product_cost_amount,
-                        "cr_amount": 0,
+                        "cr_amount": 0.0,
                         "transaction_date": rec.return_date,
                         "company_id": self.env.company.id,
                         "customer_sales_return_id": line.id,
-                        # Include other necessary fields
                     }
                 )
-                # ------------------------------------------------------------------------------------------------------
-                # Debit entry for the order line amount Sales Account Receivable
+                # Reverse receivable (credit AR on the SO account)
                 self.env["idil.transaction_bookingline"].create(
                     {
                         "transaction_booking_id": reversed_booking.id,
                         "description": f"Reversal of -- Sales Receivable for - {product.name}",
                         "product_id": product.id,
                         "account_number": rec.sale_order_id.account_number.id,
-                        "transaction_type": "cr",  # Debit transaction
-                        "dr_amount": 0,
-                        "cr_amount": total_return_amount,
+                        "transaction_type": "cr",
+                        "dr_amount": 0.0,
+                        "cr_amount": line_amount,
                         "transaction_date": rec.return_date,
                         "company_id": self.env.company.id,
                         "customer_sales_return_id": line.id,
-                        # Include other necessary fields
                     }
                 )
-
-                # Debit entry using the product's income account for the product - This is the revenue account for the product
+                # Reverse revenue (debit revenue)
                 self.env["idil.transaction_bookingline"].create(
                     {
                         "transaction_booking_id": reversed_booking.id,
@@ -264,137 +251,42 @@ class CustomerSaleReturn(models.Model):
                         "product_id": product.id,
                         "account_number": product.income_account_id.id,
                         "transaction_type": "dr",
-                        "dr_amount": total_return_amount,
-                        "cr_amount": 0,
+                        "dr_amount": line_amount,
+                        "cr_amount": 0.0,
                         "transaction_date": rec.return_date,
                         "company_id": self.env.company.id,
                         "customer_sales_return_id": line.id,
-                        # Include other necessary fields
                     }
                 )
 
-                if total_return_amount > 0:
+                # Receipt adjustment guard
+                if line_amount > 0:
                     receipt = self.env["idil.sales.receipt"].search(
                         [("cusotmer_sale_order_id", "=", rec.sale_order_id.id)], limit=1
                     )
-                    # 3. Validate against paid amount
-                    if receipt and total_return_amount > receipt.remaining_amount:
+                    if receipt and line_amount > receipt.remaining_amount:
                         raise ValidationError(
-                            f"Return amount ({total_return_amount}) exceeds remaining amount ({receipt.remaining_amount}) on the receipt.\n"
-                            f"The customer has already paid too much to allow this return without refund.\n"
-                            f"Please verify payment first."
+                            f"Return amount ({line_amount}) exceeds remaining amount ({receipt.remaining_amount}) on the receipt.\n"
+                            f"Verify payment before proceeding."
                         )
                     if receipt:
-                        new_due = max(receipt.due_amount - total_return_amount, 0.0)
-                        new_remaining = max(new_due - receipt.paid_amount, 0.0)
-
+                        new_due = max((receipt.due_amount or 0.0) - line_amount, 0.0)
+                        new_remaining = max(new_due - (receipt.paid_amount or 0.0), 0.0)
                         receipt.write(
                             {
                                 "due_amount": new_due,
                                 "remaining_amount": new_remaining,
-                                "payment_status": (
-                                    "paid" if new_remaining <= 0 else "pending"
-                                ),
+                                "payment_status": "paid" if new_remaining <= 0 else "pending",
                             }
                         )
 
             rec.state = "confirmed"
 
+    # ----- WRITE (edit after confirm = rollback old effects, reprocess) -----
     def write(self, vals):
         for rec in self:
-            if rec.state != "confirmed":
-                return super(CustomerSaleReturn, rec).write(vals)
-
-            # Step 1: Reverse old effects
-            for line in rec.return_lines:
-                # Restore stock
-                if line.return_quantity > 0:
-                    line.product_id.stock_quantity -= line.return_quantity
-
-                # Delete product movements
-                movements = self.env["idil.product.movement"].search(
-                    [
-                        ("customer_id", "=", rec.customer_id.id),
-                        ("source_document", "=", f"Customer Sale Return: {rec.name}"),
-                        ("product_id", "=", line.product_id.id),
-                    ]
-                )
-                movements.unlink()
-
-                # Delete transaction bookings and lines
-                bookings = self.env["idil.transaction_booking"].search(
-                    [("customer_sales_return_id", "=", line.id)]
-                )
-                for booking in bookings:
-                    booking.booking_lines.unlink()
-                    booking.unlink()
-
-            # Step 2: Restore receipts
-            if rec.total_return > 0:
-                receipt = self.env["idil.sales.receipt"].search(
-                    [("cusotmer_sale_order_id", "=", rec.sale_order_id.id)], limit=1
-                )
-
-                if receipt:
-
-                    receipt.write(
-                        {
-                            "due_amount": receipt.due_amount + rec.total_return,
-                            "remaining_amount": receipt.remaining_amount
-                            + rec.total_return,
-                            "payment_status": (
-                                "paid" if receipt.remaining_amount <= 0 else "pending"
-                            ),
-                        }
-                    )
-
-            # ✅ Force state to draft before saving
-            vals["state"] = "draft"
-            # Step 3: Write new values
-            res = super(CustomerSaleReturn, rec).write(vals)
-
-            # Step 4: Re-run the process with updated values
-
-            rec.action_process()
-
-        return True
-
-    @api.model
-    def create(self, vals):
-        if vals.get("name", "New") == "New":
-            vals["name"] = (
-                self.env["ir.sequence"].next_by_code("idil.customer.sale.return")
-                or "New"
-            )
-
-        return_obj = super().create(vals)
-
-        return return_obj
-
-    def unlink(self):
-        for rec in self:
             if rec.state == "confirmed":
-                # Step 1: Adjust the receipt before deletion
-                if rec.total_return > 0:
-                    receipt = self.env["idil.sales.receipt"].search(
-                        [("cusotmer_sale_order_id", "=", rec.sale_order_id.id)], limit=1
-                    )
-                    if receipt:
-
-                        receipt.write(
-                            {
-                                "due_amount": receipt.due_amount + rec.total_return,
-                                "remaining_amount": receipt.remaining_amount
-                                + rec.total_return,
-                                "payment_status": (
-                                    "paid"
-                                    if receipt.remaining_amount <= 0
-                                    else "pending"
-                                ),
-                            }
-                        )
-
-                # Step 2: Reverse each return line's stock, movement, and transaction
+                # 1) Reverse prior effects from this return
                 for line in rec.return_lines:
                     if line.return_quantity > 0:
                         line.product_id.stock_quantity -= line.return_quantity
@@ -402,11 +294,7 @@ class CustomerSaleReturn(models.Model):
                     self.env["idil.product.movement"].search(
                         [
                             ("customer_id", "=", rec.customer_id.id),
-                            (
-                                "source_document",
-                                "=",
-                                f"Customer Sale Return: {rec.name}",
-                            ),
+                            ("source_document", "=", f"Customer Sale Return: {rec.name}"),
                             ("product_id", "=", line.product_id.id),
                         ]
                     ).unlink()
@@ -418,7 +306,72 @@ class CustomerSaleReturn(models.Model):
                         booking.booking_lines.unlink()
                         booking.unlink()
 
-            # Step 3: Allow deletion
+                # 2) Restore receipt totals
+                if rec.total_return > 0:
+                    receipt = self.env["idil.sales.receipt"].search(
+                        [("cusotmer_sale_order_id", "=", rec.sale_order_id.id)], limit=1
+                    )
+                    if receipt:
+                        receipt.write(
+                            {
+                                "due_amount": (receipt.due_amount or 0.0) + rec.total_return,
+                                "remaining_amount": (receipt.remaining_amount or 0.0) + rec.total_return,
+                                "payment_status": "paid" if (receipt.remaining_amount or 0.0) <= 0 else "pending",
+                            }
+                        )
+
+                # 3) Force back to draft while we write new values
+                vals = dict(vals or {})
+                vals["state"] = "draft"
+
+                res = super(CustomerSaleReturn, rec).write(vals)
+
+                # 4) Re-run process with updated values
+                rec.action_process()
+                continue
+
+            # If not confirmed, just write
+            super(CustomerSaleReturn, rec).write(vals)
+        return True
+
+    # ----- UNLINK -----
+    def unlink(self):
+        for rec in self:
+            if rec.state == "confirmed":
+                # Restore receipt before deletion
+                if rec.total_return > 0:
+                    receipt = self.env["idil.sales.receipt"].search(
+                        [("cusotmer_sale_order_id", "=", rec.sale_order_id.id)], limit=1
+                    )
+                    if receipt:
+                        receipt.write(
+                            {
+                                "due_amount": (receipt.due_amount or 0.0) + rec.total_return,
+                                "remaining_amount": (receipt.remaining_amount or 0.0) + rec.total_return,
+                                "payment_status": "paid" if (receipt.remaining_amount or 0.0) <= 0 else "pending",
+                            }
+                        )
+
+                # Reverse stock/movements/bookings
+                for line in rec.return_lines:
+                    if line.return_quantity > 0:
+                        line.product_id.stock_quantity -= line.return_quantity
+
+                    self.env["idil.product.movement"].search(
+                        [
+                            ("customer_id", "=", rec.customer_id.id),
+                            ("source_document", "=", f"Customer Sale Return: {rec.name}"),
+                            ("product_id", "=", line.product_id.id),
+                        ]
+                    ).unlink()
+
+                    bookings = self.env["idil.transaction_booking"].search(
+                        [("customer_sales_return_id", "=", line.id)]
+                    )
+                    for booking in bookings:
+                        booking.booking_lines.unlink()
+                        booking.unlink()
+
         return super(CustomerSaleReturn, self).unlink()
 
 
@@ -440,17 +393,23 @@ class CustomerSaleReturnLine(models.Model):
 
     original_quantity = fields.Float(string="Original Quantity", store=True)
     price_unit = fields.Float(string="Unit Price", store=True)
+
+    # ✅ FIXED: separate computes, both non-stored, same compute_sudo (default False)
     returnable_quantity = fields.Float(
         string="Returnable Quantity",
-        compute="_compute_returned_and_returnable",
-        store=True,
+        compute="_compute_returnable",
+        store=False,
+        compute_sudo=False,
     )
-    return_quantity = fields.Float(string="Return Quantity")
     previously_returned_quantity = fields.Float(
         string="Previously Returned",
-        compute="_compute_returned_and_returnable",
+        compute="_compute_prev_returned",
         store=False,
+        compute_sudo=False,
     )
+
+    return_quantity = fields.Float(string="Return Quantity")
+
     total_amount = fields.Float(
         string="Total Amount",
         compute="_compute_total_amount",
@@ -458,16 +417,16 @@ class CustomerSaleReturnLine(models.Model):
         readonly=True,
     )
 
+    # ----- COMPUTES -----
     @api.depends("return_quantity", "price_unit")
     def _compute_total_amount(self):
         for line in self:
-            line.total_amount = line.return_quantity * line.price_unit
+            line.total_amount = (line.return_quantity or 0.0) * (line.price_unit or 0.0)
 
-    @api.depends("sale_order_line_id")
-    def _compute_returned_and_returnable(self):
+    @api.depends("sale_order_line_id", "original_quantity", "return_id.state", "return_quantity")
+    def _compute_returnable(self):
         for line in self:
             if not line.sale_order_line_id:
-                line.previously_returned_quantity = 0.0
                 line.returnable_quantity = 0.0
                 continue
 
@@ -475,26 +434,41 @@ class CustomerSaleReturnLine(models.Model):
                 ("sale_order_line_id", "=", line.sale_order_line_id.id),
                 ("return_id.state", "=", "confirmed"),
             ]
-
-            # ✅ Only add exclusion if this line has a real ID (not a virtual/new one)
             if line.id and isinstance(line.id, int):
                 domain.append(("id", "!=", line.id))
 
             prev_returns = self.env["idil.customer.sale.return.line"].search(domain)
             total_prev = sum(prev.return_quantity for prev in prev_returns)
+            line.returnable_quantity = max((line.original_quantity or 0.0) - total_prev, 0.0)
 
-            line.previously_returned_quantity = total_prev
-            line.returnable_quantity = max(line.original_quantity - total_prev, 0.0)
+    @api.depends("sale_order_line_id", "return_id.state", "return_quantity")
+    def _compute_prev_returned(self):
+        for line in self:
+            if not line.sale_order_line_id:
+                line.previously_returned_quantity = 0.0
+                continue
 
+            domain = [
+                ("sale_order_line_id", "=", line.sale_order_line_id.id),
+                ("return_id.state", "=", "confirmed"),
+            ]
+            if line.id and isinstance(line.id, int):
+                domain.append(("id", "!=", line.id))
+
+            prev_returns = self.env["idil.customer.sale.return.line"].search(domain)
+            line.previously_returned_quantity = sum(prev.return_quantity for prev in prev_returns)
+
+    # ----- CONSTRAINTS -----
     @api.constrains("return_quantity", "returnable_quantity")
     def _check_return_quantity(self):
         for line in self:
-            if line.return_quantity <= 0:
+            # Let empty lines be skipped by process; only error if user set a value <= 0
+            if line.return_quantity is not None and line.return_quantity <= 0:
                 raise ValidationError(
                     f"Return quantity for product '{line.product_id.name}' must be greater than 0."
                 )
-
-            if line.return_quantity > line.returnable_quantity:
+            if line.return_quantity and line.return_quantity > (line.returnable_quantity or 0.0):
                 raise ValidationError(
-                    f"Return quantity for product '{line.product_id.name}' cannot exceed available returnable quantity ({line.returnable_quantity})."
+                    f"Return quantity for product '{line.product_id.name}' cannot exceed "
+                    f"available returnable quantity ({line.returnable_quantity})."
                 )
