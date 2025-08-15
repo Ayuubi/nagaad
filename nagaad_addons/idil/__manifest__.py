@@ -124,6 +124,7 @@
         'views/sales_receipt_bulk_payment.xml',
         'views/Sales_reciept.xml',
         'views/idil_security.xml',
+        'views/customer_place_order.xml',
 
         'views/menu_hr.xml',
         'views/menu_hall.xml',
