@@ -67,37 +67,6 @@ class CustomerPlaceOrder(models.Model):
 
         return super(CustomerPlaceOrder, self).create(vals)
 
-    # def write(self, vals):
-    #     # Prevent updates if the order is linked to a sale order that is not in draft
-    #     sale_orders = self.env["idil.customer.sale.order"].search(
-    #         [("customer_place_order_id", "in", self.ids), ("state", "!=", "draft")],
-    #         limit=1,
-    #     )
-    #     if sale_orders:
-    #         raise UserError(
-    #             "This Customer Order is already linked to a confirmed/cancelled Sales Order and cannot be edited."
-    #         )
-    #     return super(CustomerPlaceOrder, self).write(vals)
-
-    # def unlink(self):
-    #     # Prevent deletion if the order is linked to a sale order that is not in draft
-    #     sale_orders = self.env["idil.customer.sale.order"].search(
-    #         [("customer_place_order_id", "in", self.ids), ("state", "!=", "draft")],
-    #         limit=1,
-    #     )
-    #     if sale_orders:
-    #         raise UserError(
-    #             "This Customer Order is already linked to a confirmed/cancelled Sales Order and cannot be deleted."
-    #         )
-    #     return super(CustomerPlaceOrder, self).unlink()
-
-    # def action_confirm_order(self):
-    #     self.write({"state": "confirmed"})
-
-    # def action_cancel_order(self):
-    #     self.write({"state": "cancel"})
-
-
 class CustomerPlaceOrderLine(models.Model):
     _name = "idil.customer.place.order.line"
     _description = "Customer Place Order Line"
@@ -118,46 +87,3 @@ class CustomerPlaceOrderLine(models.Model):
         for line in self:
             if line.quantity <= 0:
                 raise ValidationError("Quantity must be greater than zero.")
-
-
-class CustomerOrderSummary(models.Model):
-    _name = "idil.customer.order.summary"
-    _description = "Customer Order Summary"
-    _order = "id desc"
-
-    customer_name = fields.Char(string="Customer Name", required=True)
-    product_name = fields.Char(string="Product Name", required=True)
-    quantity = fields.Float(string="Quantity", required=True)
-    order_date = fields.Datetime(string="Order Date", required=True)
-    customer_place_order_id = fields.Many2one(
-        "idil.customer.place.order", string="Related Customer Order", ondelete="cascade"
-    )
-
-    @api.model
-    def create_summary_from_order(self, order):
-        for line in order.order_lines:
-            self.create(
-                {
-                    "customer_name": order.customer_id.name,
-                    "product_name": line.product_id.name,
-                    "quantity": line.quantity,
-                    "order_date": order.order_date,
-                    "customer_place_order_id": order.id,
-                }
-            )
-
-    @api.model
-    def update_summary_from_order(self, order):
-        self.search(
-            [
-                ("order_date", "=", order.order_date),
-                ("customer_name", "=", order.customer_id.name),
-            ]
-        ).unlink()
-        self.create_summary_from_order(order)
-
-    @api.model
-    def delete_summary_from_order(self, order):
-        self.env["idil.customer.order.summary"].search(
-            [("customer_place_order_id", "=", order.id)]
-        ).unlink()
