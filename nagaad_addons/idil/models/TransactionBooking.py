@@ -79,6 +79,15 @@ class TransactionBooking(models.Model):
     vendor_transactions = fields.One2many(
         'idil.vendor_transaction', 'transaction_booking_id', string='Vendor Transactions', ondelete='cascade'
     )
+
+    sales_payment_id = fields.Many2one(
+        'account.payment',
+        string='Sales Payment',
+        ondelete='cascade',  # <-- when account.payment is deleted, delete this record too
+        oldname='sale_payment_id',  # keep if you previously renamed the column
+        index=True,
+    )
+
     # Add a Many2one field to link to PurchaseOrder
     purchase_order_id = fields.Many2one('idil.purchase_order', string='Linked Purchase Order', ondelete='cascade')
     bulk_payment_id = fields.Many2one(
@@ -252,6 +261,13 @@ class TransactionBookingline(models.Model):
     # Secondary Key Fields
     employee_salary_id = fields.Many2one(
         'idil.employee.salary', string='Employee Salary', ondelete='cascade'
+    )
+    sales_payment_id = fields.Many2one(
+        'account.payment',
+        string='Sales Payment',
+        ondelete='cascade',  # <-- when account.payment is deleted, delete this record too
+        oldname='sale_payment_id',  # keep if you previously renamed the column
+        index=True,
     )
 
     # order_line = fields.Char(string='Order Line')
