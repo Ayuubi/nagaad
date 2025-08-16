@@ -8,6 +8,7 @@
                     <group>
                         <field name="customer_id"/>
                         <field name="order_date"/>
+                        <field name="currency_id"/>
                         <field name="total_quantity"/>
                         <field name="total_price"/>
                         <field name="state"/>
@@ -17,6 +18,7 @@
                             <field name="order_lines">
                                 <tree editable="bottom">
                                     <field name="product_id"/>
+                                    <field name="currency_id"/>
                                     <field name="quantity"/>
                                     <field name="sale_price" sum="total"/>
                                     <field name="line_total" sum="total"/>
@@ -36,11 +38,10 @@
             <tree string="Customer Orders">
                 <field name="customer_id"/>
                 <field name="order_date"/>
+                <field name="currency_id"/>
                 <field name="total_quantity" sum="total"/>
                 <field name="total_price" sum="total"/>
-
                 <field name="state"/>
-                <field name="total_quantity"/>
             </tree>
         </field>
     </record>
