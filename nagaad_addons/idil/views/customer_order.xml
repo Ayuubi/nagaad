@@ -22,6 +22,8 @@
                                     <field name="quantity"/>
                                     <field name="sale_price" sum="total"/>
                                     <field name="line_total" sum="total"/>
+                                    <field name="status"/>
+
                                 </tree>
                             </field>
                         </page>

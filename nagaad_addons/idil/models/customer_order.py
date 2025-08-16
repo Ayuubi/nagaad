@@ -107,6 +107,18 @@ class CustomerPlaceOrderLine(models.Model):
         store=True,
         currency_field="currency_id",
     )
+    # New: track lifecycle of the line
+    status = fields.Selection(
+        [
+            ("normal", "Normal"),
+            ("removed", "Removed"),
+            ("add", "Add"),
+        ],
+        default="normal",
+        string="Status",
+        tracking=True,
+        help="Normal: existing line; Removed: excluded from totals; Add: newly added line.",
+    )
 
     # Currency (inherit from order)
     currency_id = fields.Many2one(
