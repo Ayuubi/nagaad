@@ -123,7 +123,6 @@
         'views/customer_sales_view.xml',
         'views/sales_receipt_bulk_payment.xml',
         'views/Sales_reciept.xml',
-        'views/customer_place_order.xml',
 
         'views/menu_hr.xml',
         'views/menu_hall.xml',
