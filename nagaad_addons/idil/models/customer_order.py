@@ -17,6 +17,31 @@ class CustomerPlaceOrder(models.Model):
         "idil.customer.registration", string="Customer", required=True
     )
     order_date = fields.Datetime(string="Order Date", default=fields.Datetime.now)
+
+    # NEW: who took the order
+    waiter_id = fields.Many2one(
+        "res.users",
+        string="Waiter",
+        required=True,
+        default=lambda self: self.env.user,
+        help="User who placed/submitted the order."
+    )
+
+    # NEW: dine mode + table number
+    order_mode = fields.Selection(
+        [
+            ("dine_in", "Dine-In"),
+            ("takeaway", "Takeaway"),
+        ],
+        string="Order Mode",
+        required=True,
+        default="dine_in",
+    )
+    table_no = fields.Char(
+        string="Table",
+        help="Table number for dine-in orders. Leave blank for takeaway."
+    )
+
     order_lines = fields.One2many(
         "idil.customer.place.order.line", "order_id", string="Order Lines"
     )
@@ -30,7 +55,10 @@ class CustomerPlaceOrder(models.Model):
         string="Total Quantity", compute="_compute_rollups", store=True
     )
     total_price = fields.Monetary(
-        string="Total Price", compute="_compute_rollups", store=True, currency_field="currency_id"
+        string="Total Price",
+        compute="_compute_rollups",
+        store=True,
+        currency_field="currency_id"
     )
 
     # Optional: company/currency if you have multi-company – adjust as needed
@@ -58,17 +86,28 @@ class CustomerPlaceOrder(models.Model):
         seq = self.env["ir.sequence"].next_by_code("idil.customer.place.order.sequence")
         return seq or "ORDER"
 
-    @api.depends("order_lines.quantity", "order_lines.sale_price", "order_lines.line_total")
+    @api.depends(
+        "order_lines.quantity",
+        "order_lines.sale_price",
+        "order_lines.line_total",
+        "order_lines.status",
+    )
     def _compute_rollups(self):
         for order in self:
             qty_sum = 0.0
             total_sum = 0.0
             for l in order.order_lines:
-                qty_sum += l.quantity or 0.0
-                # line_total is computed on the line; using it avoids double rounding
-                total_sum += l.line_total or 0.0
+                if l.status != "removed":  # exclude removed lines from totals
+                    qty_sum += l.quantity or 0.0
+                    total_sum += l.line_total or 0.0
             order.total_quantity = qty_sum
             order.total_price = total_sum
+
+    @api.constrains("order_mode", "table_no")
+    def _check_table_for_dinein(self):
+        for rec in self:
+            if rec.order_mode == "dine_in" and not rec.table_no:
+                raise ValidationError("Table is required for Dine-In orders.")
 
     @api.model
     def create(self, vals):
@@ -82,7 +121,19 @@ class CustomerPlaceOrder(models.Model):
                 "This customer already has an active draft order. "
                 "Please edit the existing order or change its state first."
             )
+        # Ensure waiter defaults if client didn't pass it
+        if not vals.get("waiter_id"):
+            vals["waiter_id"] = self.env.user.id
+        # Auto-clear table if takeaway
+        if vals.get("order_mode") == "takeaway":
+            vals["table_no"] = False
         return super().create(vals)
+
+    def write(self, vals):
+        # If switching to takeaway, clear table
+        if vals.get("order_mode") == "takeaway":
+            vals["table_no"] = False
+        return super().write(vals)
 
 
 class CustomerPlaceOrderLine(models.Model):
@@ -95,7 +146,18 @@ class CustomerPlaceOrderLine(models.Model):
     product_id = fields.Many2one("my_product.product", string="Product", required=True)
     quantity = fields.Float(string="Quantity", default=1.0)
 
-    # New snapshot fields
+    # NEW: snapshot menu/category (first POS category of the product)
+    menu_id = fields.Many2one(
+        "pos.category",
+        string="Menu",
+        help="Snapshot of the product's primary POS category at the time of ordering."
+    )
+    menu_name = fields.Char(
+        string="Menu Name",
+        help="Snapshot of menu name to keep a stable label even if the category is later renamed."
+    )
+
+    # Snapshot pricing
     sale_price = fields.Monetary(
         string="Sale Price",
         help="Unit sales price captured at the time of ordering.",
@@ -107,7 +169,7 @@ class CustomerPlaceOrderLine(models.Model):
         store=True,
         currency_field="currency_id",
     )
-    # New: track lifecycle of the line
+
     status = fields.Selection(
         [
             ("normal", "Normal"),
@@ -128,12 +190,15 @@ class CustomerPlaceOrderLine(models.Model):
         readonly=True,
     )
 
-    @api.depends("quantity", "sale_price")
+    @api.depends("quantity", "sale_price", "status")
     def _compute_line_total(self):
         for line in self:
-            qty = line.quantity or 0.0
-            price = line.sale_price or 0.0
-            line.line_total = qty * price
+            if line.status == "removed":
+                line.line_total = 0.0
+            else:
+                qty = line.quantity or 0.0
+                price = line.sale_price or 0.0
+                line.line_total = qty * price
 
     @api.onchange("product_id")
     def _onchange_product_id(self):
@@ -141,6 +206,10 @@ class CustomerPlaceOrderLine(models.Model):
             # default quantity and snapshot the current product price
             self.quantity = 1.0
             self.sale_price = self.product_id.sale_price or 0.0
+            # set menu snapshot from first POS category
+            first_cat = (self.product_id.pos_categ_ids and self.product_id.pos_categ_ids[:1]) or False
+            self.menu_id = first_cat and first_cat.id or False
+            self.menu_name = self.menu_id and self.menu_id.name or False
 
     @api.constrains("quantity")
     def _check_quantity(self):
@@ -160,6 +229,19 @@ class CustomerPlaceOrderLine(models.Model):
         if not vals.get("sale_price") and vals.get("product_id"):
             prod = self.env["my_product.product"].browse(vals["product_id"])
             vals["sale_price"] = prod.sale_price or 0.0
+
+            # Menu snapshot if not provided
+            if not vals.get("menu_id"):
+                first_cat = (prod.pos_categ_ids and prod.pos_categ_ids[:1]) or False
+                if first_cat:
+                    vals["menu_id"] = first_cat.id
+                    vals["menu_name"] = first_cat.name
+
+        # If client sent menu_id but not menu_name, snapshot name
+        if vals.get("menu_id") and not vals.get("menu_name"):
+            cat = self.env["pos.category"].browse(vals["menu_id"])
+            vals["menu_name"] = cat.name
+
         return super().create(vals)
 
     def write(self, vals):
@@ -167,4 +249,16 @@ class CustomerPlaceOrderLine(models.Model):
         if "product_id" in vals and "sale_price" not in vals:
             prod = self.env["my_product.product"].browse(vals["product_id"])
             vals["sale_price"] = prod.sale_price or 0.0
+            # refresh menu snapshot if client didn't send it
+            if "menu_id" not in vals:
+                first_cat = (prod.pos_categ_ids and prod.pos_categ_ids[:1]) or False
+                vals["menu_id"] = first_cat and first_cat.id or False
+                if vals["menu_id"]:
+                    vals["menu_name"] = self.env["pos.category"].browse(vals["menu_id"]).name
+
+        # If menu_id changed but no menu_name, keep snapshot
+        if "menu_id" in vals and "menu_name" not in vals and vals["menu_id"]:
+            cat = self.env["pos.category"].browse(vals["menu_id"])
+            vals["menu_name"] = cat.name
+
         return super().write(vals)

@@ -8,6 +8,10 @@
                     <group>
                         <field name="customer_id"/>
                         <field name="order_date"/>
+                        <field name="waiter_id"/>
+                        <field name="order_mode"/>
+                        <field name="table_no"/>
+
                         <field name="currency_id"/>
                         <field name="total_quantity"/>
                         <field name="total_price"/>
@@ -20,8 +24,11 @@
                                     <field name="product_id"/>
                                     <field name="currency_id"/>
                                     <field name="quantity"/>
+                                    <field name="menu_id"/>
+                                    <field name="menu_name"/>
                                     <field name="sale_price" sum="total"/>
                                     <field name="line_total" sum="total"/>
+
                                     <field name="status"/>
 
                                 </tree>
@@ -41,6 +48,9 @@
                 <field name="customer_id"/>
                 <field name="order_date"/>
                 <field name="currency_id"/>
+                <field name="waiter_id"/>
+                <field name="order_mode"/>
+                <field name="table_no"/>
                 <field name="total_quantity" sum="total"/>
                 <field name="total_price" sum="total"/>
                 <field name="state"/>
