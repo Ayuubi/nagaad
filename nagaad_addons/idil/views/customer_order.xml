@@ -25,7 +25,6 @@
                                     <field name="currency_id"/>
                                     <field name="quantity"/>
                                     <field name="menu_id"/>
-                                    <field name="menu_name"/>
                                     <field name="sale_price" sum="total"/>
                                     <field name="line_total" sum="total"/>
 
