@@ -81,6 +81,17 @@ class CustomerPlaceOrder(models.Model):
         string="Processed Sale Order",
         readonly=True,
     )
+    confirmed_by = fields.Many2one(
+        "res.users",
+        string="Confirmed By",
+        readonly=True,
+        tracking=True,  # ✅ show in chatter
+    )
+    confirmed_at = fields.Datetime(
+        string="Confirmed At",
+        readonly=True,
+        tracking=True,  # ✅ show in chatter
+    )
 
     def _generate_order_reference(self):
         seq = self.env["ir.sequence"].next_by_code("idil.customer.place.order.sequence")

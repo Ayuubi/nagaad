@@ -53,6 +53,8 @@
                 <field name="total_quantity" sum="total"/>
                 <field name="total_price" sum="total"/>
                 <field name="state"/>
+                <field name="confirmed_by"/>
+                <field name="confirmed_at"/>
             </tree>
         </field>
     </record>
