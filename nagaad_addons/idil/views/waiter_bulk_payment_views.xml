@@ -1,0 +1,184 @@
+<!-- views/waiter_bulk_payment_views.xml -->
+<odoo>
+    <!-- ========= FORM ========= -->
+    <record id="view_waiter_bulk_payment_form" model="ir.ui.view">
+        <field name="name">idil.waiter.bulk.payment.form</field>
+        <field name="model">idil.waiter.bulk.payment</field>
+        <field name="arch" type="xml">
+            <form string="Bulk Waiter Payment" class="o_form_full_width">
+                <header>
+                    <!-- object method is fine; no extra action buttons -->
+                    <button name="action_confirm"
+                            type="object"
+                            class="btn-primary"
+                            string="Confirm"
+                            icon="fa-check"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,confirmed"/>
+                </header>
+
+                <sheet>
+                    <!-- Title -->
+                    <div class="oe_title">
+                        <h1>
+                            <span class="text-muted">Bulk Waiter Payment —</span>
+                            <field name="name" nolabel="1" readonly="1"/>
+                        </h1>
+                    </div>
+
+                    <!-- KPI STRIP (no buttons) -->
+                    <group>
+
+                        <group  string="Today" class="o_inner_group">
+                            <group>
+                                <field name="waiter_sales_today_count" readonly="1"/>
+
+                            </group>
+                            <group>
+                                <field name="waiter_sales_today_amount" widget="monetary"
+                                       options="{'currency_field':'currency_id'}" readonly="1"/>
+
+                            </group>
+                            <group>
+                                <field name="waiter_due_today_amount" widget="monetary"
+                                       options="{'currency_field':'currency_id'}" readonly="1"/>
+
+                            </group>
+                        </group>
+
+                        <group string="Forward (Before Today)" class="o_inner_group">
+                            <field name="waiter_forward_due_count" readonly="1"/>
+                            <field name="waiter_forward_due_amount" widget="monetary"
+                                   options="{'currency_field':'currency_id'}" readonly="1"/>
+                        </group>
+                    </group>
+
+
+                    <group col="4" string="Totals" class="o_inner_group">
+                        <group>
+                            <field name="waiter_total_due_amount" string="Total Pending" widget="monetary"
+                                   options="{'currency_field':'currency_id'}" readonly="1"/>
+
+                        </group>
+                        <group>
+                            <field name="amount_to_receive" widget="monetary"
+                                   options="{'currency_field':'currency_id'}"/>
+
+                        </group>
+                        <group>
+                            <field name="waiter_due_after_payment" string="Due After Payment" widget="monetary"
+                                   options="{'currency_field':'currency_id'}" readonly="1"/>
+
+                        </group>
+                    </group>
+
+
+                    <!-- Details Row -->
+                    <group col="6" class="o_group o_group_col_6">
+                        <group string="Payment Header" col="2">
+                            <field name="waiter_id" widget="many2one_avatar_user"/>
+                            <field name="date"/>
+                        </group>
+
+                        <group string="Live Waiter Status" col="2">
+                            <field name="waiter_due_amount" string="All Confirmed Due" widget="monetary"
+                                   options="{'currency_field':'currency_id'}" readonly="1"/>
+                            <field name="waiter_due_count" string="# Orders with Balance" readonly="1"/>
+                            <field name="payment_methods_total" string="Methods Total" widget="monetary"
+                                   options="{'currency_field':'currency_id'}" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <!-- Tabs -->
+                    <notebook>
+                        <page string="Payment Methods">
+                            <field name="payment_method_ids" context="{'default_bulk_payment_id': active_id}">
+                                <tree editable="bottom">
+                                    <field name="payment_account_id" required="1"/>
+                                    <field name="payment_amount" widget="monetary"
+                                           options="{'currency_field':'currency_id'}" sum="Total Methods" required="1"/>
+                                    <field name="note"/>
+                                </tree>
+                            </field>
+                            <div class="o_form_label">Sum of methods must equal Amount to Receive.</div>
+                        </page>
+
+                        <page string="Allocations">
+                            <field name="line_ids" context="{'default_bulk_payment_id': active_id}">
+                                <tree editable="bottom"
+                                      decoration-success="remaining_amount == 0.0"
+                                      decoration-warning="paid_now &gt; 0.0 and remaining_amount &gt; 0.0"
+                                      decoration-danger="paid_now == 0.0">
+                                    <field name="place_order_id"/>
+                                    <field name="order_date"/>
+                                    <field name="customer_id"/>
+                                    <field name="total_amount" widget="monetary"
+                                           options="{'currency_field':'currency_id'}" sum="Total Orders"/>
+                                    <field name="paid_amount" widget="monetary"
+                                           options="{'currency_field':'currency_id'}" sum="Already Paid"/>
+                                    <field name="remaining_amount" widget="monetary"
+                                           options="{'currency_field':'currency_id'}" sum="Remaining"/>
+                                    <field name="paid_now" widget="monetary" options="{'currency_field':'currency_id'}"
+                                           sum="Pay Now"/>
+                                </tree>
+                            </field>
+                            <div class="o_form_label">Green = fully cleared; Amber = partially allocated; Red = not
+                                allocated.
+                            </div>
+                        </page>
+                    </notebook>
+                </sheet>
+
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ========= TREE (List) ========= -->
+    <record id="view_waiter_bulk_payment_tree" model="ir.ui.view">
+        <field name="name">idil.waiter.bulk.payment.tree</field>
+        <field name="model">idil.waiter.bulk.payment</field>
+        <field name="arch" type="xml">
+            <tree decoration-success="state == 'confirmed'" decoration-muted="state == 'draft'">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="waiter_id"/>
+                <field name="amount_to_receive" widget="monetary" options="{'currency_field':'currency_id'}"/>
+                <field name="payment_methods_total" widget="monetary" options="{'currency_field':'currency_id'}"/>
+                <field name="waiter_total_due_amount" widget="monetary" options="{'currency_field':'currency_id'}"
+                       string="Total Pending"/>
+                <field name="state"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ========= SEARCH ========= -->
+    <record id="view_waiter_bulk_payment_search" model="ir.ui.view">
+        <field name="name">idil.waiter.bulk.payment.search</field>
+        <field name="model">idil.waiter.bulk.payment</field>
+        <field name="arch" type="xml">
+            <search string="Bulk Waiter Payments">
+                <filter name="state_draft" string="Draft" domain="[('state','=','draft')]"/>
+                <filter name="state_confirmed" string="Confirmed" domain="[('state','=','confirmed')]"/>
+                <filter name="mine" string="My Waiter" domain="[('waiter_id','=',uid)]"/>
+
+                <field name="name"/>
+                <field name="waiter_id"/>
+                <field name="state"/>
+
+                <group expand="0" string="Group By">
+                    <filter name="group_waiter" string="Waiter" context="{'group_by':'waiter_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by':'state'}"/>
+                    <filter name="group_date" string="Date" context="{'group_by':'date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ========= ACTION ========= -->
+    <record id="action_waiter_bulk_payment" model="ir.actions.act_window">
+        <field name="name">Bulk Waiter Payments</field>
+        <field name="res_model">idil.waiter.bulk.payment</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_waiter_bulk_payment_search"/>
+    </record>
+</odoo>

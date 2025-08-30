@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <menuitem id="menu_idil_waiter_management_root"
+              name="Waiter Management"/>
+
+
+
+     <menuitem id="menu_customer_place_order"
+            name="Customer Place Orders"
+            parent="menu_idil_waiter_management_root"
+            action="action_customer_place_order"
+            sequence="1"/>
+
+       <menuitem id="menu_waiter_bulk_payment"
+            name="Bulk Waiter Payments"
+            parent="menu_sales_receipt_root"
+            action="action_waiter_bulk_payment"
+            sequence="2"/>
+</odoo>

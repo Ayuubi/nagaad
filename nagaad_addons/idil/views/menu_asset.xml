@@ -3,7 +3,7 @@
     <menuitem id="menu_asset_root"
               name="Asset &amp; Management"/>
 
-     <menuitem id="menu_idil_Items_registration"
+     <menuitem id="menu_idil_Items_asset_registration"
               name="Item Registration"
               parent="menu_asset_root"
               action="action_idil_item"

@@ -124,6 +124,7 @@
         'views/sales_receipt_bulk_payment.xml',
         'views/Sales_reciept.xml',
         'views/customer_order.xml',
+        'views/waiter_bulk_payment_views.xml',
 
         'views/menu_hr.xml',
         'views/menu_hall.xml',
@@ -132,6 +133,7 @@
         'views/menu_accounting.xml',
         'views/menu_asset.xml',
         'views/menu_sales.xml',
+        'views/menu_waiter.xml',
         'views/menu.xml',
 
     ],
