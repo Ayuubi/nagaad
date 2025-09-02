@@ -92,6 +92,40 @@ class CustomerPlaceOrder(models.Model):
         readonly=True,
         tracking=True,  # ✅ show in chatter
     )
+    # --- Add inside class CustomerPlaceOrder(models.Model): ---
+
+    # Payment tracking on place order (no sale order involved)
+    paid_amount = fields.Float(string="Paid Amount", default=0.0, tracking=True)
+    balance_due = fields.Float(string="Balance Due", compute="_compute_payment_progress", store=True)
+    payment_status = fields.Selection(
+        [("pending", "Pending"), ("partial_paid", "Partially Paid"), ("paid", "Paid")],
+        default="pending",
+        tracking=True,
+    )
+    # 🔹 New field: serial number per day
+    sl = fields.Char(
+        string="Daily Serial",
+        copy=False,
+        index=True,
+        readonly=True,
+        help="Daily running number (001, 002, ...) reset every day."
+    )
+
+
+
+    @api.depends("total_price", "paid_amount")
+    def _compute_payment_progress(self):
+        for rec in self:
+            total = rec.total_price or 0.0
+            paid = rec.paid_amount or 0.0
+            due = max(total - paid, 0.0)
+            rec.balance_due = due
+            if due <= 0:
+                rec.payment_status = "paid"
+            elif paid > 0:
+                rec.payment_status = "partial_paid"
+            else:
+                rec.payment_status = "pending"
 
     def _generate_order_reference(self):
         seq = self.env["ir.sequence"].next_by_code("idil.customer.place.order.sequence")

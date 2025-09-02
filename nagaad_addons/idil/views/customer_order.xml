@@ -46,6 +46,7 @@
             <tree string="Customer Orders">
                 <field name="customer_id"/>
                 <field name="order_date"/>
+                <field name="customer_id"/>
                 <field name="currency_id"/>
                 <field name="waiter_id"/>
                 <field name="order_mode"/>
@@ -55,6 +56,9 @@
                 <field name="state"/>
                 <field name="confirmed_by"/>
                 <field name="confirmed_at"/>
+                <field name="paid_amount"/>
+                <field name="balance_due"/>
+                <field name="payment_status"/>
             </tree>
         </field>
     </record>
