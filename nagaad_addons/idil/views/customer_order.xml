@@ -44,7 +44,7 @@
         <field name="model">idil.customer.place.order</field>
         <field name="arch" type="xml">
             <tree string="Customer Orders">
-                <field name="customer_id"/>
+                <field name="sl"/>
                 <field name="order_date"/>
                 <field name="customer_id"/>
                 <field name="currency_id"/>

@@ -172,6 +172,12 @@ class CustomerPlaceOrder(models.Model):
         # Auto-clear table if takeaway
         if vals.get("order_mode") == "takeaway":
             vals["table_no"] = False
+
+        # 🔹 assign daily sequence if not already passed
+        if not vals.get("sl"):
+            vals["sl"] = self.env["ir.sequence"].next_by_code(
+                "idil.customer.place.order.sl"
+            )
         return super().create(vals)
 
     def write(self, vals):
