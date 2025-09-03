@@ -12,6 +12,7 @@
                     <field name="company_id" optional="hide"/>
                     <field name="staff_id" optional="show"/>
                     <field name="user_id" optional="show"/>
+                    <field name="cashier_no" optional="show"/>
 
                     <field name="name" optional="show"/>
                     <field name="employee_type" optional="hide"/>

@@ -11,6 +11,7 @@ class IdilEmployee(models.Model):
 
     name = fields.Char(required=True, tracking=True)
     staff_id = fields.Char(string="Employee Id", tracking=True)
+    cashier_no = fields.Char(string="Cashier No", tracking=True)
     company_id = fields.Many2one('res.company', required=True, tracking=True)
     department_id = fields.Many2one('idil.employee_department', tracking=True)
     position_id = fields.Many2one('idil.employee_position', tracking=True)
