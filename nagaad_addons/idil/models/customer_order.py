@@ -157,15 +157,15 @@ class CustomerPlaceOrder(models.Model):
     @api.model
     def create(self, vals):
         # Prevent multiple concurrent drafts per customer
-        existing = self.search(
-            [("customer_id", "=", vals.get("customer_id")), ("state", "=", "draft")],
-            limit=1,
-        )
-        if existing:
-            raise UserError(
-                "This customer already has an active draft order. "
-                "Please edit the existing order or change its state first."
-            )
+        # existing = self.search(
+        #     [("customer_id", "=", vals.get("customer_id")), ("state", "=", "draft")],
+        #     limit=1,
+        # )
+        # if existing:
+        #     raise UserError(
+        #         "This customer already has an active draft order. "
+        #         "Please edit the existing order or change its state first."
+        #     )
         # Ensure waiter defaults if client didn't pass it
         if not vals.get("waiter_id"):
             vals["waiter_id"] = self.env.user.id
