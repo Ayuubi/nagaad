@@ -89,6 +89,13 @@ class IdilEmployee(models.Model):
     ], string='Status', compute='_compute_status', store=True, tracking=True)
     user_id = fields.Many2one('res.users', string='User', help='Link to the related Odoo user', tracking=True)
 
+    receivable_account_id = fields.Many2one(
+        'account.account',
+        string="idil.chart.account",
+        domain=[('account_type', '=', 'receivable')],
+        help="Debit goes here when an order is confirmed."
+    )
+
     @api.depends('contract_start_date', 'contract_end_date')
     def _compute_status(self):
         today = date.today()

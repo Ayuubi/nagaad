@@ -93,6 +93,8 @@
                                 <group>
                                     <field name="currency_id"/>
                                     <field name="account_id"/>
+                                    <field name="receivable_account_id"/>
+
                                     <field name="commission"/>
                                     <field name="cashier_no"/>
                                 </group>
