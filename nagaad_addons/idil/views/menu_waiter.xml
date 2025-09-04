@@ -13,7 +13,7 @@
 
        <menuitem id="menu_waiter_bulk_payment"
             name="Bulk Waiter Payments"
-            parent="menu_sales_receipt_root"
+            parent="menu_idil_waiter_management_root"
             action="action_waiter_bulk_payment"
             sequence="2"/>
 </odoo>

@@ -6,6 +6,8 @@ from odoo.exceptions import UserError, ValidationError
 class CustomerPlaceOrder(models.Model):
     _name = "idil.customer.place.order"
     _description = "Customer Place Order"
+    _inherit = ["mail.thread", "mail.activity.mixin"]   # ⬅️ add this
+
     _order = "id desc"
 
     name = fields.Char(
@@ -111,8 +113,6 @@ class CustomerPlaceOrder(models.Model):
         help="Daily running number (001, 002, ...) reset every day."
     )
 
-
-
     @api.depends("total_price", "paid_amount")
     def _compute_payment_progress(self):
         for rec in self:
@@ -185,6 +185,96 @@ class CustomerPlaceOrder(models.Model):
         if vals.get("order_mode") == "takeaway":
             vals["table_no"] = False
         return super().write(vals)
+
+    def action_confirm(self):
+        for order in self:
+            if getattr(order, "state", False) == "confirmed":
+                # already confirmed; nothing to do
+                continue
+
+            # (optional) maker–checker enforcement can remain elsewhere; this focuses only on booking
+            amount = self._compute_order_amount_fallback(order)
+
+            # Try to get trx_source from the order if you have it; otherwise leave False
+            trx_source_id = False
+            if hasattr(order, "trx_source_id") and order.trx_source_id:
+                trx_source_id = order.trx_source_id.id
+
+            # Create the header booking
+            transaction_booking = self.env["idil.transaction_booking"].create(
+                {
+                    "customer_id": order.customer_id.id,
+                    "cusotmer_sale_order_id": order.id,  # (kept as spelled in your schema)
+                    "trx_source_id": trx_source_id,
+                    "reffno": getattr(order, "name", str(order.id)),
+                    "Sales_order_number": order.id,
+                    "payment_method": "bank_transfer",
+                    "payment_status": "pending",
+                    "trx_date": fields.Date.context_today(self),
+                    "amount": amount,
+                }
+            )
+
+            # Create booking lines for each order line (COGS vs Inventory)
+            if not order.order_lines:
+                # If you expect at least one line, you can raise; otherwise just skip
+                pass
+
+            for line in order.order_lines:
+                product = line.product_id
+                if not product:
+                    raise UserError(_("Order line without product cannot be booked."))
+
+                # Validate accounts exist
+                if not getattr(product, "account_cogs_id", False):
+                    raise UserError(
+                        _("COGS account is missing for product: %s") % (product.display_name or product.name))
+                if not getattr(product, "asset_account_id", False):
+                    raise UserError(_("Inventory (asset) account is missing for product: %s") % (
+                            product.display_name or product.name))
+
+                qty = getattr(line, "quantity", 0.0) or 0.0
+                unit_cost = self._product_cost(product)
+                product_cost_amount = qty * unit_cost
+
+                # DR: COGS
+                self.env["idil.transaction_bookingline"].create(
+                    {
+                        "transaction_booking_id": transaction_booking.id,
+                        "description": f"Sales Order -- Expanses COGS account for - {product.name}",
+                        "product_id": product.id,
+                        "account_number": product.account_cogs_id.id,
+                        "transaction_type": "dr",
+                        "dr_amount": product_cost_amount,
+                        "cr_amount": 0.0,
+                        "transaction_date": fields.Date.context_today(self),
+                    }
+                )
+
+                # CR: Inventory (asset)
+                self.env["idil.transaction_bookingline"].create(
+                    {
+                        "transaction_booking_id": transaction_booking.id,
+                        "description": f"Sales Inventory account for - {product.name}",
+                        "product_id": product.id,
+                        "account_number": product.asset_account_id.id,
+                        "transaction_type": "cr",
+                        "dr_amount": 0.0,
+                        "cr_amount": product_cost_amount,
+                        "transaction_date": fields.Date.context_today(self),
+                    }
+                )
+
+            # Finally, mark the order as confirmed + audit fields
+            order.write(
+                {
+                    "state": "confirmed",
+                    "confirmed_by": self.env.uid,
+                    "confirmed_at": fields.Datetime.now(),
+                }
+            )
+
+        return True
 
 
 class CustomerPlaceOrderLine(models.Model):

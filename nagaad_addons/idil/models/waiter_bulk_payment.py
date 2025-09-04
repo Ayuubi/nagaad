@@ -2,12 +2,14 @@ from datetime import timedelta
 
 from odoo import models, fields, api
 from odoo.exceptions import UserError, ValidationError
+from odoo.tools import float_is_zero
 
 
 class WaiterBulkPayment(models.Model):
     _name = "idil.waiter.bulk.payment"
     _description = "Bulk Waiter Receive Payment"
     _inherit = ["mail.thread", "mail.activity.mixin"]
+
     _order = "id desc"
 
     name = fields.Char(string="Reference", default="New", readonly=True, copy=False)
@@ -99,6 +101,12 @@ class WaiterBulkPayment(models.Model):
 
     # ----------------- Computes & Constraints -----------------
     # Still inside WaiterBulkPayment(models.Model)
+    @api.depends("waiter_total_due_amount", "amount_to_receive")
+    def _compute_due_after_payment(self):
+        for rec in self:
+            total_pending = rec.waiter_total_due_amount or 0.0
+            receiving = rec.amount_to_receive or 0.0
+            rec.waiter_due_after_payment = max(total_pending - receiving, 0.0)
 
     @api.depends("waiter_id")
     def _compute_today_and_total_due(self):
@@ -141,6 +149,7 @@ class WaiterBulkPayment(models.Model):
 
             # Grand total due = forward (already computed) + today due
             rec.waiter_total_due_amount = (rec.waiter_forward_due_amount or 0.0) + due_today
+
     @api.depends("waiter_id")
     def _compute_waiter_forward_due(self):
         for rec in self:
@@ -282,102 +291,132 @@ class WaiterBulkPayment(models.Model):
             if not rec.payment_method_ids:
                 raise UserError("Add at least one payment method.")
 
-            trx_source = self.env["idil.transaction.source"].search(
+            # 1) Resolve waiter -> employee -> receivable (asset) account
+            employee = rec.env["idil.employee"].search([("user_id", "=", rec.waiter_id.id)], limit=1)
+            if not employee:
+                raise UserError(f"No employee record linked to waiter {rec.waiter_id.name}.")
+            waiter_rec_acct = employee.receivable_account_id
+            if not waiter_rec_acct:
+                raise UserError(f"Receivable Account is not set on employee {employee.name}.")
+
+            # 2) Transaction source
+            trx_source = rec.env["idil.transaction.source"].search(
                 [("name", "=", "Bulk Waiter Payment")], limit=1
             )
             if not trx_source:
                 raise UserError("Transaction source 'Bulk Waiter Payment' not found.")
 
-            alloc_lines = rec.line_ids.filtered(lambda l: l.remaining_amount > 0)
+            # 3) Create ONE booking header for this bulk payment
+            trx_booking = rec.env["idil.transaction_booking"].create({
+                "order_number": rec.name or "/",
+                "trx_source_id": trx_source.id,
+                "bank_reff": 0,
+                "payment_method": "other",
+                "customer_id": False,  # dedicated clearing if your model requires
+                "reffno": rec.name,
+                "payment_status": "partial_paid",  # informational; allocations drive per-order status
+                "trx_date": fields.Datetime.now(),
+                "amount": rec.amount_to_receive,
+            })
 
+            # 4) DR each payment method account by its assigned amount
+            methods_total = 0.0
             for method in rec.payment_method_ids:
                 pay_acct = method.payment_account_id
+                amt = method.payment_amount or 0.0
                 if not pay_acct:
                     raise UserError("Payment method missing account.")
-                remaining = method.payment_amount
-                if remaining <= 0:
+                if amt <= 0:
+                    continue
+                methods_total += amt
+
+                rec.env["idil.transaction_bookingline"].create({
+                    "transaction_booking_id": trx_booking.id,
+                    "transaction_type": "dr",
+                    "bank_reff": 0,
+                    "account_number": pay_acct.id,
+                    "dr_amount": amt,
+                    "cr_amount": 0.0,
+                    "transaction_date": fields.Datetime.now(),
+                    "description": f"Bulk Waiter Payment - {rec.name} (DR {pay_acct.name})",
+                })
+
+            # Safety: methods must equal header amount (you already constrain elsewhere)
+            if abs(methods_total - (rec.amount_to_receive or 0.0)) > 0.01:
+                raise UserError("Payment methods total must equal Amount to Receive.")
+
+            # 5) CR waiter receivable (asset) full amount (reduces AR)
+            rec.env["idil.transaction_bookingline"].create({
+                "transaction_booking_id": trx_booking.id,
+                "transaction_type": "cr",
+                "bank_reff": 0,
+                "account_number": waiter_rec_acct.id,
+                "dr_amount": 0.0,
+                "cr_amount": rec.amount_to_receive,
+                "transaction_date": fields.Datetime.now(),
+                "description": f"Bulk Waiter Payment - {rec.name} (CR Waiter AR {waiter_rec_acct.name})",
+            })
+
+            # 6) Allocate to place orders (update paid_amounts) + mark as paid when settled
+            alloc_lines = rec.line_ids.filtered(lambda l: l.remaining_amount > 0)
+            remaining_pool = rec.amount_to_receive
+
+            fully_settled = []  # for summary message
+            partially_paid = []  # for summary message
+
+            for line in alloc_lines:
+                if remaining_pool <= 0:
+                    break
+
+                po = line.place_order_id
+                if not po:
                     continue
 
-                for line in alloc_lines:
-                    if remaining <= 0:
-                        break
+                total = po.total_price or 0.0
+                paid = po.paid_amount or 0.0
+                due = max(total - paid, 0.0)
+                if due <= 0:
+                    continue
 
-                    po = line.place_order_id
-                    if not po:
-                        continue
+                to_pay = min(due, remaining_pool)
 
-                    # live due from place order
-                    total = po.total_price or 0.0
-                    paid = po.paid_amount or 0.0
-                    due = max(total - paid, 0.0)
-                    if due <= 0:
-                        continue
+                # Update place order payment progress
+                new_paid = paid + to_pay
+                po.write({"paid_amount": new_paid})  # compute updates balance/status
 
-                    customer = po.customer_id
-                    if not customer:
-                        raise UserError(f"Place Order {po.name} has no customer.")
-                    ar_acct = customer.account_receivable_id
-                    if not ar_acct:
-                        raise UserError(f"Customer {customer.name} has no receivable account.")
+                remaining = max(total - new_paid, 0.0)
+                # NEW: explicitly mark as paid + chatter when fully settled (currency aware)
+                if float_is_zero(remaining, precision_rounding=po.currency_id.rounding):
+                    po.write({"payment_status": "paid"})
+                    po.message_post(body=f"Order fully settled by Bulk Waiter Payment <b>{rec.name}</b>.")
+                    fully_settled.append(f"{po.name}: {to_pay:.2f}")
+                else:
+                    partially_paid.append(f"{po.name}: {to_pay:.2f} (remain {remaining:.2f})")
 
-                    # currency sanity (optional)
-                    if pay_acct.currency_id and ar_acct.currency_id and \
-                            pay_acct.currency_id.id != ar_acct.currency_id.id:
-                        raise UserError(
-                            f"Currency mismatch between payment account ({pay_acct.currency_id.name}) "
-                            f"and receivable account ({ar_acct.currency_id.name}) for {customer.name}."
-                        )
+                # Mirror on allocation line
+                line.paid_now += to_pay
+                line.paid_amount = new_paid
+                line.remaining_amount = remaining
 
-                    to_pay = min(due, remaining)
+                remaining_pool -= to_pay
 
-                    # ---- Booking header (no sale order)
-                    trx_booking = self.env["idil.transaction_booking"].create({
-                        "order_number": po.name or "/",
-                        "trx_source_id": trx_source.id,
-                        "payment_method": "other",
-                        "customer_id": customer.id,
-                        "reffno": rec.name,
-                        "payment_status": "paid" if to_pay >= due else "partial_paid",
-                        "trx_date": fields.Datetime.now(),
-                        "amount": to_pay,
-                    })
+            if remaining_pool > 0:
+                raise UserError(f"{remaining_pool:.2f} remains unallocated. Adjust allocations or amount.")
 
-                    # DR cash/bank
-                    self.env["idil.transaction_bookingline"].create({
-                        "transaction_booking_id": trx_booking.id,
-                        "transaction_type": "dr",
-                        "account_number": pay_acct.id,
-                        "dr_amount": to_pay,
-                        "cr_amount": 0.0,
-                        "transaction_date": fields.Datetime.now(),
-                        "description": f"Bulk Waiter Payment - {rec.name}",
-                    })
-                    # CR A/R
-                    self.env["idil.transaction_bookingline"].create({
-                        "transaction_booking_id": trx_booking.id,
-                        "transaction_type": "cr",
-                        "account_number": ar_acct.id,
-                        "dr_amount": 0.0,
-                        "cr_amount": to_pay,
-                        "transaction_date": fields.Datetime.now(),
-                        "description": f"Bulk Waiter Payment - {rec.name}",
-                    })
-
-                    # Update place order payment progress
-                    new_paid = paid + to_pay
-                    po.write({"paid_amount": new_paid})  # compute will update balance/status
-
-                    # reflect on the allocation line
-                    line.paid_now += to_pay
-                    line.paid_amount = new_paid
-                    line.remaining_amount = max(total - new_paid, 0.0)
-
-                    remaining -= to_pay
-
-                if remaining > 0:
-                    raise UserError(f"Payment method '{pay_acct.name}' has {remaining:.2f} unallocated.")
-
+            # 7) finalize record
             rec.state = "confirmed"
+
+            # 8) Post a compact summary to the bulk payment chatter
+            summary_lines = []
+            if fully_settled:
+                summary_lines.append("<b>Fully settled</b>: " + ", ".join(fully_settled))
+            if partially_paid:
+                summary_lines.append("<b>Partially paid</b>: " + "; ".join(partially_paid))
+            summary_html = "<br/>".join(summary_lines) or "No orders were affected."
+            rec.message_post(body=(
+                f"<b>Bulk payment confirmed.</b><br/>"
+                f"Amount received: <b>{rec.amount_to_receive:.2f}</b><br/>{summary_html}"
+            ))
 
     # ----------------- Sequence & Guards -----------------
     @api.model
