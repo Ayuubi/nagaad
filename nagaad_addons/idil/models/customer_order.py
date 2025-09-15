@@ -48,7 +48,7 @@ class CustomerPlaceOrder(models.Model):
         "idil.customer.place.order.line", "order_id", string="Order Lines"
     )
     state = fields.Selection(
-        [("draft", "Draft"), ("confirmed", "Confirmed"), ("cancel", "Cancelled")],
+        [("draft", "Draft"), ("confirmed", "Confirmed"), ("cancel", "Cancelled") ,("closed", "Closed") ],
         default="draft",
     )
 

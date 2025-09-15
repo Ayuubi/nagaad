@@ -387,7 +387,12 @@ class WaiterBulkPayment(models.Model):
                 remaining = max(total - new_paid, 0.0)
                 # NEW: explicitly mark as paid + chatter when fully settled (currency aware)
                 if float_is_zero(remaining, precision_rounding=po.currency_id.rounding):
-                    po.write({"payment_status": "paid"})
+                    # ✅ mark as fully paid + closed
+                    po.write({
+                        "payment_status": "paid",
+                        "state": "closed",
+                    })
+
                     po.message_post(body=f"Order fully settled by Bulk Waiter Payment <b>{rec.name}</b>.")
                     fully_settled.append(f"{po.name}: {to_pay:.2f}")
                 else:
