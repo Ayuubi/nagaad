@@ -16,8 +16,9 @@
                     <sheet>
                         <group>
                             <group string="Sales Details" col="2">
-                                <field name="sales_order_id" readonly="1"/>
-                                <field name="salesperson_id" readonly="1"/>
+<!--                                <field name="sales_order_id" readonly="1"/>-->
+<!--                                <field name="salesperson_id" readonly="1"/>-->
+                                <field name="company_id"/>
                                 <field name="cusotmer_sale_order_id" readonly="1"/>
                                 <field name="customer_id" readonly="1"/>
                                 <field name="receipt_date"/>
@@ -54,8 +55,9 @@
             <field name="model">idil.sales.receipt</field>
             <field name="arch" type="xml">
                 <tree string="Sales Receipt" create="false">
-                    <field name="sales_order_id"/>
-                    <field name="salesperson_id"/>
+<!--                    <field name="sales_order_id"/>-->
+<!--                    <field name="salesperson_id"/>-->
+                    <field name="company_id"/>
                     <field name="cusotmer_sale_order_id"/>
                     <field name="customer_id" />
                     <field name="receipt_date"/>
@@ -72,6 +74,7 @@
         <record id="action_sales_receipt" model="ir.actions.act_window">
             <field name="name">Sales Receipts</field>
             <field name="res_model">idil.sales.receipt</field>
+            <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
             <field name="view_mode">tree,form</field>
             
         </record>

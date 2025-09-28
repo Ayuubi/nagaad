@@ -74,6 +74,7 @@
         <field name="name">Salary Advances</field>
         <field name="res_model">idil.employee.salary.advance</field>
         <field name="view_mode">tree,form</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
         <field name="context">{}</field>
     </record>
     <!-- Menu -->

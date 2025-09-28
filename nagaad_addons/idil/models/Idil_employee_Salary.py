@@ -25,9 +25,20 @@ class IdilEmployeeSalary(models.Model):
     _description = 'Employee Salary'
     _inherit = ['mail.thread', 'mail.activity.mixin']
 
-    employee_id = fields.Many2one('idil.employee', string='Employee', required=True, tracking=True)
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
+    employee_id = fields.Many2one('idil.employee', string='Employee', required=True, tracking=True,
+                                  domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     salary_date = fields.Date(string='Salary Date', default=fields.Date.context_today, required=True, tracking=True)
-    account_id = fields.Many2one('idil.chart.account', string='Account', required=True)
+    account_id = fields.Many2one('idil.chart.account', string='Account', required=True,
+                                 domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
 
     basic_salary = fields.Monetary(string='Basic Salary', related='employee_id.salary', readonly=True, tracking=True)
     bonus = fields.Monetary(string='Bonus', related='employee_id.bonus', readonly=True, tracking=True)

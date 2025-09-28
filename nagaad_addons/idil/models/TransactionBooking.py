@@ -17,17 +17,31 @@ class TransactionBooking(models.Model):
     _description = 'Transaction Booking'
 
     # Primary Key Fields
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
     transaction_number = fields.Integer(string='Transaction Number')
     reffno = fields.Char(string='Reference Number')  # Consider renaming for clarity
     journal_entry_id = fields.Many2one('idil.journal.entry', string='Journal Entry')
-    vendor_id = fields.Many2one('idil.vendor.registration', string='Vendor')
+    vendor_id = fields.Many2one('idil.vendor.registration', string='Vendor',
+                                domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     vendor_phone = fields.Char(related='vendor_id.phone', string='Vendor Phone', readonly=True)
     vendor_email = fields.Char(related='vendor_id.email', string='Vendor Email', readonly=True)
-    customer_id = fields.Many2one('idil.customer.registration', string='Customer')
-    employee_id = fields.Many2one('idil.employee', string='Employee')
-    sales_person_id = fields.Many2one('idil.sales.sales_personnel', string='Sales Person')
+    customer_id = fields.Many2one('idil.customer.registration', string='Customer',
+                                  domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+    employee_id = fields.Many2one('idil.employee', string='Employee',
+                                  domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+    sales_person_id = fields.Many2one('idil.sales.sales_personnel', string='Sales Person',
+                                      domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     # Add a field to link to the SaleOrder. This assumes you have a unique identifier (like an ID) for SaleOrder.
-    sale_order_id = fields.Many2one('idil.sale.order', string='Linked Sale Order', ondelete='cascade')
+    sale_order_id = fields.Many2one('idil.sale.order', string='Linked Sale Order', ondelete='cascade',
+                                    domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     order_number = fields.Char(string='Order Number')
     Sales_order_number = fields.Char(string='Sales Order Number')
     payment_method = fields.Selection(
@@ -36,7 +50,8 @@ class TransactionBooking(models.Model):
          ('internal', 'Internal')],
         string='Payment Method'
     )
-    pos_payment_method = fields.Many2one('pos.payment.method', string='POS Payment Method')
+    pos_payment_method = fields.Many2one('pos.payment.method', string='POS Payment Method',
+                                         domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     payment_status = fields.Selection(
         [('pending', 'Pending'), ('paid', 'Paid'), ('partial_paid', 'Partial Paid')],
         string='Payment Status',
@@ -51,15 +66,18 @@ class TransactionBooking(models.Model):
     )
     # Secondary Key Fields
     employee_salary_advance_id = fields.Many2one(
-        'idil.employee.salary.advance', string='Employee Salary Advance', ondelete='cascade'
+        'idil.employee.salary.advance', string='Employee Salary Advance', ondelete='cascade',
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     # Secondary Key Fields
     employee_salary_id = fields.Many2one(
-        'idil.employee.salary', string='Employee Salary', ondelete='cascade'
+        'idil.employee.salary', string='Employee Salary', ondelete='cascade',
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     # Secondary Key Fields
     hall_booking_id = fields.Many2one(
-        'idil.hall.booking', string='Hall Booking ID', ondelete='cascade'
+        'idil.hall.booking', string='Hall Booking ID', ondelete='cascade',
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     amount = fields.Float(string='Amount', compute='_compute_amount', store=True)
     amount_paid = fields.Float(string='Amount Paid')
@@ -67,7 +85,8 @@ class TransactionBooking(models.Model):
     debit_total = fields.Float(string='Total Debit', compute='_compute_debit_credit_total', store=True)
     credit_total = fields.Float(string='Total Credit', compute='_compute_debit_credit_total', store=True)
     booking_lines = fields.One2many(
-        'idil.transaction_bookingline', 'transaction_booking_id', string='Transaction Lines'
+        'idil.transaction_bookingline', 'transaction_booking_id', string='Transaction Lines',
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     # Add a Many2one field to select a cash account
     cash_account_id = fields.Many2one(
@@ -77,7 +96,8 @@ class TransactionBooking(models.Model):
         help="Select the cash account for transactions."
     )
     vendor_transactions = fields.One2many(
-        'idil.vendor_transaction', 'transaction_booking_id', string='Vendor Transactions', ondelete='cascade'
+        'idil.vendor_transaction', 'transaction_booking_id', string='Vendor Transactions', ondelete='cascade',
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
 
     sales_payment_id = fields.Many2one(
@@ -86,14 +106,17 @@ class TransactionBooking(models.Model):
         ondelete='cascade',  # <-- when account.payment is deleted, delete this record too
         oldname='sale_payment_id',  # keep if you previously renamed the column
         index=True,
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
 
     # Add a Many2one field to link to PurchaseOrder
-    purchase_order_id = fields.Many2one('idil.purchase_order', string='Linked Purchase Order', ondelete='cascade')
+    purchase_order_id = fields.Many2one('idil.purchase_order', string='Linked Purchase Order', ondelete='cascade',
+                                        domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     bulk_payment_id = fields.Many2one(
         'idil.vendor.bulk.payment',
         string='Related Bulk Payment',
-        ondelete='cascade'
+        ondelete='cascade',
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
 
     bank_reff = fields.Char(
@@ -102,12 +125,14 @@ class TransactionBooking(models.Model):
     sales_payment_id = fields.Many2one(
         "idil.sales.payment",
         string="Sales Payment",
-        ondelete="cascade"
+        ondelete="cascade",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     customer_opening_balance_id = fields.Many2one(
         "idil.customer.opening.balance.line",
         string="Opening Balance",
         ondelete="cascade",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
 
     @api.constrains('amount_paid')
@@ -246,21 +271,34 @@ class TransactionBookingline(models.Model):
     _name = 'idil.transaction_bookingline'
     _description = 'Transaction Booking Line'
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
     # Secondary Key Fields
     transaction_booking_id = fields.Many2one(
-        'idil.transaction_booking', string='Transaction Booking', ondelete='cascade'
+        'idil.transaction_booking', string='Transaction Booking', ondelete='cascade',
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     # Secondary Key Fields
     hall_booking_id = fields.Many2one(
-        'idil.hall.booking', string='Hall Booking ID', ondelete='cascade'
+        'idil.hall.booking', string='Hall Booking ID', ondelete='cascade',
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     # Secondary Key Fields
     employee_salary_advance_id = fields.Many2one(
-        'idil.employee.salary.advance', string='Employee Salary Advance', ondelete='cascade'
+        'idil.employee.salary.advance', string='Employee Salary Advance', ondelete='cascade',
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     # Secondary Key Fields
     employee_salary_id = fields.Many2one(
-        'idil.employee.salary', string='Employee Salary', ondelete='cascade'
+        'idil.employee.salary', string='Employee Salary', ondelete='cascade',
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     sales_payment_id = fields.Many2one(
         'account.payment',
@@ -268,14 +306,17 @@ class TransactionBookingline(models.Model):
         ondelete='cascade',  # <-- when account.payment is deleted, delete this record too
         oldname='sale_payment_id',  # keep if you previously renamed the column
         index=True,
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
 
     # order_line = fields.Char(string='Order Line')
     order_line = fields.Integer(string='Order Line')
 
     description = fields.Char(string='Description')
-    item_id = fields.Many2one('idil.item', string='Item')
-    product_id = fields.Many2one('my_product.product', string='Product')
+    item_id = fields.Many2one('idil.item', string='Item',
+                              domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+    product_id = fields.Many2one('my_product.product', string='Product',
+                                 domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
 
     account_number = fields.Many2one(
         'idil.chart.account', string='Account Number', required=True
@@ -288,15 +329,18 @@ class TransactionBookingline(models.Model):
     dr_amount = fields.Float(string='Debit Amount')
     cr_amount = fields.Float(string='Credit Amount')
     transaction_date = fields.Date(string='Transaction Date', default=lambda self: fields.Date.today())
-    vendor_payment_id = fields.Many2one('idil.vendor_payment', string='Vendor Payment', ondelete='cascade')
+    vendor_payment_id = fields.Many2one('idil.vendor_payment', string='Vendor Payment', ondelete='cascade',
+                                        domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     currency_id = fields.Many2one('res.currency', string='Currency', related='account_number.currency_id', store=True,
                                   readonly=True)
 
-    commission_payment_id = fields.Many2one('idil.commission.payment', string='Commission Payment', ondelete='cascade')
+    commission_payment_id = fields.Many2one('idil.commission.payment', string='Commission Payment', ondelete='cascade',
+                                            domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     hall_booking_payment_id = fields.Many2one(
         'idil.hall.booking.payment',
         string='Hall Booking Payment',
-        ondelete='cascade'
+        ondelete='cascade',
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     bank_reff = fields.Char(
         string='Bank Reference', required=True, tracking=True
@@ -304,15 +348,14 @@ class TransactionBookingline(models.Model):
     sales_payment_id = fields.Many2one(
         "idil.sales.payment",
         string="Sales Payment",
-        ondelete="cascade"
+        ondelete="cascade",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     customer_opening_balance_id = fields.Many2one(
         "idil.customer.opening.balance.line",
         string="Opening Balance",
         ondelete="cascade",
     )
-
-    company_id = fields.Many2one('res.company', string='Company', required=True, default=lambda self: self.env.company)
 
     @api.depends('account_number')
     def _compute_account_display(self):

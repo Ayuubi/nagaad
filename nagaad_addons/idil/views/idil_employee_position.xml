@@ -37,6 +37,7 @@
         <record id="action_idil_employee_position" model="ir.actions.act_window">
             <field name="name">position</field>
             <field name="res_model">idil.employee_position</field>
+            <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
             <field name="view_mode">tree,form</field>
         </record>
 

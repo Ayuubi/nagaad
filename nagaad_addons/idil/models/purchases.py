@@ -12,13 +12,26 @@ class PurchaseOrderLine(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _description = 'Purchase Order'
 
-    order_id = fields.Many2one('idil.purchase_order', string='Order', ondelete='cascade')
-    item_id = fields.Many2one('idil.item', string='Item', required=True)
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
+
+    order_id = fields.Many2one('idil.purchase_order', string='Order', ondelete='cascade',
+                               domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+    item_id = fields.Many2one('idil.item', string='Item', required=True,
+                              domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     quantity = fields.Float(string='Quantity', required=True)
     cost_price = fields.Float(string='Cost per Unit', digits=(16, 3), required=True, tracking=True)
     amount = fields.Float(string='Total Price', compute='_compute_total_price', store=True)
     expiration_date = fields.Date(string='Expiration Date', required=True)  # Add expiration date field
-    transaction_ids = fields.One2many('idil.transaction_bookingline', 'order_line', string='Transactions')
+    transaction_ids = fields.One2many('idil.transaction_bookingline', 'order_line', string='Transactions',
+                                      domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
 
     def _create_item_movement(self, values):
         """ Create an item movement entry. """
@@ -88,10 +101,12 @@ class PurchaseOrderLine(models.Model):
             'item_id': self.item_id.id,
             'account_number': account_number,
             'transaction_type': transaction_type,
+            'description': f'Purchase Order for Item {self.item_id.name}',
             'dr_amount': self.amount if transaction_type == 'dr' else 0,
             'cr_amount': 0 if transaction_type == 'dr' else self.amount,
             'transaction_date': self.order_id.purchase_date,
             'transaction_booking_id': transaction_id,
+            'bank_reff': 0,
         }
         self.env['idil.transaction_bookingline'].create(line_values)
 
@@ -139,6 +154,7 @@ class PurchaseOrderLine(models.Model):
             # 'remaining_amount': total_amount,
             'remaining_amount': 0 if self.order_id.payment_method == 'cash' else total_amount,
             'amount_paid': total_amount if self.order_id.payment_method == 'cash' else 0,
+            'bank_reff': 0,
         }
 
     def get_manual_transaction_source_id(self):
@@ -146,24 +162,6 @@ class PurchaseOrderLine(models.Model):
         if not trx_source:
             raise ValidationError(_('Transaction source "Purchase Order" not found.'))
         return trx_source.id
-
-    # def _create_vendor_transaction(self, transaction, values):
-    #     vendor_transaction_values = {
-    #         'order_number': transaction.order_number,
-    #         'transaction_number': transaction.transaction_number,
-    #         'transaction_date': transaction.trx_date,
-    #         'vendor_id': transaction.vendor_id.id,
-    #         'amount': transaction.amount,
-    #         # 'remaining_amount': transaction.amount,
-    #         # 'paid_amount': 0,
-    #         'remaining_amount': 0 if transaction.payment_method == 'cash' else transaction.amount,
-    #         'paid_amount': transaction.amount if transaction.payment_method == 'cash' else 0,
-    #         'payment_method': transaction.payment_method,
-    #         'reffno': transaction.reffno,
-    #         'transaction_booking_id': transaction.id,
-    #         'payment_status': "paid" if transaction.payment_method == 'cash' else "pending",
-    #     }
-    #     self.env['idil.vendor_transaction'].create(vendor_transaction_values)
 
     def _create_vendor_transaction(self, transaction, values):
         # Check if a vendor transaction for the order already exists
@@ -430,9 +428,21 @@ class PurchaseOrder(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _description = 'Purchase Order Lines'
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
+
     reffno = fields.Char(string='Reference Number')  # Consider renaming for clarity
-    vendor_id = fields.Many2one('idil.vendor.registration', string='Vendor', required=True)
-    order_lines = fields.One2many('idil.purchase_order.line', 'order_id', string='Order Lines')
+    vendor_id = fields.Many2one('idil.vendor.registration', string='Vendor', required=True,
+                                domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+    order_lines = fields.One2many('idil.purchase_order.line', 'order_id', string='Order Lines',
+                                  domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     purchase_date = fields.Date(string='Date', required=True, default=fields.Date.today, tracking=True)
 
     description = fields.Text(string='Description')
@@ -440,7 +450,7 @@ class PurchaseOrder(models.Model):
         [('cash', 'Cash'), ('ap', 'A/P'), ('bank_transfer', 'Bank Transfer')],
         string='Payment Method', required=True)
     account_number = fields.Many2one('idil.chart.account', string='Account Number', required=True,
-                                     domain="[('account_type', '=', payment_method)]")
+                                     domain="[('account_type', '=', payment_method), ('company_id', '=', company_id)]")
 
     amount = fields.Float(string='Total Price', compute='_compute_total_amount', store=True, readonly=True)
     # Fields

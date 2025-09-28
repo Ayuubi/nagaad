@@ -10,6 +10,7 @@
                         <sheet>
                             <group>
                                 <group>
+                                    <field name="company_id"/>
                                     <field name="name"/>
                                     <field name="location"/>
                                 </group>
@@ -42,6 +43,7 @@
             <field name="model">idil.kitchen</field>
             <field name="arch" type="xml">
                 <tree string="Kitchen">
+                    <field name="company_id"/>
                     <field name="name"/>
                     <field name="location"/>
                     <field name="contact_person"/>
@@ -54,6 +56,7 @@
         <record id="action_kitchen" model="ir.actions.act_window">
             <field name="name">Kitchen</field>
             <field name="res_model">idil.kitchen</field>
+            <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
             <field name="view_mode">tree,form</field>
         </record>
 

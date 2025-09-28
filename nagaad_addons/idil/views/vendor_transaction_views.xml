@@ -143,6 +143,7 @@
         <field name="view_mode">tree,form</field>
         <field name="domain">[('payment_status', '!=', 'paid')]</field>
         <field name="context">{}</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
         <field name="help" type="html">
             <p class="oe_view_nocontent_create">
                 Click to create a new vendor transaction.

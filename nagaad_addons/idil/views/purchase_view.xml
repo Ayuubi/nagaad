@@ -6,7 +6,7 @@
         <field name="model">idil.purchase_order</field>
         <field name="arch" type="xml">
             <tree>
-
+                <field name="company_id"/>
                 <field name="create_date"/>
                 <field name="purchase_date" string="Ordered Date"/>
                 <field name="vendor_id"/>
@@ -30,6 +30,9 @@
                 <button name="action_rejected_purchase_order" type="object" string="Reject Purchase Order"
                         class="btn-danger"/>
                 <sheet>
+                    <group>
+                         <field name="company_id"/>
+                    </group>
                     <group>
                         <field name="reffno" string="Reff No#" readonly="1"/>
                     </group>
@@ -124,6 +127,7 @@
         <field name="view_mode">tree,form</field>
         <field name="view_id" ref="view_purchase_order_tree"/>  <!-- Set the view_id to the tree view -->
         <field name="context">{}</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Create Your First Purchase Orders

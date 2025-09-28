@@ -9,8 +9,12 @@
                     <field name="availability" widget="statusbar" statusbar_visible="available,booked,maintenance"/>
                 </header>
                 <sheet>
+                    <group>
+                        <field name="company_id"/>
+                    </group>
                     <!-- Top Section with Hall Details -->
                     <div class="oe_title">
+
                         <label for="name" string="Hall Name"/>
                         <h1>
                             <field name="name" class="o_field_char o_field_widget"/>
@@ -53,14 +57,14 @@
         <field name="arch" type="xml">
             <tree string="Halls" decoration-success="availability == 'available'"
                   decoration-danger="availability == 'booked'" decoration-warning="availability == 'maintenance'">
+                <field name="company_id" groups="base.group_multi_company"/>
+
+                <field name="company_id"/>
                 <field name="name"/>
                 <field name="location"/>
                 <field name="capacity"/>
-                <field name="price_per_hour" widget="monetary" options="{'currency_field': 'currency_id'}" />
-
+                <field name="price_per_hour" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                 <field name="facilities" widget="many2many_tags" optional="show"/>
-
-
                 <field name="income_account_id" optional="show"/>
                 <field name="Receivable_account_id" optional="show"/>
                 <field name="availability"/>
@@ -73,5 +77,6 @@
         <field name="name">Halls</field>
         <field name="res_model">idil.hall</field>
         <field name="view_mode">tree,form</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
     </record>
 </odoo>

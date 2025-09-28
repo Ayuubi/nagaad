@@ -36,6 +36,8 @@
     <record id="action_open_company_trial_balance_wizard" model="ir.actions.act_window">
         <field name="name">Compute Company Trial Balance</field>
         <field name="res_model">idil.company.trial.balance.wizard</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
+
         <field name="view_mode">form</field>
         <field name="view_id" ref="view_company_trial_balance_wizard_form"/>
         <field name="target">new</field>

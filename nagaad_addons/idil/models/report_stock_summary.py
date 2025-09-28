@@ -13,6 +13,14 @@ class VendorSummaryReportWizard(models.TransientModel):
     _name = 'idil.stock.summary.report'
     _description = 'Stock Summary Report'
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        index=True
+    )
     end_date = fields.Date(string="Os Of Date", required=True)
 
     def generate_pdf_report(self):

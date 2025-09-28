@@ -8,9 +8,20 @@ class CurrencyExchange(models.Model):
     _name = 'idil.currency.exchange'
     _description = 'Currency Exchange'
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
     name = fields.Char(string='Reference', required=True, default='New', copy=False, readonly=True)
-    source_account_id = fields.Many2one('idil.chart.account', string='Source Account', required=True)
-    target_account_id = fields.Many2one('idil.chart.account', string='Target Account', required=True)
+    source_account_id = fields.Many2one('idil.chart.account', string='Source Account', required=True,
+                                        domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+    target_account_id = fields.Many2one('idil.chart.account', string='Target Account', required=True,
+                                        domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     source_currency_id = fields.Many2one('res.currency', related='source_account_id.currency_id', readonly=True,
                                          string='Source Currency')
     target_currency_id = fields.Many2one('res.currency', related='target_account_id.currency_id', readonly=True,

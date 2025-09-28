@@ -22,6 +22,7 @@
         <field name="view_mode">form</field>
         <field name="view_id" ref="view_hrm_salary_department_report_form"/>
         <field name="target">new</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
     </record>
 
 </odoo>

@@ -31,6 +31,7 @@
     <record id="action_asset_category" model="ir.actions.act_window">
         <field name="name">Asset Categories</field>
         <field name="res_model">idil.fixed.asset.category</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
         <field name="view_mode">tree,form</field>
     </record>
 </odoo>

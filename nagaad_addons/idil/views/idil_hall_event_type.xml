@@ -8,8 +8,8 @@
             <field name="arch" type="xml">
                 <tree string="Employee_position">
 
+                    <field name="company_id"/>
                     <field name="name"/>
-
                 </tree>
             </field>
         </record>
@@ -35,9 +35,11 @@
 
         <!-- Action -->
         <record id="action_idil_employee_position" model="ir.actions.act_window">
-            <field name="name">position</field>
+            <field name="name">Event Type</field>
             <field name="res_model">idil.hall_event_type</field>
             <field name="view_mode">tree,form</field>
+            <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
+
         </record>
 
     </data>

@@ -86,6 +86,7 @@
             <field name="res_model">idil.transaction_booking</field>
             <field name="view_mode">tree,form</field>
             <field name="domain">[('vendor_id', '!=', False)]</field>
+            <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
             <field name="context">{'create': False, 'delete': False, 'group_by': 'vendor_id'}</field>
             <field name="view_ids" eval="[(5, 0, 0),
                                    (0, 0, {'view_mode': 'tree', 'view_id': ref('view_readonly_transaction_booking_tree')}),

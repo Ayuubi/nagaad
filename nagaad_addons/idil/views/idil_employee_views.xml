@@ -33,8 +33,6 @@
                     <field name="gender" optional="hide"/>
                     <field name="marital" optional="hide"/>
                     <field name="status" widget="statusbar" statusbar_visible="active,inactive"/>
-
-
                 </tree>
             </field>
         </record>
@@ -179,6 +177,7 @@
             <field name="name">Employees</field>
             <field name="res_model">idil.employee</field>
             <field name="view_mode">tree,form</field>
+            <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
         </record>
 
     </data>

@@ -14,6 +14,15 @@ class HallSchedule(models.Model):
         ('maintenance', 'Maintenance')
     ], string='Status', default='available')
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        index=True
+    )
+
     @api.constrains('start_time', 'end_time', 'status')
     def _check_time(self):
         """ Ensure that the end time is after the start time when status is 'maintenance'. """

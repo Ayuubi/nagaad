@@ -13,6 +13,14 @@ class Kitchen_ReportWizard(models.TransientModel):
     _name = 'idil.kitchen.report'
     _description = 'Kitchen Report Wizard'
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        index=True
+    )
     start_date = fields.Date(string="Start Date", required=True)
     end_date = fields.Date(string="End Date", required=True)
 

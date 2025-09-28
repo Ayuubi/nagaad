@@ -120,6 +120,7 @@
         <field name="name">Projects</field>
         <field name="res_model">idil.project</field>
         <field name="view_mode">tree,form</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Get started by creating your first project.

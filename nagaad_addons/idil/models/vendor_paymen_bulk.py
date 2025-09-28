@@ -10,12 +10,26 @@ class VendorBulkPayment(models.Model):
     _name = 'idil.vendor.bulk.payment'
     _description = 'Vendor Bulk Payment'
 
-    vendor_id = fields.Many2one('idil.vendor.registration', string='Vendor', required=True)
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
+    vendor_id = fields.Many2one(
+        'idil.vendor.registration',
+        string='Vendor',
+        required=True,
+        domain="[('company_id', '=', company_id)]"  # ✅ filter vendors by company
+    )
     reffno = fields.Char(string='Reference Number')
     cash_account_id = fields.Many2one(
         'idil.chart.account',
         string='Select Payment Account',
-        domain=[('account_type', '=', 'cash')],
+        domain=[('account_type', '=', 'cash'),('company_id', '=', company_id)],  # ✅ filter vendors by company
         help="Select the cash account for transactions."
     )
     amount_paying = fields.Float(string='Total Amount Paying', required=True)
@@ -31,6 +45,9 @@ class VendorBulkPayment(models.Model):
         string='Process Status',
         default='pending',  # Default status is pending
         help='Status of the bulk payment process.'
+    )
+    bank_reff = fields.Char(
+        string='Bank Reference', required=True, tracking=True
     )
 
     @api.constrains('amount_paying', 'order_ids')
@@ -172,6 +189,16 @@ class VendorBulkPayment(models.Model):
                     })
 
                 remaining_amount -= amount_to_pay  # Reduce the remaining amount by the actual amount paid
+                # ✅ **Create a Vendor Payment Record**
+                self.env['idil.vendor_payment'].create({
+                    'vendor_id': self.vendor_id.id,
+                    'vendor_transaction_id': order.id,
+                    'amount_paid': amount_to_pay,
+                    'cheque_no': self.reffno,
+                    'payment_date': self.payment_date,
+                    'bank_reff' : self.bank_reff,
+
+                })
 
             if remaining_amount == 0:
                 break  # Stop processing if no more money is left
@@ -194,6 +221,7 @@ class VendorBulkPayment(models.Model):
             'payment_method': 'cash',
             'payment_status': 'paid',
             'amount': self.amount_paying,
+            'bank_reff' : self.bank_reff,
 
         })
 
@@ -206,6 +234,8 @@ class VendorBulkPayment(models.Model):
             'cr_amount': self.amount_paying,  # Use the total amount paying
             'dr_amount': 0,
             'transaction_date': self.payment_date,
+            'bank_reff' : self,
+
         })
         self.env['idil.transaction_bookingline'].create({
             'transaction_booking_id': transaction_booking.id,
@@ -215,7 +245,10 @@ class VendorBulkPayment(models.Model):
             'dr_amount': self.amount_paying,
             'cr_amount': 0,  # Use the total amount paying
             'transaction_date': self.payment_date,
+            'bank_reff' : self.bank_reff,
+
         })
+
         # Log any unused remaining amount
         if remaining_amount > 0:
             _logger.info(f"Remaining amount of {remaining_amount} was not used.")

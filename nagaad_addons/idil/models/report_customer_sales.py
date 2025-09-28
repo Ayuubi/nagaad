@@ -19,6 +19,14 @@ class CustomerSalesReportWizard(models.TransientModel):
     _name = "idil.customer.sales.report"
     _description = "Customer Sales Report"
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        index=True
+    )
     start_date = fields.Date(string="Start Date", required=True)
     end_date = fields.Date(string="End Date", required=True)
     customer_id = fields.Many2one(

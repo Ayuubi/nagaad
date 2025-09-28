@@ -7,6 +7,14 @@ class Project(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _description = 'Project Management'
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        index=True
+    )
     name = fields.Char(string="Project Name", required=True, tracking=True)
     code = fields.Char(string="Project Code", required=True, copy=False, tracking=True)
     client_id = fields.Many2one('idil.customer.registration', string="Client", tracking=True)

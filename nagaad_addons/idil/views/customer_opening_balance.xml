@@ -29,6 +29,7 @@
          
             <sheet>
                 <group>
+                     <field name="company_id"/>
                     <field name="name"/>
                     <field name="date"/>
                     
@@ -61,6 +62,7 @@
     <field name="model">idil.customer.opening.balance.line</field>
     <field name="arch" type="xml">
         <tree string="Customer Opening Balance Lines">
+             <field name="company_id"/>
             <field name="opening_balance_id"/>
             <field name="customer_id"/>
             <field name="account_id"/>
@@ -74,6 +76,7 @@
     <field name="name">Customer Opening Balances</field>
     <field name="res_model">idil.customer.opening.balance</field>
     <field name="view_mode">tree,form</field>
+    <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
     <field name="help" type="html">
         <p>Manage and post opening balances for customers.</p>
     </field>

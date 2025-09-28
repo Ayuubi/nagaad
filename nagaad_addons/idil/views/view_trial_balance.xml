@@ -36,6 +36,7 @@
         <field name="name">Compute Trial Balance</field>
         <field name="res_model">idil.trial.balance.wizard</field>
         <field name="view_mode">form</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
         <field name="view_id" ref="view_trial_balance_wizard_form"/>
         <field name="target">new</field>
     </record>

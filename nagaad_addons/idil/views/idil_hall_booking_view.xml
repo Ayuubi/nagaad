@@ -18,6 +18,9 @@
                                statusbar_visible="draft,booked,confirmed,due,closed,canceled"
                                readonly="1"/>
                     </header>
+                    <group>
+                         <field name="company_id"/>
+                    </group>
                     <h1>
                         <field name="name" placeholder="Booking Number"/>
 
@@ -98,6 +101,8 @@
                             string="Print Confirmation Slip"
                             type="object"
                             class="btn-primary"/>
+
+
                 </sheet>
             </form>
         </field>
@@ -109,6 +114,7 @@
         <field name="model">idil.hall.booking</field>
         <field name="arch" type="xml">
             <tree string="Hall Bookings" decoration-danger="status == 'due'">
+                <field name="company_id"/>
                 <field name="invoice_number"/>
                 <field name="bank_reff"/>
                 <field name="name"/>
@@ -124,6 +130,7 @@
                 <field name="total_price" optional="show"/>
                 <field name="amount_paid" optional="show"/>
                 <field name="remaining_amount" optional="show"/>
+                <field name="extra_service_amount" optional="show"/>
                 <field name="status" widget="statusbar"
                        statusbar_visible="draft,booked,confirmed,due,closed,canceled"/>
             </tree>
@@ -136,6 +143,8 @@
         <field name="name">Hall Bookings</field>
         <field name="res_model">idil.hall.booking</field>
         <field name="view_mode">tree,form</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
+
     </record>
 
     <record id="view_extra_service_wizard_form" model="ir.ui.view">

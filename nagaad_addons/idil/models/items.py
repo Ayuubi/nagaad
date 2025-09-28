@@ -8,6 +8,15 @@ class item(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _description = 'Idil Purchased Items'
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
     ITEM_TYPE_SELECTION = [
         ('service', 'Service'),
         ('inventory', 'Inventory'),
@@ -34,6 +43,7 @@ class item(models.Model):
     expiration_date = fields.Date(string='Expiration Date', required=True, tracking=True)
     item_category_id = fields.Many2one(comodel_name='idil.item.category', string='Item Category', required=True,
                                        help='Select Item Category', tracking=True)
+
     unitmeasure_id = fields.Many2one(comodel_name='idil.unit.measure', string='Unit of Measure', required=True,
                                      help='Select Unit of Measure', tracking=True)
     min = fields.Float(string='Min Order', required=True, tracking=True)
@@ -48,7 +58,8 @@ class item(models.Model):
         help='Account to report purchases of this item',
         required=True,
         tracking=True,
-        domain="[('account_type', 'like', 'COGS'), ('currency_id.name', '=', 'USD')]"  # Corrected domain structure
+        domain="[('account_type', 'like', 'COGS'), ('currency_id.name', '=', 'USD'), ('company_id', '=', company_id)]"
+        # Corrected domain structure
     )
 
     asset_account_id = fields.Many2one(
@@ -57,7 +68,7 @@ class item(models.Model):
         help='Account to report Asset of this item',
         required=True,
         tracking=True,
-        domain="[('code', 'like', '1'), ('currency_id.name', '=', 'USD')]"
+        domain="[('code', 'like', '1'), ('currency_id.name', '=', 'USD'), ('company_id', '=', company_id)]"
         # Domain to filter accounts starting with '1' and in USD
     )
     days_until_expiration = fields.Integer(string='Days Until Expiration', compute='_compute_days_until_expiration',
@@ -66,7 +77,8 @@ class item(models.Model):
     total_price = fields.Float(string='Total Price', compute='_compute_total_price')
 
     # New field to track item movements
-    movement_ids = fields.One2many('idil.item.movement', 'item_id', string='Item Movements')
+    movement_ids = fields.One2many('idil.item.movement', 'item_id', string='Item Movements',
+                                   domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
 
     def _default_currency_id(self):
         return self.env.ref('base.USD').id

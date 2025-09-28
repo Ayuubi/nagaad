@@ -7,11 +7,22 @@ class KitchenTransfer(models.Model):
     _description = 'Kitchen Transfer'
     _inherit = ['mail.thread', 'mail.activity.mixin']
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
     name = fields.Char(string='Transfer Reference', required=True, copy=False, default='New')
     transfer_date = fields.Datetime(string='Transfer Date', default=fields.Datetime.now, required=True, tracking=True)
-    kitchen_id = fields.Many2one('idil.kitchen', string='Kitchen', required=True, tracking=True)
+    kitchen_id = fields.Many2one('idil.kitchen', string='Kitchen', required=True, tracking=True,
+                                 domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     transferred_by = fields.Many2one('res.users', string='Transferred By', default=lambda self: self.env.user,
-                                     required=True, tracking=True)
+                                     required=True, tracking=True,
+                                     domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     transfer_line_ids = fields.One2many('idil.kitchen.transfer.line', 'transfer_id', string='Transfer Lines',
                                         tracking=True)
     transaction_booking_id = fields.Many2one('idil.transaction_booking', string='Transaction Booking', readonly=True)
@@ -182,7 +193,8 @@ class KitchenTransferLine(models.Model):
 
     transfer_id = fields.Many2one('idil.kitchen.transfer', string='Transfer Reference', required=True,
                                   ondelete='cascade')
-    item_id = fields.Many2one('idil.item', string='Item', required=True)
+    item_id = fields.Many2one('idil.item', string='Item', required=True,
+                              domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     quantity = fields.Float(string='Quantity', required=True)
     uom_id = fields.Many2one('idil.unit.measure', string='Unit of Measurement', related='item_id.unitmeasure_id',
                              readonly=True)

@@ -11,14 +11,26 @@ class CustomerSaleReturn(models.Model):
     _description = "Customer Sale Return"
     _order = "id desc"
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
+
     name = fields.Char(string="Return Reference", default="New", readonly=True)
 
     customer_id = fields.Many2one(
-        "idil.customer.registration", string="Customer", required=True
+        "idil.customer.registration", string="Customer", required=True,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
     )
     sale_order_id = fields.Many2one(
         "idil.customer.sale.order",
         string="Sale Order",
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
     )
 
     return_date = fields.Date(default=fields.Date.context_today, string="Return Date")
@@ -33,7 +45,9 @@ class CustomerSaleReturn(models.Model):
     )
 
     return_lines = fields.One2many(
-        "idil.customer.sale.return.line", "return_id", string="Return Lines", copy=True
+        "idil.customer.sale.return.line", "return_id", string="Return Lines", copy=True,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+
     )
 
     # Currency fields
@@ -57,7 +71,6 @@ class CustomerSaleReturn(models.Model):
         readonly=True,
     )
 
-    # ----- COMPUTES -----
     @api.depends("return_lines.total_amount")
     def _compute_total_return(self):
         for rec in self:
@@ -380,16 +393,29 @@ class CustomerSaleReturnLine(models.Model):
     _description = "Customer Sale Return Line"
     _order = "id desc"
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
+
     return_id = fields.Many2one(
         "idil.customer.sale.return",
         string="Sale Return",
         required=True,
         ondelete="cascade",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     sale_order_line_id = fields.Many2one(
-        "idil.customer.sale.order.line", string="Original Order Line", store=True
+        "idil.customer.sale.order.line", string="Original Order Line", store=True,
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
-    product_id = fields.Many2one("my_product.product", string="Product", required=True)
+    product_id = fields.Many2one("my_product.product", string="Product", required=True,
+                                 domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
 
     original_quantity = fields.Float(string="Original Quantity", store=True)
     price_unit = fields.Float(string="Unit Price", store=True)

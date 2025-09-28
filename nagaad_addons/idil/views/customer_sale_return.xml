@@ -5,6 +5,7 @@
         <field name="model">idil.customer.sale.return</field>
         <field name="arch" type="xml">
             <tree>
+                 <field name="company_id"/>
                 <field name="name"/>
                 <field name="customer_id"/>
                 <field name="sale_order_id"/>
@@ -31,6 +32,7 @@
                 <sheet>
                     <group>
                         <group>
+                            <field name="company_id"/>
                             <field name="name" readonly="1"/>
                             <field name="customer_id" required="1"/>
                             <field name="sale_order_id" domain="[('customer_id', '=', customer_id)]"/>
@@ -73,6 +75,7 @@
         <field name="name">Customer Sale Returns</field>
         <field name="res_model">idil.customer.sale.return</field>
         <field name="view_mode">tree,form</field>
+       <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Create the first return record</p>
         </field>

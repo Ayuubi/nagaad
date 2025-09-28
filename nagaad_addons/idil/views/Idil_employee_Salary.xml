@@ -69,6 +69,12 @@
                                     type="object"
                                     class="btn-primary"/>
 
+
+<!--                            <button name="generate_balance_sheet_report_pdf"-->
+<!--                                    string="Print Balance sheet Report"-->
+<!--                                    type="object"-->
+<!--                                    class="btn-info"/>-->
+
                         </page>
                         <page string="Salary Advances This Month">
                             <field name="advances_this_month" widget="one2many_list" readonly="1">
@@ -91,6 +97,7 @@
         <field name="name">Salaries</field>
         <field name="res_model">idil.employee.salary</field>
         <field name="view_mode">tree,form</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
         <field name="context">{}</field>
     </record>
 </odoo>

@@ -5,6 +5,14 @@ class HallPricingRule(models.Model):
     _name = 'idil.hall.pricing.rule'
     _description = 'Hall Pricing Rule'
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        index=True
+    )
     rule_name = fields.Char(string='Rule Name', required=True)
     day_of_week = fields.Selection([
         ('0', 'Sunday'),

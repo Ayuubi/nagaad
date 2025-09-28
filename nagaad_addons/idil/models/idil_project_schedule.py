@@ -6,6 +6,14 @@ class ProjectSchedule(models.Model):
     _name = 'idil.project.schedule'
     _description = 'Project Schedule'
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        index=True
+    )
     project_id = fields.Many2one('idil.project', string="Project", required=True, ondelete="cascade")
     activity_name = fields.Char(string="Activity", required=True)
     start_date = fields.Date(string="Start Date", required=True)

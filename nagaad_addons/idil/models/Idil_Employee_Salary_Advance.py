@@ -23,9 +23,20 @@ class IdilEmployeeSalaryAdvance(models.Model):
     _description = 'Employee Salary Advance'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'request_date desc'
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
 
-    employee_id = fields.Many2one('idil.employee', string='Employee', required=True, tracking=True)
-    account_id = fields.Many2one('idil.chart.account', string='Account', required=True)
+    employee_id = fields.Many2one('idil.employee', string='Employee', required=True, tracking=True,
+                                  domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+    account_id = fields.Many2one('idil.chart.account', string='Account', required=True,
+                                 domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
 
     request_date = fields.Date(string='Request Date', default=fields.Date.context_today, required=True, tracking=True)
     advance_amount = fields.Monetary(string='Advance Amount', required=True, tracking=True)

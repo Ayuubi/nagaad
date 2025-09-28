@@ -4,6 +4,7 @@
         <field name="model">idil.kitchen.cook.process</field>
         <field name="arch" type="xml">
             <tree string="Kitchen Cook Processes">
+                <field name="company_id"/>
                 <field name="name"/>
                 <field name="process_date"/>
                 <field name="kitchen_transfer_id"/>
@@ -26,6 +27,7 @@
                 <sheet>
                     <group>
                         <group>
+                            <field name="company_id"/>
                             <field name="name"/>
                             <field name="process_date"/>
                             <field name="kitchen_transfer_id"/>
@@ -60,6 +62,7 @@
         <field name="name">Kitchen Cook Processes</field>
         <field name="res_model">idil.kitchen.cook.process</field>
         <field name="view_mode">tree,form</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
         <field name="view_id" ref="view_kitchen_cook_process_tree"/>
     </record>
 

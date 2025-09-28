@@ -13,6 +13,14 @@ class VendorTransactionReportWizard(models.TransientModel):
     _name = 'idil.daily.event.cost.profit'
     _description = 'Daily Event Cost Profit Report'
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        index=True
+    )
     year = fields.Integer(string="Year", required=True, default=2025)
     month = fields.Integer(string="Month", required=True, default=3)
 

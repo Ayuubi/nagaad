@@ -13,6 +13,14 @@ class VendorTransactionReportWizard(models.TransientModel):
     _name = 'idil.vendor.statement'
     _description = 'Vendor Report Wizard'
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        index=True
+    )
     vendor_id = fields.Many2one(
         'idil.vendor.registration',
         string="Vendor Name",

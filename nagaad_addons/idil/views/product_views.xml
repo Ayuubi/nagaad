@@ -8,6 +8,8 @@
             <field name="model">my_product.product</field>
             <field name="arch" type="xml">
                 <tree string="view_product_tree" delete="False">
+
+                    <field name="company_id"/>
                     <field name="name"/>
                     <field name="category_id"/>
                     <field name="detailed_type"/>
@@ -28,6 +30,8 @@
                     <sheet>
                         <group>
                             <group>
+
+                                <field name="company_id"/>
                                 <field name="name"/>
                                 <!-- Hiding internal_reference field -->
                             </group>
@@ -70,15 +74,19 @@
         </record>
 
         <!-- Product Action -->
-        <record id="action_view_product" model="ir.actions.act_window">
-            <field name="name">Products</field>
-            <field name="res_model">my_product.product</field>
-            <field name="view_mode">tree,form</field>
-            <field name="help" type="html">
-                <p class="oe_view_nocontent_create">
-                    Click to create a new product.
-                </p>
-            </field>
-        </record>
+        <!-- Product Action -->
+     <record id="action_view_product" model="ir.actions.act_window">
+        <field name="name">Products</field>
+        <field name="res_model">my_product.product</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
+        <field name="help" type="html">
+            <p class="oe_view_nocontent_create">
+                Click to create a new product.
+            </p>
+        </field>
+    </record>
+
+
     </data>
 </odoo>

@@ -5,6 +5,8 @@
         <field name="model">idil.vendor.bulk.payment</field>
         <field name="arch" type="xml">
             <tree string="Vendor Bulk Payments">
+
+                <field name="company_id"/>
                 <field name="vendor_id"/>
                 <field name="reffno"/>
                 <field name="cash_account_id"/>
@@ -27,8 +29,11 @@
                 </header>
                 <sheet>
                     <group>
+                        <field name="company_id"/>
                         <field name="vendor_id" required="1"/>
                         <field name="reffno" required="1"/>
+                        <field name="bank_reff" required="1"/>
+
                         <field name="cash_account_id" required="1"/>
                         <field name="amount_paying" required="1"/>
                         <field name="payment_date" required="1"/>
@@ -56,5 +61,6 @@
         <field name="name">Vendor Bulk Payments</field>
         <field name="res_model">idil.vendor.bulk.payment</field>
         <field name="view_mode">tree,form</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
     </record>
 </odoo>

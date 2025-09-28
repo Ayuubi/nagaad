@@ -14,15 +14,26 @@ class CustomerSaleOrder(models.Model):
     _description = "CustomerSale Order"
     _order = "id desc"
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
     name = fields.Char(string="Sales Reference", tracking=True)
 
     customer_id = fields.Many2one(
-        "idil.customer.registration", string="Customer", required=True
+        "idil.customer.registration", string="Customer", required=True,
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
 
     order_date = fields.Datetime(string="Order Date", default=fields.Datetime.now)
     order_lines = fields.One2many(
-        "idil.customer.sale.order.line", "order_id", string="Order Lines"
+        "idil.customer.sale.order.line", "order_id", string="Order Lines",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     order_total = fields.Float(
         string="Order Total", compute="_compute_order_total", store=True
@@ -60,7 +71,7 @@ class CustomerSaleOrder(models.Model):
         "idil.chart.account",
         string="Account Number",
         required=True,
-        domain="[('account_type', '=', payment_method)]",
+        domain="[('account_type', '=', payment_method), ('company_id', '=', company_id)]",
     )
 
     # One2many field for multiple payment methods
@@ -585,33 +596,33 @@ class CustomerSaleOrder(models.Model):
 
                     # COGS (DR)
                     if (
-                        line.transaction_type == "dr"
-                        and line.account_number.id == product.account_cogs_id.id
+                            line.transaction_type == "dr"
+                            and line.account_number.id == product.account_cogs_id.id
                     ):
                         updated_values["dr_amount"] = product_cost_amount
                         updated_values["cr_amount"] = 0
 
                     # Asset Inventory (CR)
                     elif (
-                        line.transaction_type == "cr"
-                        and line.account_number.id == product.asset_account_id.id
+                            line.transaction_type == "cr"
+                            and line.account_number.id == product.asset_account_id.id
                     ):
                         updated_values["cr_amount"] = product_cost_amount
                         updated_values["dr_amount"] = 0
 
                     # Receivable or Cash (DR)
                     elif line.transaction_type == "dr" and line.account_number.id == (
-                        order.customer_id.account_receivable_id.id
-                        if order.payment_method not in ["cash", "bank_transfer"]
-                        else order.account_number.id
+                            order.customer_id.account_receivable_id.id
+                            if order.payment_method not in ["cash", "bank_transfer"]
+                            else order.account_number.id
                     ):
                         updated_values["dr_amount"] = order_line.subtotal
                         updated_values["cr_amount"] = 0
 
                     # Income (CR)
                     elif (
-                        line.transaction_type == "cr"
-                        and line.account_number.id == product.income_account_id.id
+                            line.transaction_type == "cr"
+                            and line.account_number.id == product.income_account_id.id
                     ):
                         updated_values["cr_amount"] = order_line.subtotal
                         updated_values["dr_amount"] = 0
@@ -680,8 +691,20 @@ class CustomerSaleOrderLine(models.Model):
     _description = "CustomerSale Order Line"
     _order = "id desc"
 
-    order_id = fields.Many2one("idil.customer.sale.order", string="Sale Order")
-    product_id = fields.Many2one("my_product.product", string="Product")
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
+
+    order_id = fields.Many2one("idil.customer.sale.order", string="Sale Order",
+                               domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+    product_id = fields.Many2one("my_product.product", string="Product",
+                                 domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     quantity_Demand = fields.Float(string="Demand", default=1.0)
     available_stock = fields.Float(
         string="Available Stock",
@@ -708,6 +731,7 @@ class CustomerSaleOrderLine(models.Model):
         "idil.customer.opening.balance.line",
         string="Customer Opening Balance Line",
         ondelete="cascade",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
 
     @api.depends("quantity", "price_unit")
@@ -728,7 +752,7 @@ class CustomerSaleOrderLine(models.Model):
                 line.cogs = line.quantity * line.cost_price
             else:
                 line.cogs = (
-                    line.quantity * line.cost_price
+                        line.quantity * line.cost_price
                 )  # Fallback if no rate is found
 
     @api.model
@@ -784,7 +808,7 @@ class CustomerSaleOrderLine(models.Model):
         """When product_id changes, update the cost price"""
         if self.product_id:
             self.cost_price = (
-                self.product_id.cost * self.order_id.rate
+                    self.product_id.cost * self.order_id.rate
             )  # Fetch cost price from product
             self.price_unit = (
                 self.product_id.sale_price

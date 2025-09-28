@@ -20,6 +20,7 @@
         <field name="name">Hall Booking Status</field>
         <field name="res_model">idil.hall.booking.status.report</field>
         <field name="view_mode">form</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
         <field name="target">new</field>
     </record>
 

@@ -16,6 +16,14 @@ class HallBookingStatusReport(models.TransientModel):
     _name = 'idil.hall.booking.status.report'
     _description = 'Hall Booking Status Report Wizard'
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        index=True
+    )
     def generate_pdf_report(self):
         """Generate a PDF Report for Hall Booking Status"""
 

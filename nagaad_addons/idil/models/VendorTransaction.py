@@ -8,6 +8,14 @@ class VendorTransaction(models.Model):
     _name = 'idil.vendor_transaction'
     _description = 'Vendor Transaction'
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        index=True
+    )
     order_number = fields.Char(string='Order Number')
     transaction_number = fields.Char(string='Transaction Number')
     transaction_date = fields.Date(string='Transaction Date', default=lambda self: fields.Date.today())

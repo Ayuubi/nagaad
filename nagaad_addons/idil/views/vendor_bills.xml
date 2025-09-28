@@ -61,6 +61,7 @@
         <field name="name">View Transaction Booking</field>
         <field name="res_model">idil.transaction_booking</field>
         <field name="view_mode">tree,form</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
         <field name="domain">[('payment_status', '=', 'pending'), ('payment_method', '=', 'ap')]</field>
         <field name="context">{'create': False, 'delete': False}</field>
         <field name="view_ids" eval="[(5, 0, 0),

@@ -7,10 +7,21 @@ class KitchenCookProcess(models.Model):
     _description = 'Kitchen Cook Process'
     _inherit = ['mail.thread', 'mail.activity.mixin']
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
+
     name = fields.Char(string='Process Reference', required=True, copy=False, default='New')
     process_date = fields.Datetime(string='Process Date', default=fields.Datetime.now, required=True, tracking=True)
     kitchen_transfer_id = fields.Many2one('idil.kitchen.transfer', string='Kitchen Transfer', required=True,
-                                          tracking=True)
+                                          tracking=True,
+                                          domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     cook_line_ids = fields.One2many('idil.kitchen.cook.line', 'cook_process_id', string='Cook Lines', tracking=True)
     subtotal = fields.Float(string='Subtotal', compute='_compute_subtotal', store=True)
     state = fields.Selection([('draft', 'Draft'), ('processed', 'Processed')], default='draft', tracking=True)

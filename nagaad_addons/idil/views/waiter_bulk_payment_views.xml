@@ -178,6 +178,7 @@
     <record id="action_waiter_bulk_payment" model="ir.actions.act_window">
         <field name="name">Bulk Waiter Payments</field>
         <field name="res_model">idil.waiter.bulk.payment</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
         <field name="view_mode">tree,form</field>
         <field name="search_view_id" ref="view_waiter_bulk_payment_search"/>
     </record>

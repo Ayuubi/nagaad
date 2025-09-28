@@ -68,6 +68,7 @@
         <field name="name">Currency Exchanges</field>
         <field name="res_model">idil.currency.exchange</field>
         <field name="view_mode">tree,form</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
         <field name="help" type="html">
             <p class="oe_view_nocontent_create">
                 Click to create a new currency exchange.

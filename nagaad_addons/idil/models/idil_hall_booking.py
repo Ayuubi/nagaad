@@ -21,15 +21,26 @@ class HallBooking(models.Model):
     _name = 'idil.hall.booking'
     _description = 'Hall Booking Management'
 
-    name = fields.Char(string='Booking No', required=True, copy=False, readonly=True, index=True, default='New')
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
 
+    name = fields.Char(string='Booking No', required=True, copy=False, readonly=True, index=True, default='New')
     customer_id = fields.Many2one('idil.customer.registration', string='Customer', required=True)
-    hall_id = fields.Many2one('idil.hall', string='Hall', required=True)
+    hall_id = fields.Many2one('idil.hall', string='Hall', required=True,
+                              domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     facility_ids = fields.Many2many(
         'idil.hall.facility',
         'booking_id',
         'facility_id',
-        string='Facilities'
+        string='Facilities',
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     booking_date = fields.Date(string='Booking Date', default=fields.Date.today, required=True)
     start_time = fields.Datetime(string='Start Time', required=True)
@@ -44,7 +55,8 @@ class HallBooking(models.Model):
     remaining_amount = fields.Float(string='Remaining Amount', default=0.0, store=True,
                                     compute='_compute_remaining_amount')
     # Adding payment method field
-    payment_method_id = fields.Many2one('idil.payment.method', string='Payment Method', required=True)
+    payment_method_id = fields.Many2one('idil.payment.method', string='Payment Method', required=True,
+                                        domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     # Account Number Field (related to the selected Payment Method)
     account_number = fields.Char(string='Account Number', compute='_compute_account_number', store=True)
     invoice_number = fields.Char(string='Invoice Number')
@@ -52,7 +64,8 @@ class HallBooking(models.Model):
     bank_reff = fields.Char(
         string='Bank Reference', required=True, tracking=True
     )
-    payment_ids = fields.One2many('idil.hall.booking.payment', 'booking_id', string='Payments')
+    payment_ids = fields.One2many('idil.hall.booking.payment', 'booking_id', string='Payments',
+                                  domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     status = fields.Selection([
         ('draft', 'Draft'),
         ('booked', 'Booked'),
@@ -61,7 +74,8 @@ class HallBooking(models.Model):
         ('closed', 'Closed'),
         ('canceled', 'Canceled')
     ], string='Status', default='draft')
-    hall_event_id = fields.Many2one('idil.hall_event_type', string='Choose Event Type')
+    hall_event_id = fields.Many2one('idil.hall_event_type', string='Choose Event Type',
+                                    domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     extra_service_amount = fields.Float(
         string='Extra Service Amount',
         store=True  # Make it dynamic, not stored in the database
@@ -664,7 +678,13 @@ class HallBookingPayment(models.Model):
     bank_reff = fields.Char(
         string='Bank Reference', required=True, tracking=True
     )
-
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        index=True
+    )
 
     @api.model
     def create(self, vals):
@@ -1001,6 +1021,13 @@ class HallBookingPaymentWizard(models.TransientModel):
     bank_reff = fields.Char(
         string='Bank Reference', required=True, tracking=True
     )
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        index=True
+    )
 
     @api.model
     def default_get(self, fields):
@@ -1042,6 +1069,13 @@ class IdilEmployeePosition(models.Model):
     _order = 'name'
 
     name = fields.Char(required=True)
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        index=True
+    )
 
 
 class ExtraServiceWizard(models.Model):
@@ -1062,6 +1096,13 @@ class ExtraServiceWizard(models.Model):
     service_description = fields.Char(string='Description/Reference')
     bank_reff = fields.Char(
         string='Bank Reference', required=True, tracking=True
+    )
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        index=True
     )
 
     @api.onchange('payment_method_id')

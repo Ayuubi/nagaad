@@ -5,6 +5,8 @@
         <field name="model">idil.vendor.registration</field>
         <field name="arch" type="xml">
             <tree string="Vendor List" decoration-muted="not active">
+
+                <field name="company_id"/>
                 <field name="image" widget="image" options="{'size': [20, 20]}" class="oe_avatar"/>
                 <field name="name"/>
                 <field name="phone"/>
@@ -47,6 +49,9 @@
         <field name="arch" type="xml">
             <form string="Vendor Details">
                 <sheet>
+                    <group>
+                        <field name="company_id"/>
+                    </group>
                     <div class="oe_title">
                         <label for="name" class="oe_edit_only"/>
                         <h1>
@@ -96,6 +101,8 @@
         <field name="name">Vendor Registration</field>
         <field name="type">ir.actions.act_window</field>
         <field name="res_model">idil.vendor.registration</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
         <field name="view_mode">tree,form</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">

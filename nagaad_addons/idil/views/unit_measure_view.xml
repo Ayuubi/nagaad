@@ -2,14 +2,14 @@
 <odoo>
 
 
-
-
     <record id="view_unit_measure_tree" model="ir.ui.view">
         <field name="model">idil.unit.measure</field>
         <field name="arch" type="xml">
             <tree>
-                <field name="name" string="Customer Type"/>
+                <field name="name" string="UOM"/>
                 <field name="description" string="Type Description"/>
+                <field name="is_base_uom"/>
+                <field name="related_uom_ids"/>
 
 
             </tree>
@@ -21,7 +21,7 @@
         <field name="arch" type="xml">
             <search>
 
-                <field name="name" string="Customer Type"/>
+                <field name="name" string="UOM"/>
                 <field name="description" string="Type Description"/>
 
             </search>
@@ -35,8 +35,10 @@
             <form>
                 <sheet>
                     <group>
-                        <field name="name" string="Customer Type"/>
+                        <field name="name" string="UOM"/>
                         <field name="description" string="Type Description"/>
+                        <field name="is_base_uom"/>
+                        <field name="related_uom_ids"/>
 
                     </group>
                 </sheet>

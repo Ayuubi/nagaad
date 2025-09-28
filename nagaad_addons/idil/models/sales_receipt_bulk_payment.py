@@ -7,14 +7,33 @@ class ReceiptBulkPayment(models.Model):
     _description = "Bulk Sales Receipt Payment"
     _inherit = ["mail.thread", "mail.activity.mixin"]
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
+
     name = fields.Char(string="Reference", default="New", readonly=True, copy=False)
     partner_type = fields.Selection(
-        [("salesperson", "Salesperson"), ("customer", "Customer")],
+        [("salesperson", "Sales"), ("customer", "Customer")],
         string="Type",
         required=True,
     )
-    salesperson_id = fields.Many2one("idil.sales.sales_personnel", string="Salesperson")
-    customer_id = fields.Many2one("idil.customer.registration", string="Customer")
+    customer_id = fields.Many2one("idil.customer.registration", string="Customer",
+                                  domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+    waiter_id = fields.Many2one(
+        "res.users",
+        string="Waiter",
+        required=True,
+        default=lambda self: self.env.user,
+        help="User who placed/submitted the order.",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
+    )
+
     amount_to_pay = fields.Float(
         string="Total Amount to Pay", required=True, store=True
     )
@@ -24,6 +43,7 @@ class ReceiptBulkPayment(models.Model):
         "idil.receipt.bulk.payment.line",
         "bulk_payment_id",
         string="Receipt Lines",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     state = fields.Selection(
         [("draft", "Draft"), ("confirmed", "Confirmed")],
@@ -41,7 +61,8 @@ class ReceiptBulkPayment(models.Model):
         store=False,
     )
     payment_method_ids = fields.One2many(
-        "idil.receipt.bulk.payment.method", "bulk_payment_id", string="Payment Methods"
+        "idil.receipt.bulk.payment.method", "bulk_payment_id", string="Payment Methods",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     payment_methods_total = fields.Float(
         string="Payment Methods Total", compute="_compute_payment_methods_total"
@@ -64,17 +85,11 @@ class ReceiptBulkPayment(models.Model):
                         "Sum of payment methods must equal Amount to Pay."
                     )
 
-    @api.depends("salesperson_id", "customer_id", "partner_type")
+    @api.depends("customer_id", "partner_type")
     def _compute_due_receipt(self):
         for rec in self:
-            if rec.partner_type == "salesperson" and rec.salesperson_id:
-                receipts = rec.env["idil.sales.receipt"].search(
-                    [
-                        ("salesperson_id", "=", rec.salesperson_id.id),
-                        ("payment_status", "=", "pending"),
-                    ]
-                )
-            elif rec.partner_type == "customer" and rec.customer_id:
+
+            if rec.partner_type == "customer" and rec.customer_id:
                 receipts = rec.env["idil.sales.receipt"].search(
                     [
                         ("customer_id", "=", rec.customer_id.id),
@@ -86,15 +101,11 @@ class ReceiptBulkPayment(models.Model):
             rec.due_receipt_amount = sum(r.due_amount - r.paid_amount for r in receipts)
             rec.due_receipt_count = len(receipts)
 
-    @api.onchange("salesperson_id", "customer_id", "amount_to_pay", "partner_type")
+    @api.onchange("customer_id", "amount_to_pay", "partner_type")
     def _onchange_lines(self):
         self.line_ids = [(5, 0, 0)]
-        if self.partner_type == "salesperson" and self.salesperson_id:
-            domain = [
-                ("salesperson_id", "=", self.salesperson_id.id),
-                ("payment_status", "=", "pending"),
-            ]
-        elif self.partner_type == "customer" and self.customer_id:
+
+        if self.partner_type == "customer" and self.customer_id:
             domain = [
                 ("customer_id", "=", self.customer_id.id),
                 ("payment_status", "=", "pending"),
@@ -117,11 +128,12 @@ class ReceiptBulkPayment(models.Model):
                         0,
                         {
                             "receipt_id": receipt.id,
-                            "receipt_date": receipt.receipt_date,  # Make sure this field exists and is set in the receipt
+                            "receipt_date": receipt.receipt_date,
+                            # Make sure this field exists and is set in the receipt
                             "due_amount": receipt.due_amount,
                             "paid_amount": receipt.paid_amount,
                             "remaining_amount": receipt.due_amount
-                            - receipt.paid_amount,
+                                                - receipt.paid_amount,
                             "paid_now": to_pay,
                         },
                     )
@@ -129,17 +141,11 @@ class ReceiptBulkPayment(models.Model):
                 remaining_payment -= to_pay
         self.line_ids = lines
 
-    @api.constrains("amount_to_pay", "salesperson_id", "customer_id", "partner_type")
+    @api.constrains("amount_to_pay", "customer_id", "partner_type")
     def _check_amount(self):
         for rec in self:
-            if rec.partner_type == "salesperson" and rec.salesperson_id:
-                receipts = rec.env["idil.sales.receipt"].search(
-                    [
-                        ("salesperson_id", "=", rec.salesperson_id.id),
-                        ("payment_status", "=", "pending"),
-                    ]
-                )
-            elif rec.partner_type == "customer" and rec.customer_id:
+
+            if rec.partner_type == "customer" and rec.customer_id:
                 receipts = rec.env["idil.sales.receipt"].search(
                     [
                         ("customer_id", "=", rec.customer_id.id),
@@ -204,11 +210,7 @@ class ReceiptBulkPayment(models.Model):
 
                 to_pay = min(due_balance, remaining_amount)
 
-                if self.partner_type == "salesperson":
-                    ar_account = receipt.salesperson_id.account_receivable_id
-                    entity_name = receipt.salesperson_id.name
-                    is_salesperson = True
-                elif self.partner_type == "customer":
+                if self.partner_type == "customer":
                     ar_account = receipt.customer_id.account_receivable_id
                     entity_name = receipt.customer_id.name
                     is_salesperson = False
@@ -304,39 +306,22 @@ class ReceiptBulkPayment(models.Model):
                 line.paid_now += to_pay
 
                 # Transaction: salesperson or customer
-                if is_salesperson:
-                    self.env["idil.salesperson.transaction"].create(
-                        {
-                            "sales_person_id": receipt.salesperson_id.id,
-                            "date": fields.Date.today(),
-                            "sales_payment_id": payment.id,
-                            "sales_receipt_id": receipt.id,
-                            "order_id": (
-                                receipt.sales_order_id.id
-                                if receipt.sales_order_id
-                                else False
-                            ),
-                            "transaction_type": "in",
-                            "amount": to_pay,
-                            "description": f"Bulk Payment - Receipt {receipt.id} - Order {receipt.sales_order_id.name if receipt.sales_order_id else ''}",
-                        }
-                    )
-                else:
-                    self.env["idil.customer.sale.payment"].create(
-                        {
-                            "order_id": (
-                                receipt.cusotmer_sale_order_id.id
-                                if receipt.cusotmer_sale_order_id
-                                else False
-                            ),
-                            "customer_id": receipt.customer_id.id,
-                            "payment_method": "cash",
-                            "sales_payment_id": payment.id,
-                            "sales_receipt_id": receipt.id,
-                            "account_id": payment_account.id,
-                            "amount": to_pay,
-                        }
-                    )
+
+                self.env["idil.customer.sale.payment"].create(
+                    {
+                        "order_id": (
+                            receipt.cusotmer_sale_order_id.id
+                            if receipt.cusotmer_sale_order_id
+                            else False
+                        ),
+                        "customer_id": receipt.customer_id.id,
+                        "payment_method": "cash",
+                        "sales_payment_id": payment.id,
+                        "sales_receipt_id": receipt.id,
+                        "account_id": payment_account.id,
+                        "amount": to_pay,
+                    }
+                )
 
                 # Recompute order
                 if receipt.cusotmer_sale_order_id:
@@ -357,8 +342,8 @@ class ReceiptBulkPayment(models.Model):
     def create(self, vals):
         if vals.get("name", "New") == "New":
             vals["name"] = (
-                self.env["ir.sequence"].next_by_code("idil.receipt.bulk.payment.seq")
-                or "BRP/0001"
+                    self.env["ir.sequence"].next_by_code("idil.receipt.bulk.payment.seq")
+                    or "BRP/0001"
             )
         return super().create(vals)
 
@@ -452,10 +437,22 @@ class ReceiptBulkPaymentLine(models.Model):
     _name = "idil.receipt.bulk.payment.line"
     _description = "Bulk Receipt Payment Line"
 
-    bulk_payment_id = fields.Many2one(
-        "idil.receipt.bulk.payment", string="Bulk Payment"
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
     )
-    receipt_id = fields.Many2one("idil.sales.receipt", string="Receipt", required=True)
+
+    bulk_payment_id = fields.Many2one(
+        "idil.receipt.bulk.payment", string="Bulk Payment",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
+    )
+    receipt_id = fields.Many2one("idil.sales.receipt", string="Receipt", required=True,
+                                 domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     receipt_date = fields.Datetime(related="receipt_id.receipt_date", store=True)
     due_amount = fields.Float(related="receipt_id.due_amount", store=True)
     paid_amount = fields.Float(related="receipt_id.paid_amount", store=True)
@@ -466,12 +463,9 @@ class ReceiptBulkPaymentLine(models.Model):
         related="receipt_id.customer_id",
         string="Customer",
         readonly=True,
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
-    salesperson_id = fields.Many2one(
-        related="receipt_id.salesperson_id",
-        string="Salesperson",
-        readonly=True,
-    )
+
     receipt_status = fields.Selection(
         related="receipt_id.payment_status",
         string="Status",
@@ -488,14 +482,25 @@ class ReceiptBulkPaymentMethod(models.Model):
     _name = "idil.receipt.bulk.payment.method"
     _description = "Bulk Receipt Payment Method"
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
+
     bulk_payment_id = fields.Many2one(
-        "idil.receipt.bulk.payment", string="Bulk Payment"
+        "idil.receipt.bulk.payment", string="Bulk Payment",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     payment_account_id = fields.Many2one(
         "idil.chart.account",
         string="Payment Account",
         required=True,
-        domain=[("account_type", "in", ["cash", "bank_transfer", "sales_expense"])],
+        domain=[("account_type", "in", ["cash", "bank_transfer", "sales_expense"]), ('company_id', '=', company_id)],
     )
     payment_amount = fields.Float(string="Amount", required=True)
     note = fields.Char(string="Memo/Reference")
@@ -503,4 +508,5 @@ class ReceiptBulkPaymentMethod(models.Model):
         "idil.sales.payment",
         string="Linked Sales Payment",
         ondelete="cascade",  # This makes it auto-delete if sales payment is deleted
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )

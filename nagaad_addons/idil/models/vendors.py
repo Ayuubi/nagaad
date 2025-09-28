@@ -14,6 +14,15 @@ class Vendor(models.Model):
         ('unique_phone', 'UNIQUE(phone)', 'The phone number must be unique.'),
     ]
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
     # Basic Details
     name = fields.Char(string='Name', required=True, tracking=True)
     phone = fields.Char(string='Phone', required=True, tracking=True)
@@ -30,22 +39,24 @@ class Vendor(models.Model):
     account_payable_id = fields.Many2one(
         'idil.chart.account',
         string='Account Payable',
-        domain=[('account_type', '=', 'payable'), ('currency_id', '=', 1)],
+        domain=[('account_type', '=', 'payable'), ('currency_id', '=', 1), ('company_id', '=', company_id)],
         help="This account will be used instead of the default one as the payable account for the current vendor",
         required=True
     )
     account_receivable_id = fields.Many2one(
         'idil.chart.account',
         string='Account Receivable',
-        domain=[('account_type', '=', 'receivable')],
+        domain=[('account_type', '=', 'receivable'), ('company_id', '=', company_id)],
         help="This account will be used instead of the default one as the receivable account for the current vendor"
     )
     financial_transactions = fields.One2many(
         'idil.transaction_booking',
         'vendor_id',
         string='Financial Transactions',
-        help="Displays financial transactions related to this vendor."
+        help="Displays financial transactions related to this vendor.",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
+
 
     @api.constrains('phone')
     def _check_phone(self):

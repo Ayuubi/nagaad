@@ -7,22 +7,33 @@ class SalesReceipt(models.Model):
     _description = "Sales Receipt"
     _order = "id desc"
 
-    sales_order_id = fields.Many2one(
-        "idil.sale.order",
-        string="Sale Order",
-        ondelete="cascade",  # <--- THIS IS THE KEY!
+    # sales_order_id = fields.Many2one(
+    #     "idil.sale.order",
+    #     string="Sale Order",
+    #     ondelete="cascade",  # <--- THIS IS THE KEY!
+    # )
+    #
+    # salesperson_id = fields.Many2one(
+    #     "idil.sales.sales_personnel",
+    #     string="Salesperson",
+    #     required=False,
+    # )
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
     )
-
-    salesperson_id = fields.Many2one(
-        "idil.sales.sales_personnel",
-        string="Salesperson",
-        required=False,
-    )
-    customer_id = fields.Many2one("idil.customer.registration", string="Customer")
+    customer_id = fields.Many2one("idil.customer.registration", string="Customer",
+                                  domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     cusotmer_sale_order_id = fields.Many2one(
         "idil.customer.sale.order",
         string="Customer Sale Order",
         ondelete="cascade",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
 
     receipt_date = fields.Datetime(
@@ -37,30 +48,35 @@ class SalesReceipt(models.Model):
     remaining_amount = fields.Float(string="Due Amount", store=True)
     amount_paying = fields.Float(string="Amount Paying", store=True)
     payment_ids = fields.One2many(
-        "idil.sales.payment", "sales_receipt_id", string="Payments"
+        "idil.sales.payment", "sales_receipt_id", string="Payments",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     payment_account_currency_id = fields.Many2one(
         "res.currency",
         string="Currency",
         default=lambda self: self.env.company.currency_id,
+
     )
 
     payment_account = fields.Many2one(
         "idil.chart.account",
         string="Receipt Asset Account",
         help="Payment Account to be used for the receipt -- asset accounts.",
-        domain="[('account_type', 'in', ['cash', 'bank_transfer', 'sales_expense']), ('currency_id', '=', payment_account_currency_id)]",
+        domain="[('account_type', 'in', ['cash', 'bank_transfer', 'sales_expense']),"
+               " ('currency_id', '=', payment_account_currency_id), ('company_id', '=', company_id)]",
     )
 
     sales_opening_balance_id = fields.Many2one(
         "idil.sales.opening.balance",
         string="Opening Balance",
         ondelete="cascade",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     customer_opening_balance_id = fields.Many2one(
         "idil.customer.opening.balance.line",
         string="Opening Balance",
         ondelete="cascade",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
 
     def _compute_remaining_amount(self):
@@ -70,7 +86,7 @@ class SalesReceipt(models.Model):
                     "The amount paying cannot exceed the remaining due amount."
                 )
             record.remaining_amount = (
-                record.due_amount - record.paid_amount - record.amount_paying
+                    record.due_amount - record.paid_amount - record.amount_paying
             )
 
     def action_process_receipt(self):
@@ -261,7 +277,8 @@ class SalesReceipt(models.Model):
                 # Create customer sale payment entry
                 self.env["idil.customer.sale.payment"].create(
                     {
-                        "order_id": record.customer_opening_balance_id.opening_balance_id.customer_sale_order_id.id,  # No order_id for opening balance
+                        "order_id": record.customer_opening_balance_id.opening_balance_id.customer_sale_order_id.id,
+                        # No order_id for opening balance
                         "sales_payment_id": payment.id,
                         "sales_receipt_id": record.id,
                         "customer_id": record.customer_opening_balance_id.customer_id.id,
@@ -288,21 +305,21 @@ class SalesReceipt(models.Model):
             # Block deletion if linked to sales order
             if receipt.sales_order_id and receipt.sales_order_id.exists():
                 order_name = (
-                    receipt.sales_order_id.display_name
-                    or receipt.sales_order_id.name
-                    or "Unknown"
+                        receipt.sales_order_id.display_name
+                        or receipt.sales_order_id.name
+                        or "Unknown"
                 )
                 messages.append(f"- Sales Order: {order_name}")
 
             # Block deletion if linked to customer sale order
             if (
-                receipt.cusotmer_sale_order_id
-                and receipt.cusotmer_sale_order_id.exists()
+                    receipt.cusotmer_sale_order_id
+                    and receipt.cusotmer_sale_order_id.exists()
             ):
                 order_name = (
-                    receipt.cusotmer_sale_order_id.display_name
-                    or receipt.cusotmer_sale_order_id.name
-                    or "Unknown"
+                        receipt.cusotmer_sale_order_id.display_name
+                        or receipt.cusotmer_sale_order_id.name
+                        or "Unknown"
                 )
                 messages.append(f"- Customer Sale Order: {order_name}")
 
@@ -335,8 +352,20 @@ class IdilSalesPayment(models.Model):
     _description = "Sales Payment"
     _order = "id desc"
 
-    sales_receipt_id = fields.Many2one("idil.sales.receipt", string="Sales Receipt")
-    payment_account = fields.Many2one("idil.chart.account", string="Payment Account")
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
+
+    sales_receipt_id = fields.Many2one("idil.sales.receipt", string="Sales Receipt",
+                                       domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+    payment_account = fields.Many2one("idil.chart.account", string="Payment Account",
+                                      domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     payment_date = fields.Datetime(string="Payment Date", default=fields.Datetime.now)
     paid_amount = fields.Float(string="Paid Amount")
     transaction_booking_ids = fields.One2many(
@@ -344,12 +373,14 @@ class IdilSalesPayment(models.Model):
         "sales_payment_id",
         string="Transaction Bookings",
         ondelete="cascade",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     transaction_bookingline_ids = fields.One2many(
         "idil.transaction_bookingline",
         "sales_payment_id",
         string="Transaction Bookings Lines",
         ondelete="cascade",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
 
     payment_method_ids = fields.One2many(
@@ -357,6 +388,7 @@ class IdilSalesPayment(models.Model):
         "sales_payment_id",
         string="Bulk Payment Methods",
         ondelete="cascade",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
 
     def unlink(self):

@@ -9,6 +9,14 @@ class VendorPayment(models.Model):
     _description = 'Vendor Payment'
     # Adding SQL constraint for uniqueness
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        index=True
+    )
     payment_date = fields.Date(string='Payment Date', default=lambda self: fields.Date.today())
     vendor_id = fields.Many2one('idil.vendor.registration', string='Vendor', ondelete='restrict', required=True)
     vendor_name = fields.Char(related='vendor_id.name', string='Vendor Name', readonly=True)
@@ -21,6 +29,9 @@ class VendorPayment(models.Model):
 
     reffno = fields.Char(related='vendor_transaction_id.reffno', string='Reference Number', readonly=True)
     bookingline_ids = fields.One2many('idil.transaction_bookingline', 'vendor_payment_id', string='Booking Lines')
+    bank_reff = fields.Char(
+        string='Bank Reference', required=True, tracking=True
+    )
 
     def write(self, vals):
         for record in self:

@@ -68,6 +68,7 @@
         <field name="name">Customer Place Orders</field>
         <field name="res_model">idil.customer.place.order</field>
         <field name="view_mode">tree,form</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
         <field name="target">current</field>
     </record>
 

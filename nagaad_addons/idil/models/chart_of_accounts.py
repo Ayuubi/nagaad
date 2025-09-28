@@ -47,6 +47,15 @@ class AccountSubHeader(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _description = 'Idil Chart of Accounts Sub Header'
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
     sub_header_code = fields.Char(string='Sub Header Code', required=True)
     name = fields.Char(string='Sub Header Name', required=True)
     header_id = fields.Many2one('idil.chart.account.header', string='Header')
@@ -72,6 +81,15 @@ class Account(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _description = 'Idil Chart of Accounts'
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
     SIGN_SELECTION = [
         ('Dr', 'Dr'),
         ('Cr', 'Cr'),
@@ -83,13 +101,17 @@ class Account(models.Model):
         ('PL', 'Profit and Loss'),
     ]
     account_type = [
-        ('cash', 'Cash'),
-        ('bank_transfer', 'Bank'),
-        ('payable', 'Account Payable'),
-        ('receivable', 'Account Receivable'),
-        ('COGS', 'COGS'),
-        ('kitchen', 'kitchen'),
-        ('Owners Equity', 'Owners Equity'),
+        ("cash", "Cash"),
+        ("bank_transfer", "Bank"),
+        ("payable", "Account Payable"),
+        ("discount", "Account Discount"),
+        ("commission", "Account Commission"),
+        ("receivable", "Account Receivable"),
+        ("COGS", "COGS"),
+        ("kitchen", "kitchen"),
+        ("Owners Equity", "Owners Equity"),
+        ("Adjustment", "Adjustment"),
+        ("sales_expense", "Sales Expense"),
     ]
 
     code = fields.Char(string='Account Code', required=True, tracking=True)
@@ -113,10 +135,13 @@ class Account(models.Model):
         store=True,
         tracking=True
     )
-    subheader_id = fields.Many2one('idil.chart.account.subheader', string='Sub Header', required=True, tracking=True)
+    subheader_id = fields.Many2one('idil.chart.account.subheader', string='Sub Header', required=True, tracking=True,
+                                   domain=lambda self: [('company_id', 'in', self.env.companies.ids)] )
 
-    subheader_code = fields.Char(related='subheader_id.sub_header_code', string='Sub Header Code', readonly=True)
-    subheader_name = fields.Char(related='subheader_id.name', string='Sub Header Name', readonly=True)
+    subheader_code = fields.Char(related='subheader_id.sub_header_code', string='Sub Header Code', readonly=True,
+                                 domain=lambda self: [('company_id', 'in', self.env.companies.ids)] )
+    subheader_name = fields.Char(related='subheader_id.name', string='Sub Header Name', readonly=True,
+                                 domain=lambda self: [('company_id', 'in', self.env.companies.ids)] )
     header_code = fields.Char(related='subheader_id.header_id.code', string='Header Code', readonly=True)
 
     header_name = fields.Char(related='subheader_id.header_id.name', string='Header Name', readonly=True, store=True)

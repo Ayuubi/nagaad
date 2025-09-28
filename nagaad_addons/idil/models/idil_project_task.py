@@ -7,6 +7,14 @@ class ProjectTask(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _description = 'Project Task'
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        index=True
+    )
     name = fields.Char(string="Task Name", required=True, tracking=True)
     project_id = fields.Many2one('idil.project', string="Project", required=True, ondelete="cascade", tracking=True)
     parent_task_id = fields.Many2one('idil.project.task', string="Parent Task", tracking=True)

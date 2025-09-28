@@ -13,6 +13,15 @@ class CustomerOpeningBalance(models.Model):
     _description = "Customer Opening Balance"
     _order = "id desc"
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
     name = fields.Char(string="Reference", default="New", readonly=True, copy=False)
     date = fields.Date(
         string="Opening Date", default=fields.Date.context_today, required=True
@@ -53,6 +62,7 @@ class CustomerOpeningBalance(models.Model):
         string="First Customer Sale Order",
         readonly=True,
         help="First sale order created from this opening balance.",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     total_amount = fields.Monetary(
         string="Total Amount",
@@ -103,8 +113,8 @@ class CustomerOpeningBalance(models.Model):
         # Set the name from sequence if needed
         if vals.get("name", "New") == "New":
             vals["name"] = (
-                self.env["ir.sequence"].next_by_code("idil.customer.opening.balance")
-                or "New"
+                    self.env["ir.sequence"].next_by_code("idil.customer.opening.balance")
+                    or "New"
             )
         # Create the record in memory, but not yet committed to DB
         record = super(CustomerOpeningBalance, self).create(vals)
@@ -513,8 +523,8 @@ class CustomerOpeningBalance(models.Model):
 
                         for booking_line in booking.booking_lines:
                             if (
-                                booking_line.transaction_type == "dr"
-                                and booking_line.account_number.id == line.account_id.id
+                                    booking_line.transaction_type == "dr"
+                                    and booking_line.account_number.id == line.account_id.id
                             ):
                                 booking_line.write(
                                     {
@@ -524,11 +534,11 @@ class CustomerOpeningBalance(models.Model):
                                     }
                                 )
                             elif (
-                                booking_line.transaction_type == "cr"
-                                and booking_line.account_number.name
-                                == "Exchange Clearing Account"
-                                and booking_line.account_number.currency_id.id
-                                == line.account_id.currency_id.id
+                                    booking_line.transaction_type == "cr"
+                                    and booking_line.account_number.name
+                                    == "Exchange Clearing Account"
+                                    and booking_line.account_number.currency_id.id
+                                    == line.account_id.currency_id.id
                             ):
                                 booking_line.write(
                                     {
@@ -539,9 +549,9 @@ class CustomerOpeningBalance(models.Model):
                                     }
                                 )
                             elif (
-                                booking_line.transaction_type == "cr"
-                                and booking_line.account_number.name
-                                == "Opening Balance Account"
+                                    booking_line.transaction_type == "cr"
+                                    and booking_line.account_number.name
+                                    == "Opening Balance Account"
                             ):
                                 booking_line.write(
                                     {
@@ -552,11 +562,11 @@ class CustomerOpeningBalance(models.Model):
                                     }
                                 )
                             elif (
-                                booking_line.transaction_type == "dr"
-                                and booking_line.account_number.name
-                                == "Exchange Clearing Account"
-                                and booking_line.account_number.currency_id.id
-                                == equity_account.currency_id.id
+                                    booking_line.transaction_type == "dr"
+                                    and booking_line.account_number.name
+                                    == "Exchange Clearing Account"
+                                    and booking_line.account_number.currency_id.id
+                                    == equity_account.currency_id.id
                             ):
                                 booking_line.write(
                                     {
@@ -575,19 +585,30 @@ class CustomerOpeningBalanceLine(models.Model):
     _description = "Customer Opening Balance Line"
     _order = "id desc"
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
     opening_balance_id = fields.Many2one(
-        "idil.customer.opening.balance", string="Opening Balance", ondelete="cascade"
+        "idil.customer.opening.balance", string="Opening Balance", ondelete="cascade",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
 
     customer_id = fields.Many2one(
         "idil.customer.registration",
         string="Customer",
         required=True,
-        domain=[("account_receivable_id", "!=", False)],
+        domain=[("account_receivable_id", "!=", False), ('company_id', '=', company_id)],
     )
 
     account_id = fields.Many2one(
-        "idil.chart.account", string="Account", readonly=True, store=True
+        "idil.chart.account", string="Account", readonly=True, store=True,
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     currency_id = fields.Many2one(
         "res.currency",

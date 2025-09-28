@@ -9,12 +9,23 @@ class IdilEmployee(models.Model):
     _description = 'Employee'
     _order = 'name'
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
+
     name = fields.Char(required=True, tracking=True)
     staff_id = fields.Char(string="Employee Id", tracking=True)
     cashier_no = fields.Char(string="Cashier No", tracking=True)
-    company_id = fields.Many2one('res.company', required=True, tracking=True)
-    department_id = fields.Many2one('idil.employee_department', tracking=True)
-    position_id = fields.Many2one('idil.employee_position', tracking=True)
+    department_id = fields.Many2one('idil.employee_department', tracking=True,
+                                    domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+    position_id = fields.Many2one('idil.employee_position', tracking=True,
+                                  domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
 
     private_phone = fields.Char(string='Private Phone', tracking=True)
     private_email = fields.Char(string='Private Email', tracking=True)
@@ -74,25 +85,28 @@ class IdilEmployee(models.Model):
     salary_history_ids = fields.One2many(
         'idil.employee.salary',
         'employee_id',
-        string="Salary History", tracking=True
+        string="Salary History", tracking=True,
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
 
     advance_history_ids = fields.One2many(
         'idil.employee.salary.advance',
         'employee_id',
-        string="Advance History", tracking=True
+        string="Advance History", tracking=True,
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     # Status field
     status = fields.Selection([
         ('active', 'Active'),
         ('inactive', 'Inactive'),
     ], string='Status', compute='_compute_status', store=True, tracking=True)
-    user_id = fields.Many2one('res.users', string='User', help='Link to the related Odoo user', tracking=True)
+    user_id = fields.Many2one('res.users', string='User', help='Link to the related Odoo user', tracking=True,
+                              domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
 
     receivable_account_id = fields.Many2one(
         'idil.chart.account',
         string="Receivable Account",
-        domain=[('account_type', '=', 'receivable')],
+        domain=[('account_type', '=', 'receivable'), ('company_id', '=', company_id)],
         help="Debit goes here when an order is confirmed."
     )
 
