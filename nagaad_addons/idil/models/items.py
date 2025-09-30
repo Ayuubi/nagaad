@@ -238,7 +238,17 @@ class ItemMovement(models.Model):
     _description = 'Item Movement'
     _inherit = ['mail.thread', 'mail.activity.mixin']
 
-    item_id = fields.Many2one('idil.item', string='Item', required=True, tracking=True)
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
+    item_id = fields.Many2one('idil.item', string='Item', required=True, tracking=True,
+                              domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     date = fields.Date(string='Date', required=True, default=fields.Date.today, tracking=True)
     quantity = fields.Float(string='Quantity', required=True, tracking=True)
     source = fields.Char(string='Source', required=True, tracking=True)
@@ -266,7 +276,8 @@ class ItemMovement(models.Model):
         'my_product.product',
         string='Product',
         tracking=True,
-        help='Product associated with this movement if it relates to a manufacturing order'
+        help='Product associated with this movement if it relates to a manufacturing order',
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     transaction_number = fields.Char(string='Transaction Number', tracking=True)
 

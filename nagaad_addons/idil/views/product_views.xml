@@ -60,6 +60,8 @@
                                 </group>
                                 <group>
                                     <group>
+
+                                        <field name="cost"/>
                                         <field name="sale_price"/>
                                     </group>
                                     <group>

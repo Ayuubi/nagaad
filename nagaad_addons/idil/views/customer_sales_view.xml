@@ -64,9 +64,8 @@
                                         This field is editable, allowing you to adjust the quantity based on real consumption or order fulfillment requirements."
                                         width="25%"/>
 
-                                        
                                      
-                                    <field name="price_unit" string="Unit Price" width="25%"/>
+                                      <field name="price_unit" string="Unit Price" width="25%"/>
                                     <field name="subtotal" string="Subtotal" sum="Total" readonly="1" width="25%"/>
                                      
                                 </tree>

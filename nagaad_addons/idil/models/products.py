@@ -30,6 +30,7 @@ class Product(models.Model):
     ], string='Product Type', default='consu', required=True)
 
     sale_price = fields.Float(string='Sales Price', required=True)
+    cost = fields.Float(string='Sales cost Price', required=True)
     stock_quantity = fields.Float(string="Available Stock")
 
     uom_id = fields.Many2one('idil.unit.measure', string='Unit of Measure')
