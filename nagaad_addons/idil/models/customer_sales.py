@@ -49,7 +49,7 @@ class CustomerSaleOrder(models.Model):
         string="Currency",
         required=True,
         default=lambda self: self.env["res.currency"].search(
-            [("name", "=", "SL")], limit=1
+            [("name", "=", "USD")], limit=1
         ),
         readonly=True,
     )

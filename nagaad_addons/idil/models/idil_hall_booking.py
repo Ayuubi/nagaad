@@ -670,20 +670,25 @@ class HallBookingPayment(models.Model):
     _name = 'idil.hall.booking.payment'
     _description = 'Hall Booking Payment'
 
-    booking_id = fields.Many2one('idil.hall.booking', string='Hall Booking', required=True, ondelete='cascade')
-    payment_date = fields.Date(string='Payment Date', default=fields.Date.today, required=True)
-    amount = fields.Float(string='Payment Amount', required=True)
-    payment_method_id = fields.Many2one('idil.payment.method', string='Payment Method', required=True)
-    payment_reference = fields.Char(string='Payment Reference')
-    bank_reff = fields.Char(
-        string='Bank Reference', required=True, tracking=True
-    )
+    # 👇 new field for multi-company
     company_id = fields.Many2one(
         'res.company',
         string='Company',
         required=True,
         default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
         index=True
+    )
+
+    booking_id = fields.Many2one('idil.hall.booking', string='Hall Booking', required=True, ondelete='cascade',
+                                 domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+    payment_date = fields.Date(string='Payment Date', default=fields.Date.today, required=True)
+    amount = fields.Float(string='Payment Amount', required=True)
+    payment_method_id = fields.Many2one('idil.payment.method', string='Payment Method', required=True,
+                                        domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+    payment_reference = fields.Char(string='Payment Reference')
+    bank_reff = fields.Char(
+        string='Bank Reference', required=True, tracking=True
     )
 
     @api.model
@@ -1014,19 +1019,24 @@ class HallBookingPaymentWizard(models.TransientModel):
     _name = 'idil.hall.booking.payment.wizard'
     _description = 'Add Payment to Hall Booking'
 
-    booking_id = fields.Many2one('idil.hall.booking', string='Hall Booking', required=True)
-    payment_method_id = fields.Many2one('idil.payment.method', string='Payment Method', required=True)
-    payment_date = fields.Date(string='Payment Date', default=fields.Date.today, required=True)
-    payment_amount = fields.Float(string='Payment Amount', required=True)
-    bank_reff = fields.Char(
-        string='Bank Reference', required=True, tracking=True
-    )
+    # 👇 new field for multi-company
     company_id = fields.Many2one(
         'res.company',
         string='Company',
         required=True,
         default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
         index=True
+    )
+
+    booking_id = fields.Many2one('idil.hall.booking', string='Hall Booking', required=True,
+                                 domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+    payment_method_id = fields.Many2one('idil.payment.method', string='Payment Method', required=True,
+                                        domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+    payment_date = fields.Date(string='Payment Date', default=fields.Date.today, required=True)
+    payment_amount = fields.Float(string='Payment Amount', required=True)
+    bank_reff = fields.Char(
+        string='Bank Reference', required=True, tracking=True
     )
 
     @api.model
@@ -1082,27 +1092,34 @@ class ExtraServiceWizard(models.Model):
     _name = 'idil.hall.extra.service'
     _description = 'Extra Service Wizard'
 
-    booking_id = fields.Many2one('idil.hall.booking', string='Booking', required=True, readonly=True)
-    extra_service_amount = fields.Float(string='Extra Amount', required=True)
-    payment_method_id = fields.Many2one('idil.payment.method', string='Payment Method', required=True)
-    payment_date = fields.Date(string='Payment Date', default=fields.Date.today, required=True)
-    account_number = fields.Many2one('idil.chart.account', string='Account Number', store=True)
-    transaction_booking_id = fields.Many2one(
-        'idil.transaction_booking',
-        string='Related Transaction Booking',
-        readonly=True,
-        help="The transaction booking created for this extra service."
-    )
-    service_description = fields.Char(string='Description/Reference')
-    bank_reff = fields.Char(
-        string='Bank Reference', required=True, tracking=True
-    )
+    # 👇 new field for multi-company
     company_id = fields.Many2one(
         'res.company',
         string='Company',
         required=True,
         default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
         index=True
+    )
+
+    booking_id = fields.Many2one('idil.hall.booking', string='Booking', required=True, readonly=True,
+                                 domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+    extra_service_amount = fields.Float(string='Extra Amount', required=True)
+    payment_method_id = fields.Many2one('idil.payment.method', string='Payment Method', required=True,
+                                        domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+    payment_date = fields.Date(string='Payment Date', default=fields.Date.today, required=True)
+    account_number = fields.Many2one('idil.chart.account', string='Account Number', store=True,
+                                     domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+    transaction_booking_id = fields.Many2one(
+        'idil.transaction_booking',
+        string='Related Transaction Booking',
+        readonly=True,
+        help="The transaction booking created for this extra service.",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
+    )
+    service_description = fields.Char(string='Description/Reference')
+    bank_reff = fields.Char(
+        string='Bank Reference', required=True, tracking=True
     )
 
     @api.onchange('payment_method_id')
