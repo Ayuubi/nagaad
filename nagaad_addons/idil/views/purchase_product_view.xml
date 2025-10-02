@@ -8,6 +8,7 @@
             <form string="Product Purchase Order">
                 <sheet>
                     <group>
+                        <field name="company_id"/>
                         <field name="name" readonly="1"/>
                         <field name="vendor_id"/>
                         <field name="invoice_number"/>
@@ -35,6 +36,7 @@
         <field name="model">idil.product.purchase.order</field>
         <field name="arch" type="xml">
             <tree>
+                <field name="company_id"/>
                 <field name="name"/>
                 <field name="vendor_id"/>
                 <field name="payment_method"/>
@@ -46,6 +48,8 @@
     <record id="action_product_purchase_order" model="ir.actions.act_window">
         <field name="name">Product Purchase Orders</field>
         <field name="res_model">idil.product.purchase.order</field>
+        <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]</field>
+
         <field name="view_mode">tree,form</field>
     </record>
 </odoo>

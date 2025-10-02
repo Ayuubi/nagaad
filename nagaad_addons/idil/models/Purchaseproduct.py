@@ -1,6 +1,7 @@
 from asyncio.log import logger
+
 from odoo import models, fields, api
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import ValidationError
 
 
 class ProductPurchaseOrder(models.Model):
@@ -9,12 +10,23 @@ class ProductPurchaseOrder(models.Model):
     _description = "Product Purchase Order"
     _order = "id desc"
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
     name = fields.Char(string="Reference", readonly=True, default="New")
     vendor_id = fields.Many2one(
-        "idil.vendor.registration", string="Vendor", required=True
+        "idil.vendor.registration", string="Vendor", required=True,
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     order_lines = fields.One2many(
-        "idil.product.purchase.order.line", "order_id", string="Order Lines"
+        "idil.product.purchase.order.line", "order_id", string="Order Lines",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     payment_method = fields.Selection(
         [("cash", "Cash"), ("ap", "A/P"), ("bank_transfer", "Bank")],
@@ -39,7 +51,7 @@ class ProductPurchaseOrder(models.Model):
     account_number = fields.Many2one(
         "idil.chart.account",
         string="Account Number",
-        domain="[('account_type', '=', payment_method)]",
+        domain="[('account_type', '=', payment_method), ('company_id', '=', company_id)]",
     )
 
     @api.depends("order_lines.amount")
@@ -51,8 +63,8 @@ class ProductPurchaseOrder(models.Model):
     def create(self, vals):
         if vals.get("name", "New") == "New":
             vals["name"] = (
-                self.env["ir.sequence"].next_by_code("product.purchase.order.seq")
-                or "New"
+                    self.env["ir.sequence"].next_by_code("product.purchase.order.seq")
+                    or "New"
             )
         return super().create(vals)
 
@@ -143,13 +155,24 @@ class ProductPurchaseOrderLine(models.Model):
     _description = "Product Purchase Order Line"
     _order = "id desc"
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
     order_id = fields.Many2one(
-        "idil.product.purchase.order", string="Order", ondelete="cascade"
+        "idil.product.purchase.order", string="Order", ondelete="cascade",
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     product_id = fields.Many2one(
         "my_product.product",
         string="Product",
         required=True,
+        domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     quantity = fields.Float(string="Quantity", required=True)
     cost_price = fields.Float(string="Cost Price", digits=(16, 3), required=True)
@@ -431,7 +454,7 @@ class ProductPurchaseOrderLine(models.Model):
                         if self.order_id.payment_method == "ap":
                             vendor_transaction.amount = record.amount
                             vendor_transaction.remaining_amount = (
-                                record.amount - prev_paid
+                                    record.amount - prev_paid
                             )
                             vendor_transaction.paid_amount = prev_paid
                         elif self.order_id.payment_method == "cash":
