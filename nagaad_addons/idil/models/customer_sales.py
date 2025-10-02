@@ -191,17 +191,17 @@ class CustomerSaleOrder(models.Model):
         new_order = super(CustomerSaleOrder, self).create(vals)
 
         # Step 3: Create product movements for each order line
-        for line in new_order.order_lines:
-            self.env["idil.product.movement"].create(
-                {
-                    "product_id": line.product_id.id,
-                    "movement_type": "out",
-                    "quantity": line.quantity * -1,
-                    "date": fields.Datetime.now(),
-                    "source_document": new_order.name,
-                    "customer_id": new_order.customer_id.id,
-                }
-            )
+        # for line in new_order.order_lines:
+        #     self.env["idil.product.movement"].create(
+        #         {
+        #             "product_id": line.product_id.id,
+        #             "movement_type": "out",
+        #             "quantity": line.quantity * -1,
+        #             "date": fields.Datetime.now(),
+        #             "source_document": new_order.name,
+        #             "customer_id": new_order.customer_id.id,
+        #         }
+        #     )
 
         # Step 4: Book accounting entries for the new order
         new_order.book_accounting_entry()
@@ -518,21 +518,21 @@ class CustomerSaleOrder(models.Model):
         # === Update related records ===
         for order in self:
             # -- Update Product Movements --
-            movements = self.env["idil.product.movement"].search(
-                [("source_document", "=", order.name)]
-            )
-            for movement in movements:
-                matching_line = order.order_lines.filtered(
-                    lambda l: l.product_id.id == movement.product_id.id
-                )
-                if matching_line:
-                    movement.write(
-                        {
-                            "quantity": matching_line[0].quantity * -1,
-                            "date": fields.Datetime.now(),
-                            "customer_id": order.customer_id.id,
-                        }
-                    )
+            # movements = self.env["idil.product.movement"].search(
+            #     [("source_document", "=", order.name)]
+            # )
+            # for movement in movements:
+            #     matching_line = order.order_lines.filtered(
+            #         lambda l: l.product_id.id == movement.product_id.id
+            #     )
+            #     if matching_line:
+            #         movement.write(
+            #             {
+            #                 "quantity": matching_line[0].quantity * -1,
+            #                 "date": fields.Datetime.now(),
+            #                 "customer_id": order.customer_id.id,
+            #             }
+            #         )
 
             # -- Update Sales Receipt --
             receipt = self.env["idil.sales.receipt"].search(
@@ -648,12 +648,12 @@ class CustomerSaleOrder(models.Model):
                     product.stock_quantity += line.quantity
 
                     # 2. Delete related product movement
-                    self.env["idil.product.movement"].search(
-                        [
-                            ("product_id", "=", product.id),
-                            ("source_document", "=", order.name),
-                        ]
-                    ).unlink()
+                    # self.env["idil.product.movement"].search(
+                    #     [
+                    #         ("product_id", "=", product.id),
+                    #         ("source_document", "=", order.name),
+                    #     ]
+                    # ).unlink()
 
                     # 3. Delete related booking lines
                     booking_lines = self.env["idil.transaction_bookingline"].search(
