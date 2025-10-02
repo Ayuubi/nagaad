@@ -52,13 +52,13 @@
      <menuitem id="menu_purchase_product_orders"
               name="Purchase Product"
               parent="menu_purchase"
-              sequence="1"
+              sequence="2"
               action="action_product_purchase_order"/>
 
     <menuitem id="menu_idil_view_purchase_order"
               name="View Purchase Oder"
               action="action_view_purchase_order"
-              sequence="2"
+              sequence="3"
               parent="menu_purchase"/>
 
 
@@ -72,7 +72,7 @@
               name="Vendor Bulk Payment"
               parent="menu_purchase"
               action="action_vendor_bulk_payment"
-              sequence="3"/>
+              sequence="4"/>
 
     <menuitem id="menu_reports_for_vendors"
               name="Reports"
