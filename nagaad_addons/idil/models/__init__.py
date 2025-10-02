@@ -71,3 +71,4 @@ from . import sales_receipt_bulk_payment
 from . import sales_receipt
 from . import customer_order
 from . import waiter_bulk_payment
+from . import Purchaseproduct

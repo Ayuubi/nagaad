@@ -56,7 +56,11 @@ class VendorTransaction(models.Model):
         'idil.transaction_booking', string='Transaction Booking', ondelete='cascade'
     )
     payment_ids = fields.One2many('idil.vendor_payment', 'vendor_transaction_id', string='Vendor Payments')
-
+    product_purchase_order_id = fields.Many2one(
+        "idil.product.purchase.order",
+        string="Product Purchase Order",
+        ondelete="cascade",
+    )
     def write(self, vals):
         for record in self:
             if 'amount_paying' in vals:

@@ -43,11 +43,17 @@
               parent="menu_inv_purchase_root"
               sequence="3"/>
 
-    <menuitem id="menu_purchase_orders"
-              name="Purchase Orders"
+    <menuitem id="menu_purchase_item_orders"
+              name="Purchase Item"
               parent="menu_purchase"
               sequence="1"
               action="action_purchase_order"/>
+
+     <menuitem id="menu_purchase_product_orders"
+              name="Purchase Product"
+              parent="menu_purchase"
+              sequence="1"
+              action="action_product_purchase_order"/>
 
     <menuitem id="menu_idil_view_purchase_order"
               name="View Purchase Oder"

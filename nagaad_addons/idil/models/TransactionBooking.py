@@ -134,6 +134,11 @@ class TransactionBooking(models.Model):
         ondelete="cascade",
         domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
+    product_purchase_order_id = fields.Many2one(
+        "idil.product.purchase.order",
+        string="Product Purchase Order",
+        ondelete="cascade",
+    )
 
     @api.constrains('amount_paid')
     def _check_amount_paid(self):
@@ -354,6 +359,11 @@ class TransactionBookingline(models.Model):
     customer_opening_balance_id = fields.Many2one(
         "idil.customer.opening.balance.line",
         string="Opening Balance",
+        ondelete="cascade",
+    )
+    product_purchase_order_id = fields.Many2one(
+        "idil.product.purchase.order",
+        string="Product Purchase Order",
         ondelete="cascade",
     )
 

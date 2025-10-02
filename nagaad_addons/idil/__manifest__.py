@@ -125,6 +125,7 @@
         'views/Sales_reciept.xml',
         'views/customer_order.xml',
         'views/waiter_bulk_payment_views.xml',
+        'views/purchase_product_view.xml',
 
         'views/menu_hr.xml',
         'views/menu_hall.xml',

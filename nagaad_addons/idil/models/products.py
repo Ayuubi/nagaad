@@ -32,6 +32,20 @@ class Product(models.Model):
     sale_price = fields.Float(string='Sales Price', required=True)
     cost = fields.Float(string='Sales cost Price', required=True)
     stock_quantity = fields.Float(string="Available Stock")
+    asset_account_id = fields.Many2one(
+        "idil.chart.account",
+        string="Inventory Asset Account",
+        help="Account to report Asset of this item",
+        required=True,
+        tracking=True,
+        domain="[('code', 'like', '1')]",
+        # Domain to filter accounts starting with '1' and in USD
+    )
+    account_cogs_id = fields.Many2one(
+        "idil.chart.account",
+        string="Cost of Goods Sold (Expense)",
+        domain="[('account_type', 'like', 'COGS'), ('code', 'like', '5%')]",
+    )
 
     uom_id = fields.Many2one('idil.unit.measure', string='Unit of Measure')
     income_account_id = fields.Many2one(
