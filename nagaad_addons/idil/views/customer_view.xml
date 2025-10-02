@@ -75,8 +75,9 @@
         <field name="model">idil.customer.registration</field>
         <field name="arch" type="xml">
             <tree>
+                <field name="company_id"/>
 
-                <field name="company_id" widget="avatar"  string="Company"/>
+                <field name="company_id" widget="avatar" string="Company"/>
                 <field name="image" widget="image" options="{'size': (20, 20)}"/> <!-- Adjust size here -->
                 <field name="name" widget="avatar" string="Customer"/>
                 <field name="type_id" widget="avatar" string="Customer type"/>
@@ -127,6 +128,8 @@
 
                     <group>
                         <group class="oe_title">
+
+                            <field name="company_id"/>
                             <field name="name" string="Customer Name"/>
                             <field name="type_id" string="Customer type"/>
                             <field name="phone" string="Customer phone"/>
@@ -135,7 +138,7 @@
                         <group>
                             <field name="email" widget="email"/>
                             <field name="gender" class="oe_edit_only"/>
-<!--                            <field name="currency_id" class="oe_edit_only"/>-->
+                            <!--                            <field name="currency_id" class="oe_edit_only"/>-->
                             <field name="account_receivable_id" class="oe_edit_only"/>
 
                             <field name="status" widget="boolean_button"/>

@@ -6,6 +6,16 @@ class Customer(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _description = 'Customer Registration'
 
+    # 👇 new field for multi-company
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
+        index=True
+    )
+
     name = fields.Char(string='Name', required=True, tracking=True)
     type_id = fields.Many2one(comodel_name='idil.customer.type.registration', string='Customer Type',
                               help='Select type of registration')
@@ -30,12 +40,4 @@ class Customer(models.Model):
 
     )
     image = fields.Binary(string="Image")
-    # 👇 new field for multi-company
-    company_id = fields.Many2one(
-        'res.company',
-        string='Company',
-        required=True,
-        default=lambda self: self.env.company,
-        index=True
-    )
 
