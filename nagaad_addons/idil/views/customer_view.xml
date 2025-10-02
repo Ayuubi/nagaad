@@ -136,7 +136,8 @@
                             <field name="email" widget="email"/>
                             <field name="gender" class="oe_edit_only"/>
 <!--                            <field name="currency_id" class="oe_edit_only"/>-->
-<!--                            <field name="account_receivable_id" class="oe_edit_only"/>-->
+                            <field name="account_receivable_id" class="oe_edit_only"/>
+
                             <field name="status" widget="boolean_button"/>
 
                             <field name="active"/>

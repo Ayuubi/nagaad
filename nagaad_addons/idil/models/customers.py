@@ -25,8 +25,7 @@ class Customer(models.Model):
     account_receivable_id = fields.Many2one(
         "idil.chart.account",
         string="Sales Receivable Account",
-        domain="[('account_type', 'like', 'receivable'), ('code', 'like', '1%'), "
-               "('currency_id', '=', currency_id)]",
+        domain="[('account_type', 'like', 'receivable'), ('code', 'like', '1%'), ('company_id', '=', company_id)]",
         help="Select the receivable account for transactions.",
 
     )
