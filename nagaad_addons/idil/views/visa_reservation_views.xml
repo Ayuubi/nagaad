@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Tree View -->
+    <record id="view_travel_visa_reservation_tree" model="ir.ui.view">
+        <field name="name">travel.visa.reservation.tree</field>
+        <field name="model">travel.visa.reservation</field>
+        <field name="arch" type="xml">
+            <tree string="Visa Reservations" default_order="id desc">
+                <field name="name"/>
+                <field name="applicant_name"/>
+                <field name="passport_no"/>
+                <field name="passport_country"/>
+                <field name="contact_no"/>
+                <field name="destination_country"/>
+                <field name="visa_type"/>
+                <field name="visa_duration"/>
+                <field name="application_date"/>
+                <field name="visa_expiry_date"/>
+                <field name="status"/>
+                <field name="visa_fee"/>
+                <field name="agency_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_travel_visa_reservation_form" model="ir.ui.view">
+        <field name="name">travel.visa.reservation.form</field>
+        <field name="model">travel.visa.reservation</field>
+        <field name="arch" type="xml">
+            <form string="Visa Reservation">
+                <header>
+                    <button name="write" type="object" string="Set Pending"
+                            context="{'status_value': 'pending'}"
+                    />
+                    <button name="write" type="object" string="Approve"
+                            context="{'status_value': 'approved'}"
+                    />
+                    <button name="write" type="object" string="Reject"
+                            context="{'status_value': 'rejected'}"
+                    />
+                    <field name="status" widget="statusbar" statusbar_visible="pending,approved,rejected"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="applicant_name"/>
+                            <field name="passport_no"/>
+                            <field name="passport_country"/>
+                            <field name="contact_no"/>
+                        </group>
+                        <group>
+                            <field name="destination_country"/>
+                            <field name="visa_type"/>
+                            <field name="visa_duration"/>
+                            <field name="application_date"/>
+                            <field name="visa_expiry_date"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group>
+                            <field name="visa_fee"/>
+                            <field name="agency_id"/>
+                        </group>
+                        <group>
+                            <field name="remarks"/>
+                        </group>
+                    </group>
+
+                    <group string="Attachments">
+                        <field name="attachment_file" filename="attachment_filename"/>
+                        <field name="attachment_filename"/>
+                    </group>
+
+                    <chatter/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Window Action -->
+    <record id="action_travel_visa_reservation" model="ir.actions.act_window">
+        <field name="name">Visa Reservations</field>
+        <field name="res_model">travel.visa.reservation</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create your first visa reservation</p>
+        </field>
+    </record>
+
+
+</odoo>

@@ -126,6 +126,8 @@
         'views/customer_order.xml',
         'views/waiter_bulk_payment_views.xml',
         'views/purchase_product_view.xml',
+        'views/ticket_reservation_views.xml',
+        'views/visa_reservation_views.xml',
 
         'views/menu_hr.xml',
         'views/menu_hall.xml',
@@ -135,6 +137,7 @@
         'views/menu_asset.xml',
         'views/menu_sales.xml',
         'views/menu_waiter.xml',
+        'views/menu_ticket.xml',
         'views/menu.xml',
 
     ],

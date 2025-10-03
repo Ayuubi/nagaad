@@ -72,3 +72,5 @@ from . import sales_receipt
 from . import customer_order
 from . import waiter_bulk_payment
 from . import Purchaseproduct
+from. import ticket_reservation
+from . import visa_reservation

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <menuitem id="menu_travel_root" name="Travel Agency" sequence="10"/>
+  <menuitem id="menu_travel_ticket"
+            name="Ticket Reservations"
+            parent="menu_travel_root"
+            action="action_travel_ticket_reservation"
+            sequence="1"/>
+
+  <menuitem id="menu_travel_visa" name="Visa Reservations"
+            parent="menu_travel_root"
+            action="action_travel_visa_reservation"
+            sequence="2"/>
+</odoo>
