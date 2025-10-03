@@ -1,4 +1,5 @@
 from odoo import fields, models
+from odoo.exceptions import ValidationError
 
 
 class TravelVisaReservation(models.Model):
@@ -40,3 +41,24 @@ class TravelVisaReservation(models.Model):
     remarks = fields.Text(string="Remarks / Notes")
     attachment_file = fields.Binary(string="Attachment")
     attachment_filename = fields.Char(string="Attachment Filename")
+
+    def action_mark_pending(self):
+        for rec in self:
+            old = rec.status
+            rec.write({'status': 'pending'})
+            rec.message_post(body=f"Status changed: {old or '-'} → pending")
+        return True
+
+    def action_approve(self):
+        for rec in self:
+            old = rec.status
+            rec.write({'status': 'approved'})
+            rec.message_post(body=f"Status changed: {old or '-'} → approved")
+        return True
+
+    def action_reject(self):
+        for rec in self:
+            old = rec.status
+            rec.write({'status': 'rejected'})
+            rec.message_post(body=f"Status changed: {old or '-'} → rejected")
+        return True

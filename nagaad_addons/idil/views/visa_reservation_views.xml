@@ -31,15 +31,9 @@
         <field name="arch" type="xml">
             <form string="Visa Reservation">
                 <header>
-                    <button name="write" type="object" string="Set Pending"
-                            context="{'status_value': 'pending'}"
-                    />
-                    <button name="write" type="object" string="Approve"
-                            context="{'status_value': 'approved'}"
-                    />
-                    <button name="write" type="object" string="Reject"
-                            context="{'status_value': 'rejected'}"
-                    />
+                    <button name="action_mark_pending" type="object" string="Set Pending"/>
+                    <button name="action_approve" type="object" string="Approve" class="oe_highlight"/>
+                    <button name="action_reject" type="object" string="Reject"/>
                     <field name="status" widget="statusbar" statusbar_visible="pending,approved,rejected"/>
                 </header>
                 <sheet>
