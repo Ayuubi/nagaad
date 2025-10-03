@@ -180,12 +180,6 @@ class CustomerSaleOrder(models.Model):
 
     @api.model
     def create(self, vals):
-        # Step 1: Check if customer_id is provided in vals
-        if "customer_id" in vals:
-
-            # Set order reference if not provided
-            if "name" not in vals or not vals["name"]:
-                vals["name"] = self._generate_order_reference(vals)
 
         # Proceed with creating the SaleOrder with the updated vals
         new_order = super(CustomerSaleOrder, self).create(vals)
@@ -208,23 +202,6 @@ class CustomerSaleOrder(models.Model):
 
         return new_order
 
-    def _generate_order_reference(self, vals):
-        bom_id = vals.get("bom_id", False)
-        if bom_id:
-            bom = self.env["idil.bom"].browse(bom_id)
-            bom_name = (
-                re.sub("[^A-Za-z0-9]+", "", bom.name[:2]).upper()
-                if bom and bom.name
-                else "XX"
-            )
-            date_str = "/" + datetime.now().strftime("%d%m%Y")
-            day_night = "/DAY/" if datetime.now().hour < 12 else "/NIGHT/"
-            sequence = self.env["ir.sequence"].next_by_code("idil.sale.order.sequence")
-            sequence = sequence[-3:] if sequence else "000"
-            return f"{bom_name}{date_str}{day_night}{sequence}"
-        else:
-            # Fallback if no BOM is provided
-            return self.env["ir.sequence"].next_by_code("idil.sale.order.sequence")
 
     @api.depends("order_lines.subtotal")
     def _compute_order_total(self):
@@ -313,18 +290,10 @@ class CustomerSaleOrder(models.Model):
             for line in order.order_lines:
                 product = line.product_id
 
-                bom_currency = (
-                    product.bom_id.currency_id
-                    if product.bom_id
-                    else product.currency_id
-                )
 
-                amount_in_bom_currency = product.cost * line.quantity
 
-                if bom_currency.name == "USD":
-                    product_cost_amount = amount_in_bom_currency * self.rate
-                else:
-                    product_cost_amount = amount_in_bom_currency
+
+                product_cost_amount = product.cost * line.quantity
 
                 # product_cost_amount = product.cost * line.quantity
                 _logger.info(
@@ -573,18 +542,8 @@ class CustomerSaleOrder(models.Model):
                     order_line = matching_order_line[0]
                     product = order_line.product_id
 
-                    bom_currency = (
-                        product.bom_id.currency_id
-                        if product.bom_id
-                        else product.currency_id
-                    )
 
-                    amount_in_bom_currency = product.cost * order_line.quantity
-
-                    if bom_currency.name == "USD":
-                        product_cost_amount = amount_in_bom_currency * self.rate
-                    else:
-                        product_cost_amount = amount_in_bom_currency
+                    product_cost_amount = product.cost * order_line.quantity
 
                     _logger.info(
                         f"Product Cost Amount: {product_cost_amount} for product {product.name}"
