@@ -1,9 +1,9 @@
+import logging
 import re
 
 from odoo import models, fields, api
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.safe_eval import datetime
-import logging
 
 _logger = logging.getLogger(__name__)
 
@@ -245,10 +245,7 @@ class CustomerSaleOrder(models.Model):
                 raise ValidationError(
                     "The Customer does not have a receivable account."
                 )
-            if order.rate <= 0:
-                raise ValidationError(
-                    "Please insert a valid exchange rate greater than 0."
-                )
+
             # Only check order lines if not from opening balance
             if not order.customer_opening_balance_id and not order.order_lines:
                 raise ValidationError(
