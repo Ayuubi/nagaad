@@ -7,7 +7,7 @@
     'depends': ['mail', 'point_of_sale', 'base', 'web'],
     'application': True,
     'sequence': -100,
-    'author': 'Ayoub',
+    'author': 'ayuuub',
 
     'assets': {
         'web.assets_common': [
