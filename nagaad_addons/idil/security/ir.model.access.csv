@@ -103,3 +103,6 @@ idil.access_idil_product_purchase_order,access_idil_product_purchase_order,idil.
 idil.access_idil_product_purchase_order_line,access_idil_product_purchase_order_line,idil.model_idil_product_purchase_order_line,base.group_user,1,1,1,1
 idil.access_travel_ticket_reservation,access_travel_ticket_reservation,idil.model_travel_ticket_reservation,base.group_user,1,1,1,1
 idil.access_travel_visa_reservation,access_travel_visa_reservation,idil.model_travel_visa_reservation,base.group_user,1,1,1,1
+idil.access_idil_invoice,access_idil_invoice,idil.model_idil_invoice,base.group_user,1,1,1,1
+idil.access_idil_invoice_line,access_idil_invoice_line,idil.model_idil_invoice_line,base.group_user,1,1,1,1
+idil.access_idil_product_service,access_idil_product_service,idil.model_idil_product_service,base.group_user,1,1,1,1

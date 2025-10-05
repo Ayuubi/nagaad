@@ -129,6 +129,11 @@
         'views/ticket_reservation_views.xml',
         'views/visa_reservation_views.xml',
 
+        'reports/idil_invoice_qweb.xml',
+        'views/idil_invoice_views.xml',
+        'views/product_service.xml',
+
+
         'views/menu_hr.xml',
         'views/menu_hall.xml',
         'views/menu_store.xml',
@@ -138,6 +143,7 @@
         'views/menu_sales.xml',
         'views/menu_waiter.xml',
         'views/menu_ticket.xml',
+        'views/menu_invoice.xml',
         'views/menu.xml',
 
     ],

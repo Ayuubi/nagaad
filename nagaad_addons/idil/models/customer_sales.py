@@ -258,6 +258,7 @@ class CustomerSaleOrder(models.Model):
                     "payment_method": "bank_transfer",  # Assuming default payment method; adjust as needed
                     "payment_status": "pending",  # Assuming initial payment status; adjust as needed
                     "trx_date": fields.Date.context_today(self),
+                    "bank_reff" :0,
                     "amount": order.order_total,
                     # Include other necessary fields
                 }
@@ -323,7 +324,7 @@ class CustomerSaleOrder(models.Model):
                     )
                 # ------------------------------------------------------------------------------------------------------
                 # Validate that the product has a COGS account
-                if not product.account_cogs_id:
+                if not product.purchase_account_id:
                     raise ValidationError(
                         f"No COGS (Cost of Goods Sold) account assigned for the product '{product.name}'.\n"
                         f"Please configure 'COGS Account' in the product settings before continuing."
@@ -342,7 +343,7 @@ class CustomerSaleOrder(models.Model):
                 if order.payment_method in ["cash", "bank_transfer"]:
                     cash_currency = order.account_number.currency_id
                     involved_accounts = {
-                        "COGS": product.account_cogs_id,
+                        "COGS": product.purchase_account_id,
                         "Asset": product.asset_account_id,
                         "Income": product.income_account_id,
                     }
@@ -360,10 +361,11 @@ class CustomerSaleOrder(models.Model):
                     {
                         "transaction_booking_id": transaction_booking.id,
                         "description": f"Sales Order -- Expanses COGS account for - {product.name}",
-                        "product_id": product.id,
-                        "account_number": product.account_cogs_id.id,
+                        "product_service_id": product.id,
+                        "account_number": product.purchase_account_id.id,
                         # Use the COGS Account_number
                         "transaction_type": "dr",
+                        "bank_reff": 0,
                         "dr_amount": product_cost_amount,
                         "cr_amount": 0,
                         "transaction_date": fields.Date.context_today(self),
@@ -375,9 +377,10 @@ class CustomerSaleOrder(models.Model):
                     {
                         "transaction_booking_id": transaction_booking.id,
                         "description": f"Sales Inventory account for - {product.name}",
-                        "product_id": product.id,
+                        "product_service_id": product.id,
                         "account_number": product.asset_account_id.id,
                         "transaction_type": "cr",
+                        "bank_reff": 0,
                         "dr_amount": 0,
                         "cr_amount": product_cost_amount,
                         "transaction_date": fields.Date.context_today(self),
@@ -390,8 +393,9 @@ class CustomerSaleOrder(models.Model):
                     {
                         "transaction_booking_id": transaction_booking.id,
                         "description": f"Sale of {product.name}",
-                        "product_id": product.id,
+                        "product_service_id": product.id,
                         "account_number": account_to_use.id,
+                        "bank_reff": 0,
                         "transaction_type": "dr",  # Debit transaction
                         "dr_amount": line.subtotal,
                         "cr_amount": 0,
@@ -406,9 +410,10 @@ class CustomerSaleOrder(models.Model):
                     {
                         "transaction_booking_id": transaction_booking.id,
                         "description": f"Sales Revenue - {product.name}",
-                        "product_id": product.id,
+                        "product_service_id": product.id,
                         "account_number": product.income_account_id.id,
                         "transaction_type": "cr",
+                        "bank_reff": 0,
                         "dr_amount": 0,
                         "cr_amount": (line.subtotal),
                         "transaction_date": fields.Date.context_today(self),
@@ -466,17 +471,17 @@ class CustomerSaleOrder(models.Model):
                 # Check if increase
                 if new_qty > old_qty:
                     diff = new_qty - old_qty
-                    if product.stock_quantity < diff:
+                    if product.quantity < diff:
                         raise ValidationError(
                             f"Not enough stock for product '{product.name}'.\n"
-                            f"Available: {product.stock_quantity}, Required additional: {diff}"
+                            f"Available: {product.quantity}, Required additional: {diff}"
                         )
-                    product.stock_quantity -= diff
+                    product.quantity -= diff
 
                 # If decrease
                 elif new_qty < old_qty:
                     diff = old_qty - new_qty
-                    product.stock_quantity += diff
+                    product.quantity += diff
 
         # === Perform the write ===
         res = super(CustomerSaleOrder, self).write(vals)
@@ -553,7 +558,7 @@ class CustomerSaleOrder(models.Model):
                     # COGS (DR)
                     if (
                             line.transaction_type == "dr"
-                            and line.account_number.id == product.account_cogs_id.id
+                            and line.account_number.id == product.purchase_account_id.id
                     ):
                         updated_values["dr_amount"] = product_cost_amount
                         updated_values["cr_amount"] = 0
@@ -601,7 +606,7 @@ class CustomerSaleOrder(models.Model):
                 product = line.product_id
                 if product:
                     # 1. Restore the stock
-                    product.stock_quantity += line.quantity
+                    product.quantity += line.quantity
 
                     # 2. Delete related product movement
                     # self.env["idil.product.movement"].search(
@@ -614,7 +619,7 @@ class CustomerSaleOrder(models.Model):
                     # 3. Delete related booking lines
                     booking_lines = self.env["idil.transaction_bookingline"].search(
                         [
-                            ("product_id", "=", product.id),
+                            ("product_service_id", "=", product.id),
                             (
                                 "transaction_booking_id.cusotmer_sale_order_id",
                                 "=",
@@ -659,12 +664,12 @@ class CustomerSaleOrderLine(models.Model):
 
     order_id = fields.Many2one("idil.customer.sale.order", string="Sale Order",
                                domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
-    product_id = fields.Many2one("my_product.product", string="Product",
+    product_id = fields.Many2one("idil.product.service", string="Product",
                                  domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
     quantity_Demand = fields.Float(string="Demand", default=1.0)
     available_stock = fields.Float(
         string="Available Stock",
-        related="product_id.stock_quantity",
+        related="product_id.quantity",
         readonly=True,
         store=False,
     )
@@ -731,15 +736,15 @@ class CustomerSaleOrderLine(models.Model):
         """Static Method: Update product stock quantity based on the sale order line quantity change."""
         # If this order is for opening balance, skip accounting booking: opening balance does its own accounting
 
-        new_stock_quantity = product.stock_quantity - quantity
+        new_stock_quantity = product.quantity - quantity
         if new_stock_quantity < 0:
             raise ValidationError(
                 "Insufficient stock for product '{}'. The available stock quantity is {:.2f}, "
                 "but the required quantity is {:.2f}.".format(
-                    product.name, product.stock_quantity, abs(quantity)
+                    product.name, product.quantity, abs(quantity)
                 )
             )
-        product.stock_quantity = new_stock_quantity
+        product.quantity = new_stock_quantity
 
     @api.constrains("quantity", "price_unit")
     def _check_quantity_and_price(self):

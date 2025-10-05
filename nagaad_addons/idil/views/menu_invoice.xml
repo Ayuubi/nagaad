@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+
+    <menuitem id="menu_idil_root" name="IDIL" sequence="10"/>
+    <menuitem id="menu_idil_invoicing" name="Invoicing" parent="menu_idil_root" sequence="20"/>
+    <menuitem id="menu_idil_invoices" name="Invoices" parent="menu_idil_invoicing"
+              action="action_idil_invoice" sequence="10"/>
+
+</odoo>

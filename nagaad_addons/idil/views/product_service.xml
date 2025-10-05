@@ -1,0 +1,71 @@
+<odoo>
+
+     <record id="tree_idil_product_service" model="ir.ui.view">
+        <field name="name">idil.product.service.tree</field>
+        <field name="model">idil.product.service</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="company_id"/>
+                <field name="item_type"/>
+
+                <field name="image" widget="image" options="{'size': (20, 20)}"/> <!-- Adjust size here -->
+
+                <field name="name"/>
+                <field name="sale_price"/>
+                <field name="cost"/>
+                <field name="quantity"/>
+                <field name="uom_id"/>
+                <field name="asset_account_id"/>
+                <field name="purchase_account_id"/>
+                <field name="income_account_id"/>
+            </tree>
+        </field>
+    </record>
+
+      <record id="view_idil_product_service_form" model="ir.ui.view">
+        <field name="name">idil.product.service.form</field>
+        <field name="model">idil.product.service</field>
+        <field name="arch" type="xml">
+            <form string="Product / Service">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="item_type"/>
+                        </group>
+                        <group>
+                            <field name="image" widget="image" class="oe_avatar"/>
+                        </group>
+                    </group>
+                    <!-- Product Fields -->
+                    <group>
+                        <group string="Product Information">
+                            <field name="name"/>
+                            <field name="sale_price"/>
+                            <field name="cost"/>
+                            <field name="quantity"/>
+                            <field name="uom_id"/>
+                        </group>
+                        <group string="Accounting Information">
+                            <field name="asset_account_id" invisible="item_type != 'product'"/>
+                            <field name="purchase_account_id" invisible="item_type != 'product'"/>
+                            <field name="income_account_id"/>
+                        </group>
+                    </group>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                    <field name="activity_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+
+    <record id="action_idil_product_service" model="ir.actions.act_window">
+        <field name="name">Product / Service</field>
+        <field name="res_model">idil.product.service</field>
+        <field name="view_mode">tree,form</field>
+
+    </record>
+</odoo>

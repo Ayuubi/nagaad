@@ -1,0 +1,127 @@
+<odoo>
+    <template id="report_idil_invoice_qweb">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout_standard">
+                    <div class="page">
+                        <h2>Invoice
+                            <span t-esc="o.name"/>
+                        </h2>
+
+                        <div class="row mt16">
+                            <div class="col-6">
+                                <h4>From</h4>
+                                <p>
+                                    <span t-esc="o.company_id.name"/>
+                                    <br/>
+                                    <span t-esc="o.company_id.partner_id.contact_address"/>
+                                </p>
+                            </div>
+                            <div class="col-6">
+                                <h4>To</h4>
+                                <p>
+                                    <span t-esc="o.customer_id.name"/>
+                                    <br/>
+                                    <span t-esc="o.customer_id.phone"/>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="row mt16">
+                            <div class="col-6">
+                                <strong>Date:</strong>
+                                <span t-esc="o.invoice_date"/>
+                            </div>
+                            <div class="col-6">
+                                <strong>Currency:</strong>
+                                <span t-esc="o.currency_id.name"/>
+                            </div>
+                        </div>
+
+                        <table class="table table-sm mt16">
+                            <thead>
+                                <tr>
+                                    <th style="width: 35%;">Product</th>
+                                    <th>Description</th>
+                                    <th class="text-right" style="width: 10%;">Qty</th>
+                                    <th class="text-right" style="width: 15%;">Unit Price</th>
+                                    <th class="text-right" style="width: 10%;">Tax %</th>
+                                    <th class="text-right" style="width: 15%;">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.line_ids" t-as="l">
+                                    <td>
+                                        <span t-esc="l.product_id.display_name"/>
+                                    </td>
+                                    <td>
+                                        <span t-esc="l.name"/>
+                                    </td>
+                                    <td class="text-right">
+                                        <span t-esc="l.quantity"/>
+                                    </td>
+                                    <td class="text-right">
+                                        <span t-esc="l.price_unit"/>
+                                    </td>
+                                    <td class="text-right">
+                                        <span t-esc="l.tax_percent"/>
+                                    </td>
+                                    <td class="text-right">
+                                        <span t-esc="l.subtotal"/>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="row mt16">
+                            <div class="col-6">
+                                <p t-if="o.narration">
+                                    <strong>Notes:</strong>
+                                    <br/>
+                                    <span t-esc="o.narration"/>
+                                </p>
+                            </div>
+                            <div class="col-6">
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <td class="text-right">
+                                            <strong>Untaxed</strong>
+                                        </td>
+                                        <td class="text-right">
+                                            <span t-esc="o.amount_untaxed"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-right">
+                                            <strong>Tax</strong>
+                                        </td>
+                                        <td class="text-right">
+                                            <span t-esc="o.amount_tax"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-right">
+                                            <strong>Total</strong>
+                                        </td>
+                                        <td class="text-right">
+                                            <span t-esc="o.amount_total"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+    <!-- Explicit ir.actions.report record (more robust than <report> shortcut) -->
+    <record id="report_idil_invoice_pdf" model="ir.actions.report">
+        <field name="name">Print Invoice</field>
+        <field name="model">idil.invoice</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">idil.report_idil_invoice_qweb</field> <!-- module.template_id -->
+        <field name="print_report_name">'%s' % (object._get_report_base_filename())</field>
+    </record>
+
+</odoo>

@@ -78,10 +78,10 @@ class ProductPurchaseOrder(models.Model):
                     for line in order.order_lines:
                         product = line.product_id
                         if product and line.quantity:
-                            if product.stock_quantity < line.quantity:
+                            if product.quantity < line.quantity:
                                 raise ValidationError(
                                     f"Cannot delete Purchase Order '{order.name}' because product '{product.name}' "
-                                    f"has only {product.stock_quantity} in stock, but {line.quantity} is needed to reverse."
+                                    f"has only {product.quantity} in stock, but {line.quantity} is needed to reverse."
                                 )
                     order_ids.append(order.id)
 
@@ -90,7 +90,7 @@ class ProductPurchaseOrder(models.Model):
                     for line in order.order_lines:
                         product = line.product_id
                         if product and line.quantity:
-                            product.stock_quantity -= line.quantity
+                            product.quantity -= line.quantity
 
                 # Step 3: Delete main purchase orders
                 res = super(ProductPurchaseOrder, self).unlink()
@@ -140,10 +140,10 @@ class ProductPurchaseOrder(models.Model):
 
                         if qty_diff < 0:
                             product = line.product_id
-                            if product.stock_quantity < abs(qty_diff):
+                            if product.quantity < abs(qty_diff):
                                 raise ValidationError(
                                     f"Cannot reduce quantity of product '{product.name}'. "
-                                    f"Available stock is {product.stock_quantity}, but trying to reduce by {abs(qty_diff)}."
+                                    f"Available stock is {product.quantity}, but trying to reduce by {abs(qty_diff)}."
                                 )
 
         return super(ProductPurchaseOrder, self).write(vals)
@@ -169,7 +169,7 @@ class ProductPurchaseOrderLine(models.Model):
         domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
     product_id = fields.Many2one(
-        "my_product.product",
+        "idil.product.service",
         string="Product",
         required=True,
         domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
@@ -298,7 +298,7 @@ class ProductPurchaseOrderLine(models.Model):
                             "bank_reff": 0,
                             "cr_amount": 0,
                             "account_number": product.asset_account_id.id,
-                            "product_id": product.id,
+                            "product_service_id": product.id,
                             "transaction_date": order.purchase_date,
                             "company_id": self.env.company.id,
                         }
@@ -314,7 +314,7 @@ class ProductPurchaseOrderLine(models.Model):
                             "dr_amount": 0,
                             "cr_amount": line.amount,
                             "account_number": credit_account_id.id,
-                            "product_id": product.id,
+                            "product_service_id": product.id,
                             "transaction_date": order.purchase_date,
                             "company_id": self.env.company.id,
                         }
@@ -354,7 +354,7 @@ class ProductPurchaseOrderLine(models.Model):
                     #     }
                     # )
 
-                    product.stock_quantity += (
+                    product.quantity += (
                         line.quantity
                     )  # ✅ Increase stock quantity
         except Exception as e:
@@ -392,7 +392,7 @@ class ProductPurchaseOrderLine(models.Model):
 
                     # Validate against negative stock
                     if quantity_diff < 0:
-                        available_stock = record.product_id.stock_quantity
+                        available_stock = record.product_id.quantity
                         if available_stock < abs(quantity_diff):
                             raise ValidationError(
                                 f"Cannot reduce quantity. Available stock for product '{record.product_id.name}' is "
@@ -405,7 +405,7 @@ class ProductPurchaseOrderLine(models.Model):
                     new_quantity = vals.get("quantity", old_quantity)
                     quantity_diff = new_quantity - old_quantity
                     if quantity_diff != 0:
-                        record.product_id.stock_quantity += quantity_diff
+                        record.product_id.quantity += quantity_diff
 
                     # Update related transaction_bookingline(s)
                     related_lines = self.env["idil.transaction_bookingline"].search(
@@ -496,7 +496,7 @@ class ProductPurchaseOrderLine(models.Model):
             with self.env.cr.savepoint():
                 for record in self:
                     # Check if product has enough stock to reverse
-                    available_qty = record.product_id.stock_quantity
+                    available_qty = record.product_id.quantity
                     if available_qty < record.quantity:
                         raise ValidationError(
                             f"Cannot delete line for product '{record.product_id.name}' because "
@@ -504,7 +504,7 @@ class ProductPurchaseOrderLine(models.Model):
                         )
 
                     # 1. Decrease stock
-                    record.product_id.stock_quantity -= record.quantity
+                    record.product_id.quantity -= record.quantity
 
                     # 2. Delete related transaction_bookingline(s)
                     related_lines = self.env["idil.transaction_bookingline"].search(

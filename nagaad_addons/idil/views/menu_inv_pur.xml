@@ -26,6 +26,10 @@
               action="action_item_category"
               sequence="4"/>
 
+    <menuitem id="menu_idil_product_service"
+              name="Product / Service"
+              parent="menu_inv_purchase_root"
+              action="action_idil_product_service"/>
 
     <menuitem id="menu_idil_vendors"
               name="Vendors"

@@ -328,6 +328,9 @@ class TransactionBookingline(models.Model):
     product_id = fields.Many2one('my_product.product', string='Product',
                                  domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
 
+    product_service_id = fields.Many2one('idil.product.service', string='Product/Service',
+                                 domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
+
     account_number = fields.Many2one(
         'idil.chart.account', string='Account Number', required=True
     )
