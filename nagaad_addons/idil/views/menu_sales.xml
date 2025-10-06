@@ -36,11 +36,13 @@
               action="action_idil_receipt_bulk_payment"
               sequence="5"/>
 
+
+
     <menuitem id="menu_idil_customer_sales_return"
               name="Sales Return"
               parent="menu_sales_receipt_root"
               action="action_customer_sale_return"
-              sequence="6"/>
+              sequence="7"/>
 
 
     <menuitem id="menu_idil_customer_report"
@@ -48,5 +50,5 @@
               parent="menu_sales_receipt_root"
               action="action_customer_sales_report_wizard"
 
-              sequence="7"/>
+              sequence="8"/>
 </odoo>

@@ -29,7 +29,8 @@ class VendorBulkPayment(models.Model):
     cash_account_id = fields.Many2one(
         'idil.chart.account',
         string='Select Payment Account',
-        domain=[('account_type', '=', 'cash'),('company_id', '=', company_id)],  # ✅ filter vendors by company
+
+        domain="[('account_type', '=', 'cash'), ('company_id', '=', company_id)]",  # ✅ filter vendors by company
         help="Select the cash account for transactions."
     )
     amount_paying = fields.Float(string='Total Amount Paying', required=True)

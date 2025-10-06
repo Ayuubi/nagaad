@@ -16,4 +16,5 @@
             parent="menu_idil_waiter_management_root"
             action="action_waiter_bulk_payment"
             sequence="2"/>
+
 </odoo>

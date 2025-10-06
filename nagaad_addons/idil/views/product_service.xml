@@ -7,9 +7,7 @@
             <tree>
                 <field name="company_id"/>
                 <field name="item_type"/>
-
                 <field name="image" widget="image" options="{'size': (20, 20)}"/> <!-- Adjust size here -->
-
                 <field name="name"/>
                 <field name="sale_price"/>
                 <field name="cost"/>
