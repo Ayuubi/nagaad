@@ -7,7 +7,7 @@
     'depends': ['mail', 'point_of_sale', 'base', 'web'],
     'application': True,
     'sequence': -100,
-    'author': 'oneMore',
+    'author': 'pub',
 
     'assets': {
         'web.assets_common': [
