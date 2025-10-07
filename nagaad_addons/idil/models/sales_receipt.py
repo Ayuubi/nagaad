@@ -35,6 +35,12 @@ class SalesReceipt(models.Model):
         ondelete="cascade",
         domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
     )
+    sales_order_id = fields.Many2one(
+        "idil.sale.order",
+        string="Sale Order",
+        index=True,
+        ondelete="cascade",  # <--- THIS IS THE KEY!
+    )
 
     receipt_date = fields.Datetime(
         string="Receipt Date", default=fields.Datetime.now, required=True
