@@ -180,26 +180,16 @@ class CustomerSaleOrder(models.Model):
 
     @api.model
     def create(self, vals):
+        # pick company for sequence (supports multi-company)
+        seq_company_id = vals.get('company_id') or self.env.company.id
+        if vals.get('name', 'New') in (False, '/', 'New'):
+            vals['name'] = self.env['ir.sequence'] \
+                               .with_company(seq_company_id) \
+                               .next_by_code('idil.customer.sale.order') or 'New'
+        new_order = super().create(vals)
 
-        # Proceed with creating the SaleOrder with the updated vals
-        new_order = super(CustomerSaleOrder, self).create(vals)
-
-        # Step 3: Create product movements for each order line
-        # for line in new_order.order_lines:
-        #     self.env["idil.product.movement"].create(
-        #         {
-        #             "product_id": line.product_id.id,
-        #             "movement_type": "out",
-        #             "quantity": line.quantity * -1,
-        #             "date": fields.Datetime.now(),
-        #             "source_document": new_order.name,
-        #             "customer_id": new_order.customer_id.id,
-        #         }
-        #     )
-
-        # Step 4: Book accounting entries for the new order
+        # your existing post-create logic
         new_order.book_accounting_entry()
-
         return new_order
 
 
@@ -268,6 +258,7 @@ class CustomerSaleOrder(models.Model):
                 self.env["idil.sales.receipt"].create(
                     {
                         "cusotmer_sale_order_id": order.id,
+
                         "due_amount": order.order_total,
                         "paid_amount": 0,
                         "remaining_amount": order.order_total,

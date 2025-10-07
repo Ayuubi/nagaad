@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import models, fields
 from odoo.exceptions import UserError
 
 
@@ -7,18 +7,6 @@ class SalesReceipt(models.Model):
     _description = "Sales Receipt"
     _order = "id desc"
 
-    # sales_order_id = fields.Many2one(
-    #     "idil.sale.order",
-    #     string="Sale Order",
-    #     ondelete="cascade",  # <--- THIS IS THE KEY!
-    # )
-    #
-    # salesperson_id = fields.Many2one(
-    #     "idil.sales.sales_personnel",
-    #     string="Salesperson",
-    #     required=False,
-    # )
-    # 👇 new field for multi-company
     company_id = fields.Many2one(
         'res.company',
         string='Company',
@@ -34,12 +22,6 @@ class SalesReceipt(models.Model):
         string="Customer Sale Order",
         ondelete="cascade",
         domain=lambda self: [('company_id', 'in', self.env.companies.ids)]
-    )
-    sales_order_id = fields.Many2one(
-        "idil.sale.order",
-        string="Sale Order",
-        index=True,
-        ondelete="cascade",  # <--- THIS IS THE KEY!
     )
 
     receipt_date = fields.Datetime(
@@ -103,13 +85,7 @@ class SalesReceipt(models.Model):
                 raise UserError("You cannot pay more than the remaining due amount.")
 
             # Validate payment currency consistency
-            if record.sales_order_id:
-                expected_currency = (
-                    record.sales_order_id.sales_person_id.account_receivable_id.currency_id
-                )
-                entity = f"Salesperson {record.sales_order_id.sales_person_id.name}"
-
-            elif record.cusotmer_sale_order_id:
+            if record.cusotmer_sale_order_id:
                 expected_currency = record.customer_id.account_receivable_id.currency_id
                 entity = f"Customer {record.customer_id.name}"
 
@@ -139,12 +115,7 @@ class SalesReceipt(models.Model):
             record.remaining_amount -= record.amount_paying
 
             # Determine the correct A/R account based on the type of order or opening balance
-            if record.sales_order_id:
-                ar_account_id = (
-                    record.sales_order_id.sales_person_id.account_receivable_id
-                )
-                order_name = record.sales_order_id.name
-            elif record.cusotmer_sale_order_id:
+            if record.cusotmer_sale_order_id:
                 ar_account_id = record.customer_id.account_receivable_id
                 order_name = record.cusotmer_sale_order_id.name
             elif record.sales_opening_balance_id and record.salesperson_id:
@@ -170,12 +141,12 @@ class SalesReceipt(models.Model):
             # Create a transaction booking
             transaction_booking = self.env["idil.transaction_booking"].create(
                 {
-                    "order_number": record.sales_order_id.name,
+                    "order_number": record.cusotmer_sale_order_id.name,
                     "trx_source_id": trx_source.id,
                     "customer_id": record.customer_id.id,
                     "reffno": order_name,  # Use the Sale Order name as reference
                     "payment_method": "other",
-                    "sale_order_id": record.sales_order_id.id,
+                    "bank_reff": 0,
                     "pos_payment_method": False,  # Update if necessary
                     "payment_status": (
                         "paid" if record.remaining_amount <= 0 else "partial_paid"
@@ -201,8 +172,9 @@ class SalesReceipt(models.Model):
                 {
                     "transaction_booking_id": transaction_booking.id,
                     "transaction_type": "dr",
-                    "description": f"Receipt -- {record.cusotmer_sale_order_id.name if record.cusotmer_sale_order_id else record.sales_order_id.name}",
+                    "description": f"Receipt -- {record.cusotmer_sale_order_id.name}",
                     "account_number": record.payment_account.id,
+                    "bank_reff": 0,
                     "dr_amount": record.amount_paying,
                     "cr_amount": 0,
                     "transaction_date": fields.Datetime.now(),
@@ -214,8 +186,9 @@ class SalesReceipt(models.Model):
             self.env["idil.transaction_bookingline"].create(
                 {
                     "transaction_booking_id": transaction_booking.id,
+                    "bank_reff": 0,
                     "transaction_type": "cr",
-                    "description": f"Receipt -- {record.cusotmer_sale_order_id.name if record.cusotmer_sale_order_id else record.sales_order_id.name}",
+                    "description": f"Receipt -- {record.cusotmer_sale_order_id.name}",
                     "account_number": ar_account_id.id,
                     "dr_amount": 0,
                     "cr_amount": record.amount_paying,
@@ -237,33 +210,6 @@ class SalesReceipt(models.Model):
                     "paid_amount": record.amount_paying,
                 }
             )
-
-            # Only create salesperson transaction if the record is for a salesperson (from sale order OR opening balance)
-            if record.sales_order_id:
-                self.env["idil.salesperson.transaction"].create(
-                    {
-                        "sales_person_id": record.sales_order_id.sales_person_id.id,
-                        "date": fields.Date.today(),
-                        "sales_payment_id": payment.id,
-                        "order_id": record.sales_order_id.id,
-                        "transaction_type": "in",
-                        "amount": record.amount_paying,
-                        "description": f"Sales Payment Amount for - Receipt ID ({record.id}) - with Order name -- {record.sales_order_id.name}",
-                    }
-                )
-            elif record.sales_opening_balance_id and record.salesperson_id:
-                self.env["idil.salesperson.transaction"].create(
-                    {
-                        "sales_person_id": record.salesperson_id.id,
-                        "date": fields.Date.today(),
-                        "sales_payment_id": payment.id,
-                        "order_id": False,  # No order_id for opening balance
-                        "transaction_type": "in",
-                        "amount": record.amount_paying,
-                        "description": f"Opening Balance Payment Amount for --  ({record.salesperson_id.name}) - Receipt ID ({record.id})  - with ReffNo# -- {record.sales_opening_balance_id.name}",
-                    }
-                )
-
             # If the receipt is for a customer, create a payment record and update sale order payment tracking
             if record.cusotmer_sale_order_id:
                 # Create customer sale payment entry
@@ -276,6 +222,7 @@ class SalesReceipt(models.Model):
                         "payment_method": "cash",  # or use dynamic logic to determine the method
                         "account_id": record.payment_account.id,
                         "amount": record.amount_paying,
+                        "currency_id": record.payment_account.currency_id.id,  # ✅ add this
                     }
                 )
 
@@ -291,6 +238,7 @@ class SalesReceipt(models.Model):
                         "payment_method": "cash",  # or use dynamic logic to determine the method
                         "account_id": record.payment_account.id,
                         "amount": record.amount_paying,
+                        "currency_id": record.payment_account.currency_id.id,  # ✅ add this
                     }
                 )
 
@@ -308,15 +256,6 @@ class SalesReceipt(models.Model):
     def unlink(self):
         messages = []
         for receipt in self:
-            # Block deletion if linked to sales order
-            if receipt.sales_order_id and receipt.sales_order_id.exists():
-                order_name = (
-                        receipt.sales_order_id.display_name
-                        or receipt.sales_order_id.name
-                        or "Unknown"
-                )
-                messages.append(f"- Sales Order: {order_name}")
-
             # Block deletion if linked to customer sale order
             if (
                     receipt.cusotmer_sale_order_id
