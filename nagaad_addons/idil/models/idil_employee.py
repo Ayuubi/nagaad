@@ -41,6 +41,14 @@ class IdilEmployee(models.Model):
         ('widower', 'Widower'),
         ('divorced', 'Divorced')
     ], string='Marital Status', tracking=True)
+
+    access_type = fields.Selection([
+        ('waiter', 'Waiter'),
+        ('kitchen', 'Kitchen'),
+        ('manager', 'Manager'),
+        ('owner', 'Owner')
+    ], string='Access Type', tracking=True)
+
     employee_type = fields.Selection([
         ('employee', 'Employee'),
         ('student', 'Student'),
@@ -48,6 +56,7 @@ class IdilEmployee(models.Model):
         ('contractor', 'Contractor'),
         ('freelance', 'Freelancer')
     ], string='Employee Type', tracking=True)
+
     pin = fields.Char(string='PIN', copy=False,
                       help='PIN used to Check In/Out in the Kiosk Mode of the Attendance application '
                            '(if enabled in Configuration) and to change the cashier in the Point of Sale application.',
@@ -219,3 +228,9 @@ class HrEmployeeInherit(models.Model):
     _inherit = 'hr.employee'
 
     idil_staff_id = fields.Integer(string="IDIL Staff ID")
+
+
+class HREmployee(models.Model):
+    _inherit = 'hr.employee'
+
+    merchant = fields.Char(string="Merchant")
