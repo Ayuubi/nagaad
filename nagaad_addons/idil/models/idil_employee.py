@@ -46,7 +46,8 @@ class IdilEmployee(models.Model):
         ('waiter', 'Waiter'),
         ('kitchen', 'Kitchen'),
         ('manager', 'Manager'),
-        ('owner', 'Owner')
+        ('owner', 'Owner'),
+        ('event', 'Event')
     ], string='Access Type', tracking=True)
 
     employee_type = fields.Selection([
