@@ -3,7 +3,7 @@
     'version': '1.0.0',
     'category': 'nagaad',
     'summary': 'Nagaad Management System',
-    'description': "Mohamed Dahir",
+    'description': "MDC",
     'depends': ['mail', 'point_of_sale', 'base', 'web'],
     'application': True,
     'sequence': -100,
