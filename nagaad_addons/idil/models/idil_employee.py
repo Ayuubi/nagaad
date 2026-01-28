@@ -113,10 +113,11 @@ class IdilEmployee(models.Model):
     user_id = fields.Many2one('res.users', string='User', help='Link to the related Odoo user', tracking=True,
                               domain=lambda self: [('company_id', 'in', self.env.companies.ids)])
 
+
     receivable_account_id = fields.Many2one(
         'idil.chart.account',
         string="Receivable Account",
-        domain=[('account_type', '=', 'receivable'), ('company_id', '=', company_id)],
+        domain="[('account_type','=','receivable'), ('company_id','=', company_id)]",
         help="Debit goes here when an order is confirmed."
     )
     
