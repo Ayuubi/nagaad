@@ -76,3 +76,4 @@ from . import ticket_reservation
 from . import visa_reservation
 from . import idil_invoice
 from . import product_service
+from . import mobile_device
