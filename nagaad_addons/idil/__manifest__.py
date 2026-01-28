@@ -133,7 +133,7 @@
         'views/idil_invoice_views.xml',
         'views/product_service.xml',
 
-        'views/mobile_device_view.xml',
+
         'views/menu_hr.xml',
         'views/menu_hall.xml',
         'views/menu_store.xml',
