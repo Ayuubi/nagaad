@@ -104,6 +104,12 @@
                                 <group>
                                     <group string="Authentication">
                                         <field name="pin"/>
+
+                                        <field name="allow_delete_order"/>
+                                        <field name="allow_delete_line"/>
+                                        <field name="allow_print_bill"/>
+                                        <field name="allow_reduce_qty"/>
+
                                         <field name="maker_checker"/>
                                         <field name="user_id"/>
                                         <field name="access_type"/>

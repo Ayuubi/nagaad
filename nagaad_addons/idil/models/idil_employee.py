@@ -119,6 +119,12 @@ class IdilEmployee(models.Model):
         domain=[('account_type', '=', 'receivable'), ('company_id', '=', company_id)],
         help="Debit goes here when an order is confirmed."
     )
+    
+    # 🔹 Permissions
+    allow_delete_order = fields.Boolean(string="Allow Delete Order", default=False)
+    allow_delete_line = fields.Boolean(string="Allow Delete Line", default=False)
+    allow_reduce_qty = fields.Boolean(string="Allow Reduce Qty", default=False)
+    allow_print_bill = fields.Boolean(string="Allow Print Bill", default=True)
 
     @api.depends('contract_start_date', 'contract_end_date')
     def _compute_status(self):
@@ -235,3 +241,10 @@ class HREmployee(models.Model):
     _inherit = 'hr.employee'
 
     merchant = fields.Char(string="Merchant")
+
+
+class HrEmployeePublic(models.Model):
+    _inherit = "hr.employee.public"
+
+    # redefine same field name but NOT stored (so no DB column is required)
+    disable_payment = fields.Boolean(store=False, readonly=True)
