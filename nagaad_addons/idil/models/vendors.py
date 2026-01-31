@@ -23,6 +23,14 @@ class Vendor(models.Model):
         domain=lambda self: [('id', 'in', self.env.companies.ids)],  # only allowed companies
         index=True
     )
+
+    currency_id = fields.Many2one(
+        "res.currency",
+        string="Currency",
+        required=True,
+        default=lambda self: self.env.company.currency_id.id,
+    )
+
     # Basic Details
     name = fields.Char(string='Name', required=True, tracking=True)
     phone = fields.Char(string='Phone', required=True, tracking=True)
