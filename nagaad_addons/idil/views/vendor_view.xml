@@ -4,7 +4,7 @@
         <field name="name">idil.vendor.tree</field>
         <field name="model">idil.vendor.registration</field>
         <field name="arch" type="xml">
-            <tree string="Vendor List" decoration-muted="not active">
+            <tree string="Vendor List" decoration-muted="not active" export_xlsx="false" import="false">
 
                 <field name="company_id"/>
                 <field name="image" widget="image" options="{'size': [20, 20]}" class="oe_avatar"/>
@@ -78,6 +78,7 @@
                         <!-- Accounting Page -->
                         <page string="Accounting">
                             <group>
+                                <field name="currency_id" invisible="1"/>
                                 <field name="account_payable_id"/>
                                 
                             </group>
