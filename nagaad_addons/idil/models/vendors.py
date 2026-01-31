@@ -35,14 +35,14 @@ class Vendor(models.Model):
     active = fields.Boolean(string='Active', default=True, tracking=True)
     image = fields.Binary(string='Image')
 
-    # Accounting Section
     account_payable_id = fields.Many2one(
-        'idil.chart.account',
-        string='Account Payable',
-        domain=[('account_type', '=', 'payable'), ('currency_id', '=', 1), ('company_id', '=', company_id)],
-        help="This account will be used instead of the default one as the payable account for the current vendor",
-        required=True
+        "idil.chart.account",
+        string="Account Payable",
+        domain="[('account_type','=','payable'), ('currency_id','=', currency_id), ('company_id','=', company_id)]",
+        required=True,
     )
+
+
     account_receivable_id = fields.Many2one(
         'idil.chart.account',
         string='Account Receivable',
