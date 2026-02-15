@@ -1,11 +1,18 @@
 from odoo import http
 from odoo.http import request
 import json
+import logging
 
 
 class NagaadApi(http.Controller):
 
     def _get_uid_from_request(self, params):
+        # 0. Trusted user_id param (from mobile app secure storage)
+        # This is critical for session recovery when cookies are lost
+        uid_param = params.get('user_id')
+        if uid_param:
+            return int(uid_param)
+
         # 1. Try standard request session
         uid = request.session.uid
         if uid:
@@ -25,8 +32,14 @@ class NagaadApi(http.Controller):
     # 1. THE BIG FETCH: Get all orders and products in one go
     @http.route('/nagaad/api/get_waiter_orders', type='json', auth='none', csrf=False, cors='*')
     def get_waiter_orders(self, **params):
+        _logger = logging.getLogger(__name__)
+        _logger.warning("🔍 VIEW SCREEN PARAMS: %s", params)
+        
         uid = self._get_uid_from_request(params)
+        _logger.warning("🔍 VIEW SCREEN RESOLVED UID: %s", uid)
+        
         if not uid:
+            _logger.error("❌ Session expired check failed")
             return {'status': 'error', 'message': 'Session expired'}
 
         # Fetch Orders for this waiter
@@ -45,7 +58,7 @@ class NagaadApi(http.Controller):
 
         lines = request.env['idil.customer.place.order.line'].sudo().search_read(
             [('id', 'in', all_line_ids)],
-            ['id', 'order_id', 'product_id', 'quantity', 'sale_price', 'status', 'line_total', 'menu_name']
+            ['id', 'order_id', 'product_id', 'quantity', 'sale_price', 'status', 'line_total', 'menu_name', 'kitchen_printed_qty']
         )
 
         line_map = {}
@@ -80,7 +93,19 @@ class NagaadApi(http.Controller):
         # ...
         if line.order_id.state != 'draft':
             return {'status': 'error', 'message': 'Confirmed orders cannot be modified.'}
-        line.write({'quantity': float(quantity)})
+
+        new_qty = float(quantity)
+        old_qty = float(line.quantity or 0.0)
+
+        if new_qty < old_qty:
+            # Rule 4: Reduction resets pending print
+            line.write({'quantity': new_qty, 'kitchen_printed_qty': 0.0, 'status': 'normal'})
+        elif new_qty > old_qty:
+            # Rule 3: Increase accumulates diff
+            diff = new_qty - old_qty
+            new_pending = (line.kitchen_printed_qty or 0.0) + diff
+            line.write({'quantity': new_qty, 'kitchen_printed_qty': new_pending, 'status': 'add'})
+        
         return {'status': 'success'}
 
     # 3. DELETE ITEM: Only if draft
@@ -96,21 +121,3 @@ class NagaadApi(http.Controller):
         return {'status': 'success'}
 
     # 4. ADD ITEM: Only if draft
-    @http.route('/nagaad/api/add_order_line', type='json', auth='none', csrf=False, cors='*')
-    def add_order_line(self, order_id, product_id, quantity, **params):
-        uid = self._get_uid_from_request(params)
-        if not uid:
-            return {'status': 'error', 'message': 'Session expired'}
-        order = request.env['idil.customer.place.order'].sudo().browse(order_id)
-        if order.state != 'draft':
-            return {'status': 'error', 'message': 'Cannot add items to a confirmed order.'}
-        product = request.env['my_product.product'].sudo().browse(product_id)
-        request.env['idil.customer.place.order.line'].sudo().create({
-            'order_id': order_id,
-            'product_id': product_id,
-            'quantity': float(quantity),
-            'sale_price': product.sale_price,
-            'menu_id': product.pos_categ_ids[0].id if product.pos_categ_ids else False,
-            'status': 'add'
-        })
-        return {'status': 'success'}
