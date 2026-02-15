@@ -1,12 +1,15 @@
-# models/customer_place_order.py
-from odoo import models, fields, api
+import logging
+
+from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
+
+_logger = logging.getLogger(__name__)
 
 
 class CustomerPlaceOrder(models.Model):
     _name = "idil.customer.place.order"
     _description = "Customer Place Order"
-    _inherit = ["mail.thread", "mail.activity.mixin"]   # ⬅️ add this
+    _inherit = ["mail.thread", "mail.activity.mixin"]  # ⬅️ add this
 
     _order = "id desc"
 
@@ -16,7 +19,7 @@ class CustomerPlaceOrder(models.Model):
         default=lambda self: self._generate_order_reference(),
     )
     customer_id = fields.Many2one(
-        "idil.customer.registration", string="Customer", required=True
+        "idil.customer.registration", string="Customer"
     )
     order_date = fields.Datetime(string="Order Date", default=fields.Datetime.now)
 
@@ -48,7 +51,7 @@ class CustomerPlaceOrder(models.Model):
         "idil.customer.place.order.line", "order_id", string="Order Lines"
     )
     state = fields.Selection(
-        [("draft", "Draft"), ("confirmed", "Confirmed"), ("cancel", "Cancelled") ,("closed", "Closed") ],
+        [("draft", "Draft"), ("confirmed", "Confirmed"), ("cancel", "Cancelled"), ("closed", "Closed")],
         default="draft",
     )
 
@@ -68,7 +71,7 @@ class CustomerPlaceOrder(models.Model):
         'res.company',
         default=lambda self: self.env.company,
         string="Company",
-        readonly=True
+        required=True,
     )
     currency_id = fields.Many2one(
         'res.currency',
@@ -156,17 +159,7 @@ class CustomerPlaceOrder(models.Model):
 
     @api.model
     def create(self, vals):
-        # Prevent multiple concurrent drafts per customer
-        # existing = self.search(
-        #     [("customer_id", "=", vals.get("customer_id")), ("state", "=", "draft")],
-        #     limit=1,
-        # )
-        # if existing:
-        #     raise UserError(
-        #         "This customer already has an active draft order. "
-        #         "Please edit the existing order or change its state first."
-        #     )
-        # Ensure waiter defaults if client didn't pass it
+
         if not vals.get("waiter_id"):
             vals["waiter_id"] = self.env.user.id
         # Auto-clear table if takeaway
@@ -269,7 +262,7 @@ class CustomerPlaceOrder(models.Model):
             order.write(
                 {
                     "state": "confirmed",
-                    "confirmed_by": self.env.uid,
+                    "confirmed_by": order.create_uid.id,
                     "confirmed_at": fields.Datetime.now(),
                 }
             )
@@ -286,6 +279,9 @@ class CustomerPlaceOrderLine(models.Model):
     )
     product_id = fields.Many2one("my_product.product", string="Product", required=True)
     quantity = fields.Float(string="Quantity", default=1.0)
+
+    # Track what has been printed to kitchen
+    kitchen_printed_qty = fields.Float(string="Printed Qty", default=0.0)
 
     # NEW: snapshot menu/category (first POS category of the product)
     menu_id = fields.Many2one(
@@ -386,20 +382,73 @@ class CustomerPlaceOrderLine(models.Model):
         return super().create(vals)
 
     def write(self, vals):
-        # If product changed and sale_price not explicitly provided, resnap it
+        # 1. Block editing if order is not draft
+        for line in self:
+            if line.order_id.state != "draft":
+                raise UserError("Cannot edit confirmed or closed orders.")
+
+        # 2. Validate quantity reduction
+        if "quantity" in vals and not self.env.context.get("skip_qty_security"):
+            new_qty = float(vals.get("quantity") or 0.0)
+            for line in self:
+                old_qty = float(line.quantity or 0.0)
+
+                # Only check when reducing
+                if new_qty < old_qty:
+                    _logger.warning("MODEL CHECK: uid=%s login=%s action=%s", self.env.uid, self.env.user.login,
+                                    "write/reduce_qty")
+                    emp = line._require_maker_checker()
+                    if not emp.allow_reduce_qty:
+                        raise UserError("Permission Denied: You are not allowed to reduce quantity.")
+
+        # ✅ keep your existing logic below (product/menu snapshot)
         if "product_id" in vals and "sale_price" not in vals:
             prod = self.env["my_product.product"].browse(vals["product_id"])
             vals["sale_price"] = prod.sale_price or 0.0
-            # refresh menu snapshot if client didn't send it
             if "menu_id" not in vals:
                 first_cat = (prod.pos_categ_ids and prod.pos_categ_ids[:1]) or False
                 vals["menu_id"] = first_cat and first_cat.id or False
                 if vals["menu_id"]:
                     vals["menu_name"] = self.env["pos.category"].browse(vals["menu_id"]).name
 
-        # If menu_id changed but no menu_name, keep snapshot
         if "menu_id" in vals and "menu_name" not in vals and vals["menu_id"]:
             cat = self.env["pos.category"].browse(vals["menu_id"])
             vals["menu_name"] = cat.name
 
         return super().write(vals)
+
+    def unlink(self):
+        for line in self:
+            if line.order_id.state != "draft":
+                raise UserError("Cannot delete items from confirmed orders.")
+
+            _logger.warning("MODEL CHECK: uid=%s login=%s action=%s", self.env.uid, self.env.user.login, "unlink")
+            emp = line._require_maker_checker()
+            if not emp.allow_delete_line:
+                raise UserError("Permission Denied: You are not allowed to delete items.")
+
+        return super().unlink()
+
+    def _get_employee(self):
+        uid = self.env.uid
+        if not uid:
+            return None
+        # instructed: Search without sudo
+        emp = self.env["idil.employee"].search([
+            ("user_id", "=", uid),
+            ("maker_checker", "=", True)
+        ], limit=1)
+        if not emp:
+            emp = self.env["idil.employee"].search([
+                ("user_id", "=", uid)
+            ], order="id desc", limit=1)
+        return emp
+
+    def _require_maker_checker(self):
+        uid = self.env.uid
+        emp = self._get_employee()
+        if not emp:
+            raise UserError(f"Permission Denied: No employee profile linked to your user (UID: {uid}).")
+        if not emp.maker_checker:
+            raise UserError(f"Permission Denied: Supervisor role required for {emp.name} (UID: {uid}).")
+        return emp
