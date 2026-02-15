@@ -6,6 +6,8 @@
             <form string="Customer Place Order">
                 <sheet>
                     <group>
+
+
                         <field name="customer_id"/>
                         <field name="order_date"/>
                         <field name="waiter_id"/>
@@ -24,6 +26,8 @@
                                     <field name="product_id"/>
                                     <field name="currency_id"/>
                                     <field name="quantity"/>
+                                    <field name="kitchen_printed_qty"/>
+
                                     <field name="menu_id"/>
                                     <field name="sale_price" sum="total"/>
                                     <field name="line_total" sum="total"/>
@@ -43,7 +47,8 @@
         <field name="name">idil.customer.place.order.tree</field>
         <field name="model">idil.customer.place.order</field>
         <field name="arch" type="xml">
-            <tree string="Customer Orders">
+            <tree string="Customer Orders" export_xlsx="false" import="false">
+                <field name="company_id"/>
                 <field name="sl"/>
                 <field name="order_date"/>
                 <field name="customer_id"/>
