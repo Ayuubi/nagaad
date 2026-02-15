@@ -132,6 +132,7 @@
         'reports/idil_invoice_qweb.xml',
         'views/idil_invoice_views.xml',
         'views/product_service.xml',
+        'views/mobile_device_view.xml',
 
 
         'views/menu_hr.xml',

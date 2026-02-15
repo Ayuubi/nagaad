@@ -1,0 +1,84 @@
+  <odoo>
+    <!-- Tree View -->
+    <record id="view_idil_mobile_device_tree" model="ir.ui.view">
+        <field name="name">idil.mobile.device.tree</field>
+        <field name="model">idil.mobile.device</field>
+        <field name="arch" type="xml">
+            <tree string="Mobile Devices" decoration-danger="state=='blocked'">
+                <field name="name"/>
+                <field name="user_id"/>
+                <field name="platform"/>
+                <field name="login_count"/>
+                <field name="last_login"/>
+                <field name="last_lat" optional="hide"/>
+                <field name="last_long" optional="hide"/>
+                <field name="ip_address"/>
+                <field name="state" widget="badge" decoration-success="state == 'allowed'" decoration-danger="state == 'blocked'"/>
+                <button name="action_block" string="Block" type="object" icon="fa-ban" />
+                <button name="action_allow" string="Allow" type="object" icon="fa-check" />
+            </tree>
+        </field>
+    </record>
+
+
+    <record id="view_idil_mobile_device_form" model="ir.ui.view">
+        <field name="name">idil.mobile.device.form</field>
+        <field name="model">idil.mobile.device</field>
+        <field name="arch" type="xml">
+            <form string="Mobile Device">
+                <header>
+                    <button name="action_block" string="Block Device" type="object" class="oe_highlight"/>
+                    <button name="action_allow" string="Allow Device" type="object"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="device_id" readonly="1"/>
+                            <field name="user_id"/>
+                        </group>
+
+                        <group>
+                            <field name="platform"/>
+                            <field name="app_version"/>
+                            <field name="ip_address"/>
+                            <field name="last_login"/>
+                            <field name="login_count"/>
+                            <field name="last_lat"/>
+                            <field name="last_long"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Login History">
+                            <field name="log_ids" readonly="1">
+                                <tree>
+                                    <field name="login_time"/>
+                                    <field name="user_id"/>
+                                    <field name="ip_address"/>
+                                    <field name="platform"/>
+                                    <field name="lat" optional="hide"/>
+                                    <field name="long" optional="hide"/>
+                                    <field name="map_link" widget="url" text="View on Map"/>
+                                    <field name="app_version" optional="hide"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_idil_mobile_device" model="ir.actions.act_window">
+        <field name="name">Registered Devices</field>
+        <field name="res_model">idil.mobile.device</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+
+
+</odoo>

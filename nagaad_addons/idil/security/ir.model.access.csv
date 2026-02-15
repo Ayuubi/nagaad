@@ -106,3 +106,5 @@ idil.access_travel_visa_reservation,access_travel_visa_reservation,idil.model_tr
 idil.access_idil_invoice,access_idil_invoice,idil.model_idil_invoice,base.group_user,1,1,1,1
 idil.access_idil_invoice_line,access_idil_invoice_line,idil.model_idil_invoice_line,base.group_user,1,1,1,1
 idil.access_idil_product_service,access_idil_product_service,idil.model_idil_product_service,base.group_user,1,1,1,1
+idil.access_idil_mobile_device,access_idil_mobile_device,idil.model_idil_mobile_device,base.group_user,1,1,1,1
+idil.access_idil_mobile_device_log,access_idil_mobile_device_log,idil.model_idil_mobile_device_log,base.group_user,1,1,1,1
