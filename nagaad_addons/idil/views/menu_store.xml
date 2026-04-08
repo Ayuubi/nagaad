@@ -34,4 +34,12 @@
               parent="KitchenReports"
               sequence="1"
               action="action_kitchen_report_wizard"/>
+
+      <menuitem id="menu_kitchen_cooked_list_report_root"
+              name="Items Cooked Report"
+              parent="KitchenReports"
+              sequence="2"
+              action="action_list_of_items_cooked_report_wizard"/>
+
+
 </odoo>
