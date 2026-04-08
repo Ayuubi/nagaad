@@ -48,6 +48,7 @@ from . import vendor_statement_with_items
 from . import vendor_balance_list_report
 from . import report_stock_summary
 from . import report_vendor_summary
+from . import report_list_item_cooked
 from . import vendor_paymen_bulk
 from . import fixed_asset
 from . import kitchen_report

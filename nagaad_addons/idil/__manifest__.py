@@ -103,6 +103,7 @@
         'views/idil_hall_event_type.xml',
         'views/report_vendor_statement.xml',
         'views/report_vendor_statement_with_items.xml',
+        'views/report_list_of_items_cooked.xml',
         'views/vendor_balance_list_report.xml',
         'views/vendor_paymen_bulk.xml',
         'views/kitchen_report.xml',
