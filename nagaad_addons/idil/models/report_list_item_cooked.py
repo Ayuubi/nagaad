@@ -109,11 +109,12 @@ class Kitchen_ReportWizard(models.TransientModel):
 
         # New query
         transaction_query = """
+           
             SELECT 
                 i.name,
-                kc.cooked_qty,
-                kc.unit_price,
-                kc.cooked_amount
+                SUM(kc.cooked_qty) AS total_qty,
+                AVG(kc.unit_price) AS avg_unit_price,
+                SUM(kc.cooked_amount) AS total_amount
             FROM public.idil_kitchen_cook_line kc
             INNER JOIN public.idil_item i 
                 ON kc.item_id = i.id
@@ -121,7 +122,9 @@ class Kitchen_ReportWizard(models.TransientModel):
                 ON kc.cook_process_id = kcp.id
             WHERE kcp.state = 'processed'
               AND kcp.process_date BETWEEN %s AND %s
-            ORDER BY i.name
+            GROUP BY i.name
+            ORDER BY i.name;
+
         """
 
         self.env.cr.execute(transaction_query, (self.start_date, self.end_date))
