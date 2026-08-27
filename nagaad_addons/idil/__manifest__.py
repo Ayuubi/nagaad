@@ -1,8 +1,8 @@
 {
-    'name': 'nagaad',
+    'name': 'SamaanLink',
     'version': '1.0.0',
-    'category': 'nagaad',
-    'summary': 'Nagaad Management System',
+    'category': 'SamaanLink',
+    'summary': 'SamaanLink Management System',
     'description': "MDC",
     'depends': ['mail', 'point_of_sale', 'base', 'web'],
     'application': True,

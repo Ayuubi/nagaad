@@ -2,7 +2,7 @@
 class CustomWebClient extends WebClient {
     setup() {
         super.setup();
-        this.title.setParts({ zopenerp: "Nagaad" });
+        this.title.setParts({ zopenerp: "SamaanLink" });
     }
 }
 

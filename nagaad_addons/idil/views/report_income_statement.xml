@@ -2,7 +2,7 @@
     <template id="report_income_statement_template">
         <t t-call="web.external_layout">
             <div class="page">
-                <h2>NAGAAD Coffee, Restaurant, and Wedding Halls</h2>
+                <h2>SAMAANLINK Coffee, Restaurant, and Wedding Halls</h2>
                 <h3>For the Year Ended
                     <t t-esc="report_date"/>
                 </h3>

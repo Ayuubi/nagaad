@@ -3,7 +3,7 @@
     <template id="point_of_sale_index_inherit" inherit_id="point_of_sale.index">
         <!-- Change the page title -->
         <xpath expr="//title" position="replace">
-            <title>Nagaad POS</title>
+            <title>SamaanLink POS</title>
         </xpath>
 
         <!-- Update the favicon to use your custom logo -->

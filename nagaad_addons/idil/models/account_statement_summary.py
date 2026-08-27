@@ -198,7 +198,7 @@ class TransactionReportWizard(models.TransientModel):
         styles = getSampleStyleSheet()
         title_style = styles["Title"]
         title_style.alignment = 1  # Center alignment
-        title = Paragraph("<b>Nagaad Account Statement's -- Summary Report</b>", title_style)
+        title = Paragraph("<b>SamaanLink Account Statement's -- Summary Report</b>", title_style)
 
         subtitle_style = styles["Normal"]
         subtitle_style.alignment = 1
