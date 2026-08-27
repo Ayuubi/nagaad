@@ -89,6 +89,7 @@
         'views/idil_hall_dashboard_view.xml',
         'views/balance_sheet_report.xml',
         'views/custom_pos_template.xml',
+        'views/custom_login_template.xml',
         'views/report_account_statements.xml',
         'views/report_account_statement_summary.xml',
         'views/report_commission.xml',
