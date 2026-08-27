@@ -34,12 +34,10 @@
         </t>
     </template>
 
-    <report
-            id="report_payment_slip"
-            model="idil.employee.salary"
-            string="Payment Slip"
-            report_type="qweb-pdf"
-            file="idil.payment_slip_template"
-            name="idil.payment_slip_template"
-    />
+    <record id="report_payment_slip" model="ir.actions.report">
+        <field name="name">Payment Slip</field>
+        <field name="model">idil.employee.salary</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">idil.payment_slip_template</field>
+    </record>
 </odoo>
